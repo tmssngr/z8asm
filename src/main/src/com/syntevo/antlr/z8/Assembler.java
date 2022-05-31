@@ -7,10 +7,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author Thomas Singer
@@ -31,6 +28,7 @@ public final class Assembler extends Z8AsmBaseListener {
 	private int pc;
 	private boolean abortForUnknownLabel;
 	private boolean details;
+	private boolean ignoreOutput;
 
 	// Setup ==================================================================
 
@@ -52,10 +50,19 @@ public final class Assembler extends Z8AsmBaseListener {
 	@Override
 	public void enterCommand(Z8AsmParser.CommandContext ctx) {
 		pc = output.getPc();
+		if (details) {
+			final int line = ctx.getStart().getLine();
+			System.out.println(line);
+		}
 	}
 
 	@Override
 	public void exitCommand(Z8AsmParser.CommandContext ctx) {
+		if (ignoreOutput) {
+			ignoreOutput = false;
+			return;
+		}
+
 		final int pc = output.getPc();
 		if (pc == this.pc) {
 			throw new IllegalStateException("command not processed " + ctx.getText());
@@ -84,9 +91,9 @@ public final class Assembler extends Z8AsmBaseListener {
 			return;
 		}
 
-		final TerminalNode stringNode = ctx.String();
-		if (stringNode != null) {
-			String text = stringNode.getText();
+		final TerminalNode lStringNode = ctx.LString();
+		if (lStringNode != null) {
+			String text = lStringNode.getText();
 			final boolean leadingLengthByte = text.startsWith("l") || text.startsWith("L");
 			if (leadingLengthByte) {
 				text = text.substring(1);
@@ -101,6 +108,18 @@ public final class Assembler extends Z8AsmBaseListener {
 
 				write(string.length());
 			}
+
+			for (int i = 0; i < string.length(); i++) {
+				write(string.charAt(i));
+			}
+
+			return;
+		}
+
+		final TerminalNode stringNode = ctx.String();
+		if (stringNode != null) {
+			final String text = stringNode.getText();
+			final String string = parseString(text, "\"", ctx);
 
 			for (int i = 0; i < string.length(); i++) {
 				write(string.charAt(i));
@@ -127,7 +146,20 @@ public final class Assembler extends Z8AsmBaseListener {
 	@Override
 	public void enterLabelDefinition(Z8AsmParser.LabelDefinitionContext ctx) {
 		final String label = ctx.Identifier().getText();
-		labels.put(label, output.getPc());
+		final int pc = output.getPc();
+		if (details) {
+			if (!new Formatter().format("M_%04X", pc).toString().equals(label)) {
+				System.err.println(ctx.getText());
+			}
+		}
+		labels.put(label, pc);
+	}
+
+	@Override
+	public void enterOrg(Z8AsmParser.OrgContext ctx) {
+		final int word = parseWord(ctx.Word());
+		output.setPc(word);
+		ignoreOutput = true;
 	}
 
 	@Override
@@ -213,11 +245,11 @@ public final class Assembler extends Z8AsmBaseListener {
 
 		final int pc = output.getPc() + 2;
 		final int delta = address - pc;
-		if (delta <= -127 || delta >= 128) {
+		if (!isValidJpDelta(delta)) {
 			throw new IllegalStateException(getPosition(ctx) + ": djnz needs to be replaced with dec & jp nz");
 		}
 
-		command2(register, 0x0A, delta);
+		command2(toByte(register, 0x0A), delta);
 	}
 
 	@Override
@@ -228,7 +260,7 @@ public final class Assembler extends Z8AsmBaseListener {
 			final TerminalNode wrNode = registerContext.WorkingRegister();
 			if (wrNode != null) {
 				final int register = parseWorkingRegister(wrNode);
-				write(register, 0x0E);
+				command1(toByte(register, 0x0E));
 				return;
 			}
 		}
@@ -250,10 +282,10 @@ public final class Assembler extends Z8AsmBaseListener {
 			if (sourceRegisterCtx != null) {
 				final int sourceRegister = parseRegister(sourceRegisterCtx);
 				if (isWorkingRegister(register)) {
-					command2(register, 0x08, sourceRegister);
+					command2(toByte(register, 0x08), sourceRegister);
 				}
 				else if (isWorkingRegister(sourceRegister)) {
-					command2(sourceRegister, 0x09, register);
+					command2(toByte(sourceRegister, 0x09), register);
 				}
 				else {
 					command3(0xE4, sourceRegister, register);
@@ -265,7 +297,7 @@ public final class Assembler extends Z8AsmBaseListener {
 			if (sourceIRegisterCtx != null) {
 				final int sourceRegister = parseRegister(sourceIRegisterCtx);
 				if (isWorkingRegister(register) && isWorkingRegister(sourceRegister)) {
-					command2w(0xE3, register, sourceRegister);
+					command2(0xE3, toByte(register, sourceRegister));
 				}
 				else {
 					command3(0xF5, register, sourceRegister);
@@ -278,7 +310,7 @@ public final class Assembler extends Z8AsmBaseListener {
 		if (valueNode != null) {
 			final int value = parseByte(valueNode);
 			if ((register & 0xF0) == WORKING_REGISTER_HIGH_NIBBLE) {
-				command2(register, 0x0C, value);
+				command2(toByte(register, 0x0C), value);
 			}
 			else {
 				command3(0xE6, register, value);
@@ -294,7 +326,7 @@ public final class Assembler extends Z8AsmBaseListener {
 		final int iregister = parseRegister(ctx.iregister());
 		final int register = parseRegister(ctx.register());
 		if (isWorkingRegister(iregister) && isWorkingRegister(register)) {
-			command2w(0xF3, iregister, register);
+			command2(0xF3, toByte(iregister, register));
 		}
 		else {
 			command3(0xE5, iregister, register);
@@ -305,42 +337,56 @@ public final class Assembler extends Z8AsmBaseListener {
 	public void enterLdc1(Z8AsmParser.Ldc1Context ctx) {
 		final int register = parseWorkingRegister(ctx.WorkingRegister());
 		final int sourceRegister = parseWorkingRegister(ctx.IWorkingRegisterPair());
-		command2w(0xC2, register, sourceRegister);
+		command2(0xC2, toByte(register, sourceRegister));
 	}
 
 	@Override
 	public void enterLdc2(Z8AsmParser.Ldc2Context ctx) {
 		final int register = parseWorkingRegister(ctx.IWorkingRegisterPair());
 		final int sourceRegister = parseWorkingRegister(ctx.WorkingRegister());
-		command2w(0xD2, sourceRegister, register);
+		command2(0xD2, toByte(sourceRegister, register));
 	}
 
 	@Override
 	public void enterLdci1(Z8AsmParser.Ldci1Context ctx) {
 		final int register = parseWorkingRegister(ctx.IWorkingRegister());
 		final int sourceRegister = parseWorkingRegister(ctx.IWorkingRegisterPair());
-		command2w(0xC3, register, sourceRegister);
+		command2(0xC3, toByte(register, sourceRegister));
 	}
 
 	@Override
 	public void enterLdci2(Z8AsmParser.Ldci2Context ctx) {
 		final int register = parseWorkingRegister(ctx.IWorkingRegisterPair());
 		final int sourceRegister = parseWorkingRegister(ctx.IWorkingRegister());
-		command2w(0xD3, sourceRegister, register);
+		command2(0xD3, toByte(sourceRegister, register));
 	}
 
 	@Override
 	public void enterLde1(Z8AsmParser.Lde1Context ctx) {
 		final int register = parseWorkingRegister(ctx.WorkingRegister());
 		final int sourceRegister = parseWorkingRegister(ctx.IWorkingRegisterPair());
-		command2w(0x82, register, sourceRegister);
+		command2(0x82, toByte(register, sourceRegister));
 	}
 
 	@Override
 	public void enterLde2(Z8AsmParser.Lde2Context ctx) {
 		final int register = parseWorkingRegister(ctx.IWorkingRegisterPair());
 		final int sourceRegister = parseWorkingRegister(ctx.WorkingRegister());
-		command2w(0x92, sourceRegister, register);
+		command2(0x92, toByte(sourceRegister, register));
+	}
+
+	@Override
+	public void enterLdei1(Z8AsmParser.Ldei1Context ctx) {
+		final int register = parseWorkingRegister(ctx.IWorkingRegister());
+		final int sourceRegister = parseWorkingRegister(ctx.IWorkingRegisterPair());
+		command2(0x83, toByte(register, sourceRegister));
+	}
+
+	@Override
+	public void enterLdei2(Z8AsmParser.Ldei2Context ctx) {
+		final int register = parseWorkingRegister(ctx.IWorkingRegisterPair());
+		final int sourceRegister = parseWorkingRegister(ctx.IWorkingRegister());
+		command2(0x93, toByte(sourceRegister, register));
 	}
 
 	@Override
@@ -362,11 +408,11 @@ public final class Assembler extends Z8AsmBaseListener {
 
 		final int pc = output.getPc() + 2;
 		final int delta = address - pc;
-		if (delta > -127 && delta < 128) {
+		if (isValidJpDelta(delta)) {
 			System.out.println(getPosition(ctx) + ": jp can be jr");
 		}
 
-		command3(highNibble + 0x0d, address);
+		command3(toByte(highNibble, 0x0d), address);
 	}
 
 	@Override
@@ -381,11 +427,11 @@ public final class Assembler extends Z8AsmBaseListener {
 
 		final int pc = output.getPc() + 2;
 		final int delta = address - pc;
-		if (delta <= -127 || delta >= 128) {
+		if (!isValidJpDelta(delta)) {
 			throw new IllegalStateException(getPosition(ctx) + ": jr needs to be jp");
 		}
 
-		command2(highNibble + 0x0b, delta);
+		command2(toByte(highNibble, 0x0b), delta);
 	}
 
 	@Override
@@ -504,6 +550,10 @@ public final class Assembler extends Z8AsmBaseListener {
 
 	// Utils ==================================================================
 
+	private boolean isValidJpDelta(int delta) {
+		return delta >= -128 && delta < 128;
+	}
+
 	private String parseString(String text, String prefixSuffix, Z8AsmParser.DataItemContext ctx) {
 		if (text.length() < 2 || !text.startsWith(prefixSuffix) || !text.endsWith(prefixSuffix)) {
 			throw new SyntaxException("Unknown string", ctx);
@@ -518,7 +568,8 @@ public final class Assembler extends Z8AsmBaseListener {
 			}
 			if (prevWasBackslash) {
 				prevWasBackslash = false;
-				if (chr == '\\') {
+				if (chr == '\\'
+						|| chr == '"') {
 					buffer.append(chr);
 				}
 				else if (chr == 'n') {
@@ -526,6 +577,9 @@ public final class Assembler extends Z8AsmBaseListener {
 				}
 				else if (chr == 'r') {
 					buffer.append('\r');
+				}
+				else if (chr == '0') {
+					buffer.append('\0');
 				}
 				else {
 					throw new SyntaxException("Invalid escape " + chr, ctx);
@@ -556,7 +610,7 @@ public final class Assembler extends Z8AsmBaseListener {
 		command2(opCode + 1, parseRegister(iregister));
 	}
 
-	private void handleArithmeticCommand(int hiNibble, Z8AsmParser.ArithmeticParametersContext p) {
+	private void handleArithmeticCommand(int highNibble, Z8AsmParser.ArithmeticParametersContext p) {
 		final Z8AsmParser.ArithmeticParameters1Context p1 = p.arithmeticParameters1();
 		if (p1 != null) {
 			final int register = parseRegister(p1.register(0));
@@ -564,17 +618,17 @@ public final class Assembler extends Z8AsmBaseListener {
 			if (sourceRegisterCtx != null) {
 				final int sourceRegister = parseRegister(sourceRegisterCtx);
 				if (isWorkingRegister(register) && isWorkingRegister(sourceRegister)) {
-					command2(hiNibble, 0x2, register, sourceRegister);
+					command2(toByte(highNibble, 0x2), toByte(register, sourceRegister));
 					return;
 				}
 
-				command3(hiNibble, 0x4, sourceRegister, register);
+				command3(toByte(highNibble, 0x4), sourceRegister, register);
 				return;
 			}
 
 			final TerminalNode valueByte = p1.ValueByte();
 			if (valueByte != null) {
-				command3(hiNibble, 0x6, register, parseByte(valueByte));
+				command3(toByte(highNibble, 0x6), register, parseByte(valueByte));
 				return;
 			}
 		}
@@ -584,7 +638,17 @@ public final class Assembler extends Z8AsmBaseListener {
 			final int register = parseRegister(p2.iregister());
 			final TerminalNode valueByte = p2.ValueByte();
 			if (valueByte != null) {
-				command3(hiNibble, 0x7, register, parseByte(valueByte));
+				command3(toByte(highNibble, 0x7), register, parseByte(valueByte));
+				return;
+			}
+		}
+
+		final Z8AsmParser.ArithmeticParameters3Context p3 = p.arithmeticParameters3();
+		if (p3 != null) {
+			final int register = parseRegister(p3.register());
+			final int iregister = parseRegister(p3.iregister());
+			if (isWorkingRegister(register) && isWorkingRegister(iregister)) {
+				command2(toByte(highNibble, 0x3), toByte(register, iregister));
 				return;
 			}
 		}
@@ -601,25 +665,8 @@ public final class Assembler extends Z8AsmBaseListener {
 		write(value);
 	}
 
-	private void command2(int highNibble, int lowNibble, int value) {
-		write(highNibble, lowNibble);
-		write(value);
-	}
-
-	private void command2w(int opCode, int r1, int r2) {
-		write(opCode);
-		write(r1, r2);
-	}
-
-	private void command2(int highNibble, int lowNibble, int r1, int r2) {
-		write(highNibble, lowNibble);
-		write(r1, r2);
-	}
-
 	private void command3(int opCode, int address) {
-		write(opCode);
-		write(address >> 8);
-		write(address);
+		command3(opCode, address >> 8, address);
 	}
 
 	private void command3(int opCode, int p1, int p2) {
@@ -628,18 +675,16 @@ public final class Assembler extends Z8AsmBaseListener {
 		write(p2);
 	}
 
-	private void command3(int hiNibble, int lowNibble, int byte2, int byte3) {
-		write(hiNibble, lowNibble);
-		write(byte2);
-		write(byte3);
-	}
-
 	private void write(int value) {
 		output.write(value);
 	}
 
 	private void write(int highNibble, int lowNibble) {
-		output.write((highNibble & 0x0F) << 4 | lowNibble & 0x0F);
+		write(toByte(highNibble, lowNibble));
+	}
+
+	private int toByte(int highNibble, int lowNibble) {
+		return (highNibble & 0x0F) << 4 | lowNibble & 0x0F;
 	}
 
 	private boolean isWorkingRegister(int register) {
@@ -649,7 +694,7 @@ public final class Assembler extends Z8AsmBaseListener {
 	private int parseAddress(Z8AsmParser.AddressContext addressCtx) {
 		TerminalNode addressValue = addressCtx.Word();
 		if (addressValue != null) {
-			return parseAddress(addressValue);
+			return parseWord(addressValue);
 		}
 
 		final TerminalNode identifier = addressCtx.Identifier();
@@ -746,7 +791,7 @@ public final class Assembler extends Z8AsmBaseListener {
 		return value;
 	}
 
-	private int parseAddress(TerminalNode node) {
+	private int parseWord(TerminalNode node) {
 		final String text = node.getText();
 		return Integer.valueOf(text.substring(1), 16);
 	}
@@ -758,25 +803,25 @@ public final class Assembler extends Z8AsmBaseListener {
 	private static Map<String, Integer> createJpConditionsMap() {
 		final Map<String, Integer> map = new HashMap<>();
 		map.put("f", 0);
-		map.put("lt", 0x10);
-		map.put("le", 0x20);
-		map.put("ule", 0x30);
-		map.put("ov", 0x40);
-		map.put("mi", 0x50);
-		map.put("z", 0x60);
-		map.put("eq", 0x60);
-		map.put("c", 0x70);
-		map.put("ult", 0x70);
-		map.put("", 0x80);
-		map.put("ge", 0x90);
-		map.put("gt", 0xA0);
-		map.put("ugt", 0xB0);
-		map.put("nov", 0xC0);
-		map.put("pl", 0xD0);
-		map.put("nz", 0xE0);
-		map.put("ne", 0xE0);
-		map.put("nc", 0xF0);
-		map.put("uge", 0xF0);
+		map.put("lt", 0x1);
+		map.put("le", 0x2);
+		map.put("ule", 0x3);
+		map.put("ov", 0x4);
+		map.put("mi", 0x5);
+		map.put("z", 0x6);
+		map.put("eq", 0x6);
+		map.put("c", 0x7);
+		map.put("ult", 0x7);
+		map.put("", 0x8);
+		map.put("ge", 0x9);
+		map.put("gt", 0xA);
+		map.put("ugt", 0xB);
+		map.put("nov", 0xC);
+		map.put("pl", 0xD);
+		map.put("nz", 0xE);
+		map.put("ne", 0xE);
+		map.put("nc", 0xF);
+		map.put("uge", 0xF);
 		return Collections.unmodifiableMap(map);
 	}
 
@@ -794,7 +839,7 @@ public final class Assembler extends Z8AsmBaseListener {
 		map.put("ipr", 0xF9);
 		map.put("irq", 0xFA);
 		map.put("imr", 0xFB);
-		map.put("flag", 0xFC);
+		map.put("flags", 0xFC);
 		map.put("rp", 0xFD);
 		map.put("sph", 0xFE);
 		map.put("spl", 0xFF);

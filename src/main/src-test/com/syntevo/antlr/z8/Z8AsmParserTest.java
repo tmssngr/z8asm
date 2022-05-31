@@ -20,6 +20,7 @@ public class Z8AsmParserTest {
 
 	@Test
 	public void test() throws IOException {
+		assemble("src/main/examples/es4.0.asm");
 		assemble("src/main/examples/ub8830rom.asm");
 	}
 
@@ -36,6 +37,7 @@ public class Z8AsmParserTest {
 		final Z8AsmParser.CodeContext code = parser.code();
 
 		final Assembler assembler = new Assembler();
+//		assembler.setDetails(true);
 		ParseTreeWalker.DEFAULT.walk(assembler, code);
 
 		assembler.setAbortForUnknownLabel(true);

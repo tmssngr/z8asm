@@ -19,7 +19,10 @@ address
 
 command
     :
-    ( adc
+    ( data
+    | org
+
+    | adc
     | add
     | and
     | call
@@ -32,7 +35,6 @@ command
     | decw
     | di
     | djnz
-    | data
     | ei
     | inc
     | incw
@@ -43,6 +45,7 @@ command
     | ldc
     | ldci
     | lde
+    | ldei
     | nop
     | or
     | pop
@@ -72,8 +75,13 @@ data
 dataItem
     : Byte
     | address
+    | LString
     | String
     | Char
+    ;
+
+org
+    : Org Word
     ;
 
 dec : Dec registerOrIregister ;
@@ -124,6 +132,10 @@ lde : lde1 | lde2;
 lde1 : Lde WorkingRegister Comma IWorkingRegisterPair ;
 lde2 : Lde IWorkingRegisterPair Comma WorkingRegister ;
 
+ldei : ldei1 | ldei2;
+ldei1: Ldei IWorkingRegister Comma IWorkingRegisterPair ;
+ldei2: Ldei IWorkingRegisterPair Comma IWorkingRegister ;
+
 di  : Di ;
 ei  : Ei ;
 ret : Ret ;
@@ -147,6 +159,7 @@ xor : Xor arithmeticParameters ;
 arithmeticParameters
     : arithmeticParameters1
     | arithmeticParameters2
+    | arithmeticParameters3
     ;
 
 arithmeticParameters1
@@ -155,6 +168,10 @@ arithmeticParameters1
 
 arithmeticParameters2
     : iregister Comma ValueByte
+    ;
+
+arithmeticParameters3
+    : register Comma iregister
     ;
 
 registerOrIregister
@@ -178,8 +195,12 @@ iregisterPair
     | IWorkingRegisterPair
     ;
 
-String
+LString
     : L '"' (EscapedChar | ~["\\])+ '"'
+    ;
+
+String
+    : '"' (EscapedChar | ~["\\])+ '"'
     ;
 
 Char
@@ -187,7 +208,7 @@ Char
     ;
 
 fragment EscapedChar
-    : '\\' [nr\\]
+    : '\\' ["nr\\0]
     ;
 
 fragment Digit
@@ -262,6 +283,7 @@ Comma
     ;
 
 Data : '.' D B ;
+Org : '.' O R G ;
 
 Adc  : A D C ;
 Add  : A D D ;
@@ -286,6 +308,7 @@ Ld   : L D ;
 Ldc  : L D C ;
 Ldci : L D C I ;
 Lde  : L D E ;
+Ldei : L D E I ;
 Nop  : N O P ;
 Or   : O R ;
 Pop  : P O P ;
@@ -308,8 +331,10 @@ Xor  : X O R ;
 
 RegisterConstant
     : 'P01M'
+    | 'P2M'
     | 'P3M'
     | 'TMR'
+    | 'FLAGS'
     | 'RP'
     | 'SPH'
     | 'SPL'

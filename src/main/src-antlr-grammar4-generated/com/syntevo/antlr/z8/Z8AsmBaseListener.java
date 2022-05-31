@@ -88,6 +88,18 @@ public class Z8AsmBaseListener implements Z8AsmListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterOrg(Z8AsmParser.OrgContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitOrg(Z8AsmParser.OrgContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterDec(Z8AsmParser.DecContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -472,6 +484,42 @@ public class Z8AsmBaseListener implements Z8AsmListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterLdei(Z8AsmParser.LdeiContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitLdei(Z8AsmParser.LdeiContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterLdei1(Z8AsmParser.Ldei1Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitLdei1(Z8AsmParser.Ldei1Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterLdei2(Z8AsmParser.Ldei2Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitLdei2(Z8AsmParser.Ldei2Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterDi(Z8AsmParser.DiContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -719,6 +767,18 @@ public class Z8AsmBaseListener implements Z8AsmListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitArithmeticParameters2(Z8AsmParser.ArithmeticParameters2Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterArithmeticParameters3(Z8AsmParser.ArithmeticParameters3Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitArithmeticParameters3(Z8AsmParser.ArithmeticParameters3Context ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

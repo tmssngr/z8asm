@@ -12,6 +12,7 @@ public final class Output {
 
 	private final byte[] buffer;
 
+	private int offset;
 	private int pc;
 
 	// Setup ==================================================================
@@ -23,7 +24,15 @@ public final class Output {
 	// Accessing ==============================================================
 
 	public int getPc() {
-		return pc;
+		return pc + offset;
+	}
+
+	public void setPc(int pc) {
+		if (offset != 0 || this.pc != 0) {
+			throw new IllegalStateException();
+		}
+
+		offset = pc;
 	}
 
 	public void write(int value) {
@@ -54,6 +63,7 @@ public final class Output {
 	}
 
 	public void printFrom(int pc) {
+		pc -= offset;
 		int count = this.pc - pc;
 		if (count < 0 || count > 1000) {
 			throw new IllegalStateException(String.valueOf(count));

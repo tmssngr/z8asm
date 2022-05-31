@@ -53,6 +53,6 @@
 	</macrodef>
 
 	<target name="build">
-		<antlrCompile name="Z8Asm" package-name="z8"   example-file="ub8830rom.asm"/>
+		<antlrCompile name="Z8Asm" package-name="z8"   example-file="es4.0.asm"/>
 	</target>
 </project>

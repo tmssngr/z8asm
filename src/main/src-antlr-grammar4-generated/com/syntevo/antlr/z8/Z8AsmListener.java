@@ -68,6 +68,16 @@ public interface Z8AsmListener extends ParseTreeListener {
 	 */
 	void exitDataItem(Z8AsmParser.DataItemContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link Z8AsmParser#org}.
+	 * @param ctx the parse tree
+	 */
+	void enterOrg(Z8AsmParser.OrgContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link Z8AsmParser#org}.
+	 * @param ctx the parse tree
+	 */
+	void exitOrg(Z8AsmParser.OrgContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link Z8AsmParser#dec}.
 	 * @param ctx the parse tree
 	 */
@@ -388,6 +398,36 @@ public interface Z8AsmListener extends ParseTreeListener {
 	 */
 	void exitLde2(Z8AsmParser.Lde2Context ctx);
 	/**
+	 * Enter a parse tree produced by {@link Z8AsmParser#ldei}.
+	 * @param ctx the parse tree
+	 */
+	void enterLdei(Z8AsmParser.LdeiContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link Z8AsmParser#ldei}.
+	 * @param ctx the parse tree
+	 */
+	void exitLdei(Z8AsmParser.LdeiContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link Z8AsmParser#ldei1}.
+	 * @param ctx the parse tree
+	 */
+	void enterLdei1(Z8AsmParser.Ldei1Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link Z8AsmParser#ldei1}.
+	 * @param ctx the parse tree
+	 */
+	void exitLdei1(Z8AsmParser.Ldei1Context ctx);
+	/**
+	 * Enter a parse tree produced by {@link Z8AsmParser#ldei2}.
+	 * @param ctx the parse tree
+	 */
+	void enterLdei2(Z8AsmParser.Ldei2Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link Z8AsmParser#ldei2}.
+	 * @param ctx the parse tree
+	 */
+	void exitLdei2(Z8AsmParser.Ldei2Context ctx);
+	/**
 	 * Enter a parse tree produced by {@link Z8AsmParser#di}.
 	 * @param ctx the parse tree
 	 */
@@ -597,6 +637,16 @@ public interface Z8AsmListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitArithmeticParameters2(Z8AsmParser.ArithmeticParameters2Context ctx);
+	/**
+	 * Enter a parse tree produced by {@link Z8AsmParser#arithmeticParameters3}.
+	 * @param ctx the parse tree
+	 */
+	void enterArithmeticParameters3(Z8AsmParser.ArithmeticParameters3Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link Z8AsmParser#arithmeticParameters3}.
+	 * @param ctx the parse tree
+	 */
+	void exitArithmeticParameters3(Z8AsmParser.ArithmeticParameters3Context ctx);
 	/**
 	 * Enter a parse tree produced by {@link Z8AsmParser#registerOrIregister}.
 	 * @param ctx the parse tree
