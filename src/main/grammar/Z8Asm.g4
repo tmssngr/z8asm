@@ -101,40 +101,40 @@ rr  : Rr registerOrIregister ;
 swap: Swap registerOrIregister ;
 srp : Srp ValueByte ;
 
-call : Call address
-     | Call iregisterPair
+call : Call address        #callAddress
+     | Call iregisterPair  #callIreg
      ;
 
 djnz : Djnz WorkingRegister Comma address;
 
-jp : Jp iregisterPair
-   | Jp address
-   | Jp JpCondition Comma address
+jp : Jp iregisterPair             #jpIReg
+   | Jp address                   #jpAddress
+   | Jp JpCondition Comma address #jpConditionAddress
    ;
 
 jr : Jr address
    | Jr JpCondition Comma address
    ;
 
-ld : ld1 | ld2;
-ld1 : Ld register Comma (registerOrIregister | ValueByte) ;
-ld2 : Ld iregister Comma register ;
+ld : Ld register Comma (registerOrIregister | ValueByte) #ld1
+   | Ld iregister Comma register                         #ld2
+   ;
 
-ldc : ldc1 | ldc2;
-ldc1: Ldc WorkingRegister Comma IWorkingRegisterPair ;
-ldc2: Ldc IWorkingRegisterPair Comma WorkingRegister ;
+ldc : Ldc WorkingRegister Comma IWorkingRegisterPair #ldc1
+    | Ldc IWorkingRegisterPair Comma WorkingRegister #ldc2
+    ;
 
-ldci : ldci1 | ldci2;
-ldci1: Ldci IWorkingRegister Comma IWorkingRegisterPair ;
-ldci2: Ldci IWorkingRegisterPair Comma IWorkingRegister ;
+ldci : Ldci IWorkingRegister Comma IWorkingRegisterPair #ldci1
+     | Ldci IWorkingRegisterPair Comma IWorkingRegister #ldci2
+     ;
 
-lde : lde1 | lde2;
-lde1 : Lde WorkingRegister Comma IWorkingRegisterPair ;
-lde2 : Lde IWorkingRegisterPair Comma WorkingRegister ;
+lde : Lde WorkingRegister Comma IWorkingRegisterPair #lde1
+    | Lde IWorkingRegisterPair Comma WorkingRegister #lde2
+    ;
 
-ldei : ldei1 | ldei2;
-ldei1: Ldei IWorkingRegister Comma IWorkingRegisterPair ;
-ldei2: Ldei IWorkingRegisterPair Comma IWorkingRegister ;
+ldei : Ldei IWorkingRegister Comma IWorkingRegisterPair #ldei1
+     | Ldei IWorkingRegisterPair Comma IWorkingRegister #ldei2
+     ;
 
 di  : Di ;
 ei  : Ei ;

@@ -238,15 +238,29 @@ public interface Z8AsmListener extends ParseTreeListener {
 	 */
 	void exitSrp(Z8AsmParser.SrpContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link Z8AsmParser#call}.
+	 * Enter a parse tree produced by the {@code callAddress}
+	 * labeled alternative in {@link Z8AsmParser#call}.
 	 * @param ctx the parse tree
 	 */
-	void enterCall(Z8AsmParser.CallContext ctx);
+	void enterCallAddress(Z8AsmParser.CallAddressContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link Z8AsmParser#call}.
+	 * Exit a parse tree produced by the {@code callAddress}
+	 * labeled alternative in {@link Z8AsmParser#call}.
 	 * @param ctx the parse tree
 	 */
-	void exitCall(Z8AsmParser.CallContext ctx);
+	void exitCallAddress(Z8AsmParser.CallAddressContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code callIreg}
+	 * labeled alternative in {@link Z8AsmParser#call}.
+	 * @param ctx the parse tree
+	 */
+	void enterCallIreg(Z8AsmParser.CallIregContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code callIreg}
+	 * labeled alternative in {@link Z8AsmParser#call}.
+	 * @param ctx the parse tree
+	 */
+	void exitCallIreg(Z8AsmParser.CallIregContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link Z8AsmParser#djnz}.
 	 * @param ctx the parse tree
@@ -258,15 +272,41 @@ public interface Z8AsmListener extends ParseTreeListener {
 	 */
 	void exitDjnz(Z8AsmParser.DjnzContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link Z8AsmParser#jp}.
+	 * Enter a parse tree produced by the {@code jpIReg}
+	 * labeled alternative in {@link Z8AsmParser#jp}.
 	 * @param ctx the parse tree
 	 */
-	void enterJp(Z8AsmParser.JpContext ctx);
+	void enterJpIReg(Z8AsmParser.JpIRegContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link Z8AsmParser#jp}.
+	 * Exit a parse tree produced by the {@code jpIReg}
+	 * labeled alternative in {@link Z8AsmParser#jp}.
 	 * @param ctx the parse tree
 	 */
-	void exitJp(Z8AsmParser.JpContext ctx);
+	void exitJpIReg(Z8AsmParser.JpIRegContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code jpAddress}
+	 * labeled alternative in {@link Z8AsmParser#jp}.
+	 * @param ctx the parse tree
+	 */
+	void enterJpAddress(Z8AsmParser.JpAddressContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code jpAddress}
+	 * labeled alternative in {@link Z8AsmParser#jp}.
+	 * @param ctx the parse tree
+	 */
+	void exitJpAddress(Z8AsmParser.JpAddressContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code jpConditionAddress}
+	 * labeled alternative in {@link Z8AsmParser#jp}.
+	 * @param ctx the parse tree
+	 */
+	void enterJpConditionAddress(Z8AsmParser.JpConditionAddressContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code jpConditionAddress}
+	 * labeled alternative in {@link Z8AsmParser#jp}.
+	 * @param ctx the parse tree
+	 */
+	void exitJpConditionAddress(Z8AsmParser.JpConditionAddressContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link Z8AsmParser#jr}.
 	 * @param ctx the parse tree
@@ -278,152 +318,122 @@ public interface Z8AsmListener extends ParseTreeListener {
 	 */
 	void exitJr(Z8AsmParser.JrContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link Z8AsmParser#ld}.
-	 * @param ctx the parse tree
-	 */
-	void enterLd(Z8AsmParser.LdContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link Z8AsmParser#ld}.
-	 * @param ctx the parse tree
-	 */
-	void exitLd(Z8AsmParser.LdContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link Z8AsmParser#ld1}.
+	 * Enter a parse tree produced by the {@code ld1}
+	 * labeled alternative in {@link Z8AsmParser#ld}.
 	 * @param ctx the parse tree
 	 */
 	void enterLd1(Z8AsmParser.Ld1Context ctx);
 	/**
-	 * Exit a parse tree produced by {@link Z8AsmParser#ld1}.
+	 * Exit a parse tree produced by the {@code ld1}
+	 * labeled alternative in {@link Z8AsmParser#ld}.
 	 * @param ctx the parse tree
 	 */
 	void exitLd1(Z8AsmParser.Ld1Context ctx);
 	/**
-	 * Enter a parse tree produced by {@link Z8AsmParser#ld2}.
+	 * Enter a parse tree produced by the {@code ld2}
+	 * labeled alternative in {@link Z8AsmParser#ld}.
 	 * @param ctx the parse tree
 	 */
 	void enterLd2(Z8AsmParser.Ld2Context ctx);
 	/**
-	 * Exit a parse tree produced by {@link Z8AsmParser#ld2}.
+	 * Exit a parse tree produced by the {@code ld2}
+	 * labeled alternative in {@link Z8AsmParser#ld}.
 	 * @param ctx the parse tree
 	 */
 	void exitLd2(Z8AsmParser.Ld2Context ctx);
 	/**
-	 * Enter a parse tree produced by {@link Z8AsmParser#ldc}.
-	 * @param ctx the parse tree
-	 */
-	void enterLdc(Z8AsmParser.LdcContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link Z8AsmParser#ldc}.
-	 * @param ctx the parse tree
-	 */
-	void exitLdc(Z8AsmParser.LdcContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link Z8AsmParser#ldc1}.
+	 * Enter a parse tree produced by the {@code ldc1}
+	 * labeled alternative in {@link Z8AsmParser#ldc}.
 	 * @param ctx the parse tree
 	 */
 	void enterLdc1(Z8AsmParser.Ldc1Context ctx);
 	/**
-	 * Exit a parse tree produced by {@link Z8AsmParser#ldc1}.
+	 * Exit a parse tree produced by the {@code ldc1}
+	 * labeled alternative in {@link Z8AsmParser#ldc}.
 	 * @param ctx the parse tree
 	 */
 	void exitLdc1(Z8AsmParser.Ldc1Context ctx);
 	/**
-	 * Enter a parse tree produced by {@link Z8AsmParser#ldc2}.
+	 * Enter a parse tree produced by the {@code ldc2}
+	 * labeled alternative in {@link Z8AsmParser#ldc}.
 	 * @param ctx the parse tree
 	 */
 	void enterLdc2(Z8AsmParser.Ldc2Context ctx);
 	/**
-	 * Exit a parse tree produced by {@link Z8AsmParser#ldc2}.
+	 * Exit a parse tree produced by the {@code ldc2}
+	 * labeled alternative in {@link Z8AsmParser#ldc}.
 	 * @param ctx the parse tree
 	 */
 	void exitLdc2(Z8AsmParser.Ldc2Context ctx);
 	/**
-	 * Enter a parse tree produced by {@link Z8AsmParser#ldci}.
-	 * @param ctx the parse tree
-	 */
-	void enterLdci(Z8AsmParser.LdciContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link Z8AsmParser#ldci}.
-	 * @param ctx the parse tree
-	 */
-	void exitLdci(Z8AsmParser.LdciContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link Z8AsmParser#ldci1}.
+	 * Enter a parse tree produced by the {@code ldci1}
+	 * labeled alternative in {@link Z8AsmParser#ldci}.
 	 * @param ctx the parse tree
 	 */
 	void enterLdci1(Z8AsmParser.Ldci1Context ctx);
 	/**
-	 * Exit a parse tree produced by {@link Z8AsmParser#ldci1}.
+	 * Exit a parse tree produced by the {@code ldci1}
+	 * labeled alternative in {@link Z8AsmParser#ldci}.
 	 * @param ctx the parse tree
 	 */
 	void exitLdci1(Z8AsmParser.Ldci1Context ctx);
 	/**
-	 * Enter a parse tree produced by {@link Z8AsmParser#ldci2}.
+	 * Enter a parse tree produced by the {@code ldci2}
+	 * labeled alternative in {@link Z8AsmParser#ldci}.
 	 * @param ctx the parse tree
 	 */
 	void enterLdci2(Z8AsmParser.Ldci2Context ctx);
 	/**
-	 * Exit a parse tree produced by {@link Z8AsmParser#ldci2}.
+	 * Exit a parse tree produced by the {@code ldci2}
+	 * labeled alternative in {@link Z8AsmParser#ldci}.
 	 * @param ctx the parse tree
 	 */
 	void exitLdci2(Z8AsmParser.Ldci2Context ctx);
 	/**
-	 * Enter a parse tree produced by {@link Z8AsmParser#lde}.
-	 * @param ctx the parse tree
-	 */
-	void enterLde(Z8AsmParser.LdeContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link Z8AsmParser#lde}.
-	 * @param ctx the parse tree
-	 */
-	void exitLde(Z8AsmParser.LdeContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link Z8AsmParser#lde1}.
+	 * Enter a parse tree produced by the {@code lde1}
+	 * labeled alternative in {@link Z8AsmParser#lde}.
 	 * @param ctx the parse tree
 	 */
 	void enterLde1(Z8AsmParser.Lde1Context ctx);
 	/**
-	 * Exit a parse tree produced by {@link Z8AsmParser#lde1}.
+	 * Exit a parse tree produced by the {@code lde1}
+	 * labeled alternative in {@link Z8AsmParser#lde}.
 	 * @param ctx the parse tree
 	 */
 	void exitLde1(Z8AsmParser.Lde1Context ctx);
 	/**
-	 * Enter a parse tree produced by {@link Z8AsmParser#lde2}.
+	 * Enter a parse tree produced by the {@code lde2}
+	 * labeled alternative in {@link Z8AsmParser#lde}.
 	 * @param ctx the parse tree
 	 */
 	void enterLde2(Z8AsmParser.Lde2Context ctx);
 	/**
-	 * Exit a parse tree produced by {@link Z8AsmParser#lde2}.
+	 * Exit a parse tree produced by the {@code lde2}
+	 * labeled alternative in {@link Z8AsmParser#lde}.
 	 * @param ctx the parse tree
 	 */
 	void exitLde2(Z8AsmParser.Lde2Context ctx);
 	/**
-	 * Enter a parse tree produced by {@link Z8AsmParser#ldei}.
-	 * @param ctx the parse tree
-	 */
-	void enterLdei(Z8AsmParser.LdeiContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link Z8AsmParser#ldei}.
-	 * @param ctx the parse tree
-	 */
-	void exitLdei(Z8AsmParser.LdeiContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link Z8AsmParser#ldei1}.
+	 * Enter a parse tree produced by the {@code ldei1}
+	 * labeled alternative in {@link Z8AsmParser#ldei}.
 	 * @param ctx the parse tree
 	 */
 	void enterLdei1(Z8AsmParser.Ldei1Context ctx);
 	/**
-	 * Exit a parse tree produced by {@link Z8AsmParser#ldei1}.
+	 * Exit a parse tree produced by the {@code ldei1}
+	 * labeled alternative in {@link Z8AsmParser#ldei}.
 	 * @param ctx the parse tree
 	 */
 	void exitLdei1(Z8AsmParser.Ldei1Context ctx);
 	/**
-	 * Enter a parse tree produced by {@link Z8AsmParser#ldei2}.
+	 * Enter a parse tree produced by the {@code ldei2}
+	 * labeled alternative in {@link Z8AsmParser#ldei}.
 	 * @param ctx the parse tree
 	 */
 	void enterLdei2(Z8AsmParser.Ldei2Context ctx);
 	/**
-	 * Exit a parse tree produced by {@link Z8AsmParser#ldei2}.
+	 * Exit a parse tree produced by the {@code ldei2}
+	 * labeled alternative in {@link Z8AsmParser#ldei}.
 	 * @param ctx the parse tree
 	 */
 	void exitLdei2(Z8AsmParser.Ldei2Context ctx);

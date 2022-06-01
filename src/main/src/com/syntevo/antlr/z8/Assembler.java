@@ -203,13 +203,12 @@ public final class Assembler extends Z8AsmBaseListener {
 	}
 
 	@Override
-	public void enterCall(Z8AsmParser.CallContext ctx) {
-		final Z8AsmParser.AddressContext address = ctx.address();
-		if (address != null) {
-			command3(0xD6, parseAddress(address));
-			return;
-		}
+	public void enterCallAddress(Z8AsmParser.CallAddressContext ctx) {
+		command3(0xD6, parseAddress(ctx.address()));
+	}
 
+	@Override
+	public void enterCallIreg(Z8AsmParser.CallIregContext ctx) {
 		command2(0xD4, parseRegisterPair(ctx.iregisterPair()));
 	}
 
@@ -390,29 +389,26 @@ public final class Assembler extends Z8AsmBaseListener {
 	}
 
 	@Override
-	public void enterJp(Z8AsmParser.JpContext ctx) {
-		final Z8AsmParser.IregisterPairContext iregisterPairContext = ctx.iregisterPair();
-		if (iregisterPairContext != null) {
-			final int register = parseRegisterPair(iregisterPairContext);
-			command2(0x30, register);
-			return;
-		}
-
-		final TerminalNode condition = ctx.JpCondition();
-		int highNibble = JP_CONDITIONS.get("");
-		if (condition != null) {
-			final String text = condition.getText().toLowerCase(Locale.ROOT);
-			highNibble = JP_CONDITIONS.get(text);
-		}
+	public void enterJpAddress(Z8AsmParser.JpAddressContext ctx) {
 		final int address = parseAddress(ctx.address());
+		command3(toByte(JP_CONDITIONS.get(""), 0x0d), address);
+		jpCheckJr(ctx, address);
+	}
 
-		final int pc = output.getPc() + 2;
-		final int delta = address - pc;
-		if (isValidJpDelta(delta)) {
-			System.out.println(getPosition(ctx) + ": jp can be jr");
-		}
-
+	@Override
+	public void enterJpConditionAddress(Z8AsmParser.JpConditionAddressContext ctx) {
+		final TerminalNode condition = ctx.JpCondition();
+		final String text = condition.getText().toLowerCase(Locale.ROOT);
+		int highNibble = JP_CONDITIONS.get(text);
+		final int address = parseAddress(ctx.address());
 		command3(toByte(highNibble, 0x0d), address);
+		jpCheckJr(ctx, address);
+	}
+
+	@Override
+	public void enterJpIReg(Z8AsmParser.JpIRegContext ctx) {
+		final int register = parseRegisterPair(ctx.iregisterPair());
+		command2(0x30, register);
 	}
 
 	@Override
@@ -549,6 +545,14 @@ public final class Assembler extends Z8AsmBaseListener {
 	}
 
 	// Utils ==================================================================
+
+	private void jpCheckJr(ParserRuleContext ctx, int address) {
+		final int pc = output.getPc() + 2;
+		final int delta = address - pc;
+		if (isValidJpDelta(delta)) {
+			System.out.println(getPosition(ctx) + ": jp can be jr");
+		}
+	}
 
 	private boolean isValidJpDelta(int delta) {
 		return delta >= -128 && delta < 128;

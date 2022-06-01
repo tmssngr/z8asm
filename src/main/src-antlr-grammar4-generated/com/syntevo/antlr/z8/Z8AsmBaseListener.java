@@ -292,13 +292,25 @@ public class Z8AsmBaseListener implements Z8AsmListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterCall(Z8AsmParser.CallContext ctx) { }
+	@Override public void enterCallAddress(Z8AsmParser.CallAddressContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitCall(Z8AsmParser.CallContext ctx) { }
+	@Override public void exitCallAddress(Z8AsmParser.CallAddressContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterCallIreg(Z8AsmParser.CallIregContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitCallIreg(Z8AsmParser.CallIregContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -316,13 +328,37 @@ public class Z8AsmBaseListener implements Z8AsmListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterJp(Z8AsmParser.JpContext ctx) { }
+	@Override public void enterJpIReg(Z8AsmParser.JpIRegContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitJp(Z8AsmParser.JpContext ctx) { }
+	@Override public void exitJpIReg(Z8AsmParser.JpIRegContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterJpAddress(Z8AsmParser.JpAddressContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitJpAddress(Z8AsmParser.JpAddressContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterJpConditionAddress(Z8AsmParser.JpConditionAddressContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitJpConditionAddress(Z8AsmParser.JpConditionAddressContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -335,18 +371,6 @@ public class Z8AsmBaseListener implements Z8AsmListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitJr(Z8AsmParser.JrContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterLd(Z8AsmParser.LdContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitLd(Z8AsmParser.LdContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -376,18 +400,6 @@ public class Z8AsmBaseListener implements Z8AsmListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterLdc(Z8AsmParser.LdcContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitLdc(Z8AsmParser.LdcContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterLdc1(Z8AsmParser.Ldc1Context ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -407,18 +419,6 @@ public class Z8AsmBaseListener implements Z8AsmListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitLdc2(Z8AsmParser.Ldc2Context ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterLdci(Z8AsmParser.LdciContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitLdci(Z8AsmParser.LdciContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -448,18 +448,6 @@ public class Z8AsmBaseListener implements Z8AsmListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterLde(Z8AsmParser.LdeContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitLde(Z8AsmParser.LdeContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterLde1(Z8AsmParser.Lde1Context ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -479,18 +467,6 @@ public class Z8AsmBaseListener implements Z8AsmListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitLde2(Z8AsmParser.Lde2Context ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterLdei(Z8AsmParser.LdeiContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitLdei(Z8AsmParser.LdeiContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
