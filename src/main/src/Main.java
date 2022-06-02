@@ -37,7 +37,7 @@ public class Main {
 		final Assembler assembler = new Assembler();
 		try {
 			ParseTreeWalker.DEFAULT.walk(assembler, code);
-			assembler.setAbortForUnknownLabel(true);
+			assembler.setSecondPass(true);
 			ParseTreeWalker.DEFAULT.walk(assembler, code);
 		}
 		catch (Assembler.SyntaxException ex) {

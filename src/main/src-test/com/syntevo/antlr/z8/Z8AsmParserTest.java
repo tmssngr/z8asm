@@ -40,7 +40,7 @@ public class Z8AsmParserTest {
 //		assembler.setDetails(true);
 		ParseTreeWalker.DEFAULT.walk(assembler, code);
 
-		assembler.setAbortForUnknownLabel(true);
+		assembler.setSecondPass(true);
 		ParseTreeWalker.DEFAULT.walk(assembler, code);
 
 		try (Writer writer = Files.newBufferedWriter(Paths.get(fileName + ".expected"))) {

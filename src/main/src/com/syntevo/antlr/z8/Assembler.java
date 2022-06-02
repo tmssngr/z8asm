@@ -26,7 +26,7 @@ public final class Assembler extends Z8AsmBaseListener {
 
 	private Output output;
 	private int pc;
-	private boolean abortForUnknownLabel;
+	private boolean secondPass;
 	private boolean details;
 	private boolean ignoreOutput;
 
@@ -540,8 +540,8 @@ public final class Assembler extends Z8AsmBaseListener {
 		output.print(writer);
 	}
 
-	public void setAbortForUnknownLabel(boolean abortForUnknownLabel) {
-		this.abortForUnknownLabel = abortForUnknownLabel;
+	public void setSecondPass(boolean secondPass) {
+		this.secondPass = secondPass;
 	}
 
 	// Utils ==================================================================
@@ -702,7 +702,7 @@ public final class Assembler extends Z8AsmBaseListener {
 			final String text = identifier.getText();
 			final Integer labelAddress = labels.get(text);
 			if (labelAddress == null) {
-				if (abortForUnknownLabel) {
+				if (secondPass) {
 					throw new SyntaxException("Unknown label '" + text + "'", addressCtx);
 				}
 				return pc + 2;
