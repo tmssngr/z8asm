@@ -1,6 +1,7 @@
 <project name="ANTLR" default="build" basedir=".">
 
 	<property name="generated" value="src-antlr-grammar4-generated"/>
+	<property name="antlr.jar" value="lib/antlr-4.7.2-complete.jar"/>
 
 	<macrodef name="antlrCompile">
 		<attribute name="name"/>
@@ -18,7 +19,7 @@
 			<echo>
 				Generating @{package-name}...
 			</echo>
-			<java jar="lib/antlr-4.7.2-complete.jar" fork="true" failonerror="true">
+			<java jar="${antlr.jar}" fork="true" failonerror="true">
 				<arg value="-o"/>
 				<arg value="${generated}/@{dir}"/>
 				<arg value="-package"/>
@@ -34,7 +35,7 @@
 
 			<delete dir=".classes"/>
 			<mkdir dir=".classes"/>
-			<java jar="lib/antlr-4.7.2-complete.jar" fork="true" failonerror="true">
+			<java jar="${antlr.jar}" fork="true" failonerror="true">
 				<arg value="-o"/>
 				<arg value=".classes"/>
 				<arg value="grammar/@{name}.g4"/>
@@ -43,7 +44,11 @@
 			<javac classpath="lib/antlr-runtime-4.7.2.jar" srcdir=".classes" includeantruntime="false">
 			</javac>
 
-			<java classpath="lib/antlr-4.7.2-complete.jar;.classes" classname="org.antlr.v4.gui.TestRig" fork="true" failonerror="true" dir=".classes" output="${basedir}/examples/@{example-file}.lexed" logerror="true">
+			<java classname="org.antlr.v4.gui.TestRig" fork="true" failonerror="true" dir=".classes" output="${basedir}/examples/@{example-file}.lexed" logerror="true">
+				<classpath>
+					<pathelement location="${antlr.jar}"/>
+					<pathelement location=".classes"/>
+				</classpath>
 				<arg value="@{name}"/>
 				<arg value="tokens"/>
 				<arg value="-tokens"/>
