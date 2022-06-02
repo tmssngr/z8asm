@@ -683,10 +683,6 @@ public final class Assembler extends Z8AsmBaseListener {
 		output.write(value);
 	}
 
-	private void write(int highNibble, int lowNibble) {
-		write(toByte(highNibble, lowNibble));
-	}
-
 	private int toByte(int highNibble, int lowNibble) {
 		return (highNibble & 0x0F) << 4 | lowNibble & 0x0F;
 	}
@@ -779,7 +775,6 @@ public final class Assembler extends Z8AsmBaseListener {
 
 	private int parseRegisterPair(Z8AsmParser.IregisterPairContext ctx) {
 		final TerminalNode node = ctx.IWorkingRegisterPair();
-		final int register;
 		if (node != null) {
 			return WORKING_REGISTER_HIGH_NIBBLE | parseWorkingRegister(node);
 		}
@@ -798,10 +793,6 @@ public final class Assembler extends Z8AsmBaseListener {
 	private int parseWord(TerminalNode node) {
 		final String text = node.getText();
 		return Integer.valueOf(text.substring(1), 16);
-	}
-
-	private int parseByte(String s) {
-		return Integer.valueOf(s, 16);
 	}
 
 	private static Map<String, Integer> createJpConditionsMap() {
