@@ -1,4 +1,20 @@
-/* this is a comment */
+		.const  SIO   %F0
+		.const  TMR   %F1
+		.const  T1    %F2
+		.const  PRE1  %F3
+		.const  T0    %F4
+		.const  PRE0  %F5
+		.const  P2M   %F6
+		.const  P3M   %F7
+		.const  P01M  %F8
+		.const  IPR   %F9
+		.const  IRQ   %FA
+		.const  IMR   %FB
+		.const  FLAGS %FC
+		.const  RP    %FD
+		.const  SPH   %FE
+		.const  SPL   %FF
+
         .db %0800
         .db %0803
         .db %0806

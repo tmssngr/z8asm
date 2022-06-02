@@ -19,7 +19,8 @@ address
 
 command
     :
-    ( data
+    ( defConst
+    | data
     | org
 
     | adc
@@ -67,6 +68,8 @@ command
     | xor
     ) (NL | EOF)
     ;
+
+defConst : Const Identifier (Byte | Word) ;
 
 data
     : Data dataItem+
@@ -182,7 +185,7 @@ registerOrIregister
 register
     : Byte
     | WorkingRegister
-    | RegisterConstant
+    | Identifier
     ;
 
 iregister
@@ -282,6 +285,7 @@ Comma
     : ','
     ;
 
+Const : '.' C O N S T ;
 Data : '.' D B ;
 Org : '.' O R G ;
 
@@ -328,17 +332,6 @@ Swap : S W A P ;
 Tcm  : T C M ;
 Tm   : T M ;
 Xor  : X O R ;
-
-RegisterConstant
-    : 'P01M'
-    | 'P2M'
-    | 'P3M'
-    | 'TMR'
-    | 'FLAGS'
-    | 'RP'
-    | 'SPH'
-    | 'SPL'
-    ;
 
 JpCondition
     : F

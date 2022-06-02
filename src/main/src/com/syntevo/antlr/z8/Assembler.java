@@ -18,11 +18,11 @@ public final class Assembler extends Z8AsmBaseListener {
 
 	private static final int WORKING_REGISTER_HIGH_NIBBLE = 0xE0;
 	private static final Map<String, Integer> JP_CONDITIONS = createJpConditionsMap();
-	private static final Map<String, Integer> REGISTER_CONSTANTS = createRegisterConstantsMap();
 
 	// Fields =================================================================
 
 	private final Map<String, Integer> labels = new HashMap<>();
+	private final Map<String, Integer> constants = new HashMap<>();
 
 	private Output output;
 	private int pc;
@@ -73,6 +73,29 @@ public final class Assembler extends Z8AsmBaseListener {
 			output.printFrom(this.pc);
 			System.out.println();
 		}
+	}
+
+	@Override
+	public void enterDefConst(Z8AsmParser.DefConstContext ctx) {
+		final String text = ctx.Identifier().getText();
+		TerminalNode valueNode = ctx.Byte();
+		if (valueNode == null) {
+			valueNode = ctx.Word();
+		}
+		final int value = parseWord(valueNode);
+
+		if (!secondPass) {
+			if (constants.containsKey(text)) {
+				throw new SyntaxException("Duplicate constant definition for " + text, ctx);
+			}
+
+			if (labels.containsKey(text)) {
+				throw new SyntaxException("A label with the same name already exists: " + text, ctx);
+			}
+
+			constants.put(text, value);
+		}
+		ignoreOutput = true;
 	}
 
 	@Override
@@ -736,9 +759,14 @@ public final class Assembler extends Z8AsmBaseListener {
 			return WORKING_REGISTER_HIGH_NIBBLE + parseWorkingRegister(workingRegisterNode);
 		}
 
-		final TerminalNode constant = ctx.RegisterConstant();
-		if (constant != null) {
-			return REGISTER_CONSTANTS.get(constant.getText().toLowerCase(Locale.ROOT));
+		final TerminalNode identifierNode = ctx.Identifier();
+		if (identifierNode != null) {
+			final String text = identifierNode.getText();
+			final Integer value = constants.get(text);
+			if (value == null) {
+				throw new SyntaxException("Undefined constant " + text, ctx);
+			}
+			return value;
 		}
 
 		throw new UnsupportedOperationException(ctx.getText());
@@ -817,27 +845,7 @@ public final class Assembler extends Z8AsmBaseListener {
 		map.put("ne", 0xE);
 		map.put("nc", 0xF);
 		map.put("uge", 0xF);
-		return Collections.unmodifiableMap(map);
-	}
-
-	private static Map<String, Integer> createRegisterConstantsMap() {
-		final Map<String, Integer> map = new HashMap<>();
-		map.put("sio", 0xF0);
-		map.put("tmr", 0xF1);
-		map.put("t1", 0xF2);
-		map.put("pre1", 0xF3);
-		map.put("t0", 0xF4);
-		map.put("pre0", 0xF5);
-		map.put("p2m", 0xF6);
-		map.put("p3m", 0xF7);
-		map.put("p01m", 0xF8);
-		map.put("ipr", 0xF9);
-		map.put("irq", 0xFA);
-		map.put("imr", 0xFB);
-		map.put("flags", 0xFC);
-		map.put("rp", 0xFD);
-		map.put("sph", 0xFE);
-		map.put("spl", 0xFF);
+		//noinspection Java9CollectionFactory
 		return Collections.unmodifiableMap(map);
 	}
 

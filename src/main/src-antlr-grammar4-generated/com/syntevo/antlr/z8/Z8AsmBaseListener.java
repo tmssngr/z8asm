@@ -64,6 +64,18 @@ public class Z8AsmBaseListener implements Z8AsmListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterDefConst(Z8AsmParser.DefConstContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitDefConst(Z8AsmParser.DefConstContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterData(Z8AsmParser.DataContext ctx) { }
 	/**
 	 * {@inheritDoc}

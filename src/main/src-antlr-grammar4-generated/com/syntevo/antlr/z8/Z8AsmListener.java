@@ -48,6 +48,16 @@ public interface Z8AsmListener extends ParseTreeListener {
 	 */
 	void exitCommand(Z8AsmParser.CommandContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link Z8AsmParser#defConst}.
+	 * @param ctx the parse tree
+	 */
+	void enterDefConst(Z8AsmParser.DefConstContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link Z8AsmParser#defConst}.
+	 * @param ctx the parse tree
+	 */
+	void exitDefConst(Z8AsmParser.DefConstContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link Z8AsmParser#data}.
 	 * @param ctx the parse tree
 	 */
