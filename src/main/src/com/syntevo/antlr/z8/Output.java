@@ -8,6 +8,10 @@ import java.io.Writer;
  */
 public final class Output {
 
+	// Constants ==============================================================
+
+	private static final String NL = System.getProperty("line.separator", "\n");
+
 	// Fields =================================================================
 
 	private final byte[] buffer;
@@ -45,7 +49,7 @@ public final class Output {
 		for (int i = 0; i < pc; i++) {
 			if (i % 16 == 0) {
 				if (newline) {
-					writer.write("\n");
+					writer.write(NL);
 				}
 				writer.write(toHex(i, 4));
 			}
@@ -58,7 +62,7 @@ public final class Output {
 		}
 
 		if (newline) {
-			writer.write("\n");
+			writer.write(NL);
 		}
 	}
 
