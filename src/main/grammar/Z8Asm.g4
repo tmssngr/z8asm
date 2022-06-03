@@ -73,7 +73,7 @@ command
     ) (NL | EOF)
     ;
 
-defConst : Const name=Identifier expr=expression ;
+defConst : Const name=Identifier '=' expr=expression ;
 
 data
     : Data dataItem+
