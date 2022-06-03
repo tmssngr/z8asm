@@ -3,6 +3,7 @@ grammar Z8Asm;
 code
     :
     ( labelDefinition
+    | parserInstruction
     | command
     | NL
     )*
@@ -14,16 +15,19 @@ labelDefinition
 
 address
     : Word
-    | Identifier
+    | label=Identifier
     ;
+
+parserInstruction: ( defConst
+                   | data
+                   | org
+                   )
+                   NL?
+                   ;
 
 command
     :
-    ( defConst
-    | data
-    | org
-
-    | adc
+    ( adc
     | add
     | and
     | call
@@ -69,18 +73,18 @@ command
     ) (NL | EOF)
     ;
 
-defConst : Const Identifier (Byte | Word) ;
+defConst : Const name=Identifier expr=expression ;
 
 data
     : Data dataItem+
     ;
 
 dataItem
-    : Byte
-    | address
-    | LString
-    | String
-    | Char
+    : Byte       #dataByte
+    | address    #dataAddress
+    | LString    #dataLString
+    | String     #dataString
+    | Char       #dataChar
     ;
 
 org
@@ -102,7 +106,7 @@ rrc : Rrc registerOrIregister ;
 sra : Sra registerOrIregister ;
 rr  : Rr registerOrIregister ;
 swap: Swap registerOrIregister ;
-srp : Srp ValueByte ;
+srp : Srp valueByte ;
 
 call : Call address        #callAddress
      | Call iregisterPair  #callIreg
@@ -119,8 +123,10 @@ jr : Jr address
    | Jr JpCondition Comma address
    ;
 
-ld : Ld register Comma (registerOrIregister | ValueByte) #ld1
-   | Ld iregister Comma register                         #ld2
+ld : Ld register         Comma valueByte         #ld1
+   | Ld target=register  Comma source=register   #ld2
+   | Ld register         Comma iregister         #ld3
+   | Ld iregister        Comma register          #ld4
    ;
 
 ldc : Ldc WorkingRegister Comma IWorkingRegisterPair #ldc1
@@ -163,19 +169,12 @@ arithmeticParameters
     : arithmeticParameters1
     | arithmeticParameters2
     | arithmeticParameters3
+    | arithmeticParameters4
     ;
-
-arithmeticParameters1
-    : register Comma (register | ValueByte)
-    ;
-
-arithmeticParameters2
-    : iregister Comma ValueByte
-    ;
-
-arithmeticParameters3
-    : register Comma iregister
-    ;
+arithmeticParameters1 : register Comma valueByte ;
+arithmeticParameters2 : target=register Comma source=register ;
+arithmeticParameters3 : iregister Comma valueByte ;
+arithmeticParameters4 : register Comma iregister ;
 
 registerOrIregister
     : register
@@ -197,6 +196,13 @@ iregisterPair
     : IndirectPrefix register
     | IWorkingRegisterPair
     ;
+
+valueByte : ValueByte ;
+
+expression : (Byte | Word) #exprNumber
+           ;
+
+// lexer rules:
 
 LString
     : L '"' (EscapedChar | ~["\\])+ '"'
@@ -239,12 +245,12 @@ fragment ByteDecimal
     ;
 
 Byte
-    : HexPrefix HexDigit HexDigit?
+    : HexPrefix  HexDigit HexDigit?
     | ByteDecimal
     ;
 
 Word
-    : HexPrefix HexDigit HexDigit HexDigit HexDigit
+    : HexPrefix  HexDigit HexDigit HexDigit HexDigit
     ;
 
 fragment ValuePrefix

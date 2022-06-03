@@ -1,18 +1,21 @@
 package com.syntevo.antlr.z8;
 
-import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.tree.ErrorNode;
-import org.antlr.v4.runtime.tree.TerminalNode;
-
 import java.io.IOException;
 import java.io.Writer;
-import java.util.*;
+import java.util.Collections;
+import java.util.Formatter;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
 /**
  * @author Thomas Singer
  */
-public final class Assembler extends Z8AsmBaseListener {
+public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	// Constants ==============================================================
 
@@ -24,11 +27,11 @@ public final class Assembler extends Z8AsmBaseListener {
 	private final Map<String, Integer> labels = new HashMap<>();
 	private final Map<String, Integer> constants = new HashMap<>();
 
+	private boolean details;
+	private boolean secondPass;
+
 	private Output output;
 	private int pc;
-	private boolean secondPass;
-	private boolean details;
-	private boolean ignoreOutput;
 
 	// Setup ==================================================================
 
@@ -38,232 +41,490 @@ public final class Assembler extends Z8AsmBaseListener {
 	// Implemented ============================================================
 
 	@Override
-	public void visitErrorNode(ErrorNode node) {
-		System.err.println(node.getText());
-	}
-
-	@Override
-	public void enterCode(Z8AsmParser.CodeContext ctx) {
+	public Object visitCode(Z8AsmParser.CodeContext ctx) {
 		output = new Output();
+		return super.visitCode(ctx);
 	}
 
 	@Override
-	public void enterCommand(Z8AsmParser.CommandContext ctx) {
+	public Object visitParserInstruction(Z8AsmParser.ParserInstructionContext ctx) {
+		if (details) {
+			final int line = ctx.getStart().getLine();
+			System.out.println(line + " " + ctx.getText().trim());
+		}
+
+		return super.visitParserInstruction(ctx);
+	}
+
+	@Override
+	public Object visitCommand(Z8AsmParser.CommandContext ctx) {
 		pc = output.getPc();
 		if (details) {
 			final int line = ctx.getStart().getLine();
-			System.out.println(line);
+			System.out.println(line + ": " + ctx.getText().trim());
 		}
-	}
 
-	@Override
-	public void exitCommand(Z8AsmParser.CommandContext ctx) {
-		if (ignoreOutput) {
-			ignoreOutput = false;
-			return;
-		}
+		final Object result = super.visitCommand(ctx);
 
 		final int pc = output.getPc();
 		if (pc == this.pc) {
-			throw new IllegalStateException("command not processed " + ctx.getText());
+			throw new SyntaxException("Command not processed " + ctx.getText(), ctx);
 		}
 
 		if (details) {
-			System.out.println(ctx.getText().strip());
 			output.printFrom(this.pc);
 			System.out.println();
 		}
+
+		return result;
 	}
 
 	@Override
-	public void enterDefConst(Z8AsmParser.DefConstContext ctx) {
-		final String text = ctx.Identifier().getText();
-		TerminalNode valueNode = ctx.Byte();
-		if (valueNode == null) {
-			valueNode = ctx.Word();
-		}
-		final int value = parseWord(valueNode);
+	public Object visitDefConst(Z8AsmParser.DefConstContext ctx) {
+		final String text = ctx.name.getText();
+		final int value = (Integer) visit(ctx.expr);
 
-		if (!secondPass) {
-			if (constants.containsKey(text)) {
-				throw new SyntaxException("Duplicate constant definition for " + text, ctx);
+		final Integer prevValue = constants.put(text, value);
+		if (secondPass) {
+			if (prevValue == null) {
+				throw new SyntaxException("undefined constant '" + text + "'", ctx);
 			}
-
-			if (labels.containsKey(text)) {
-				throw new SyntaxException("A label with the same name already exists: " + text, ctx);
+			if (prevValue.intValue() != value) {
+				throw new SyntaxException("constant '" + text + "' changed value", ctx);
 			}
-
-			constants.put(text, value);
 		}
-		ignoreOutput = true;
+		else {
+			if (prevValue != null) {
+				throw new SyntaxException("constant '" + text + "' already defined", ctx);
+			}
+		}
+		return null;
 	}
 
 	@Override
-	public void enterDataItem(Z8AsmParser.DataItemContext ctx) {
-		final TerminalNode byteNode = ctx.Byte();
-		if (byteNode != null) {
-			write(parseByte(byteNode));
-			return;
-		}
-
-		final Z8AsmParser.AddressContext addressCtx = ctx.address();
-		if (addressCtx != null) {
-			final int address = parseAddress(addressCtx);
-			write(address >> 8);
-			write(address);
-			return;
-		}
-
-		final TerminalNode lStringNode = ctx.LString();
-		if (lStringNode != null) {
-			String text = lStringNode.getText();
-			final boolean leadingLengthByte = text.startsWith("l") || text.startsWith("L");
-			if (leadingLengthByte) {
-				text = text.substring(1);
-			}
-
-			final String string = parseString(text, "\"", ctx);
-
-			if (leadingLengthByte) {
-				if (string.length() > 255) {
-					throw new SyntaxException("String too long - must be < 256", ctx);
-				}
-
-				write(string.length());
-			}
-
-			for (int i = 0; i < string.length(); i++) {
-				write(string.charAt(i));
-			}
-
-			return;
-		}
-
-		final TerminalNode stringNode = ctx.String();
-		if (stringNode != null) {
-			final String text = stringNode.getText();
-			final String string = parseString(text, "\"", ctx);
-
-			for (int i = 0; i < string.length(); i++) {
-				write(string.charAt(i));
-			}
-
-			return;
-		}
-
-		final TerminalNode charNode = ctx.Char();
-		if (charNode != null) {
-			String text = charNode.getText();
-			final String string = parseString(text, "'", ctx);
-			if (string.length() != 1) {
-				throw new SyntaxException("Char must have length of 1", ctx);
-			}
-
-			write(string.charAt(0));
-			return;
-		}
-
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void enterLabelDefinition(Z8AsmParser.LabelDefinitionContext ctx) {
+	public Object visitLabelDefinition(Z8AsmParser.LabelDefinitionContext ctx) {
 		final String label = ctx.Identifier().getText();
 		final int pc = output.getPc();
-		if (details) {
-			if (!new Formatter().format("M_%04X", pc).toString().equals(label)) {
-				System.err.println(ctx.getText());
-			}
+		if (details && !new Formatter().format("M_%04X", pc).toString().equals(label)) {
+			System.err.println("address differs from label: " + label);
 		}
 		labels.put(label, pc);
+		return null;
 	}
 
 	@Override
-	public void enterOrg(Z8AsmParser.OrgContext ctx) {
+	public Object visitOrg(Z8AsmParser.OrgContext ctx) {
 		final int word = parseWord(ctx.Word());
 		output.setPc(word);
-		ignoreOutput = true;
+		return null;
 	}
 
 	@Override
-	public void enterDi(Z8AsmParser.DiContext ctx) {
-		command1(0x8F);
+	public Object visitDataByte(Z8AsmParser.DataByteContext ctx) {
+		write(parseByte(ctx.Byte()));
+		return null;
 	}
 
 	@Override
-	public void enterEi(Z8AsmParser.EiContext ctx) {
-		command1(0x9F);
+	public Object visitDataAddress(Z8AsmParser.DataAddressContext ctx) {
+		final int address = visitAddress(ctx.address());
+		write(address >> 8);
+		write(address);
+		return null;
 	}
 
 	@Override
-	public void enterRet(Z8AsmParser.RetContext ctx) {
-		command1(0xAF);
+	public Object visitDataChar(Z8AsmParser.DataCharContext ctx) {
+		String text = ctx.getText();
+		final String string = parseString(text, "'", ctx);
+		if (string.length() != 1) {
+			throw new SyntaxException("Char must have length of 1", ctx);
+		}
+
+		write(string.charAt(0));
+		return null;
 	}
 
 	@Override
-	public void enterIret(Z8AsmParser.IretContext ctx) {
-		command1(0xBF);
+	public Object visitDataLString(Z8AsmParser.DataLStringContext ctx) {
+		String text = ctx.getText();
+		final boolean leadingLengthByte = text.startsWith("l") || text.startsWith("L");
+		if (leadingLengthByte) {
+			text = text.substring(1);
+		}
+
+		final String string = parseString(text, "\"", ctx);
+
+		if (leadingLengthByte) {
+			if (string.length() > 255) {
+				throw new SyntaxException("String too long - must be < 256", ctx);
+			}
+
+			write(string.length());
+		}
+
+		for (int i = 0; i < string.length(); i++) {
+			write(string.charAt(i));
+		}
+		return null;
 	}
 
 	@Override
-	public void enterRcf(Z8AsmParser.RcfContext ctx) {
-		command1(0xCF);
+	public Object visitDataString(Z8AsmParser.DataStringContext ctx) {
+		final String text = ctx.getText();
+		final String string = parseString(text, "\"", ctx);
+
+		for (int i = 0; i < string.length(); i++) {
+			write(string.charAt(i));
+		}
+		return null;
 	}
 
 	@Override
-	public void enterScf(Z8AsmParser.ScfContext ctx) {
-		command1(0xDF);
+	public Object visitDi(Z8AsmParser.DiContext ctx) {
+		return command1(0x8F);
 	}
 
 	@Override
-	public void enterCcf(Z8AsmParser.CcfContext ctx) {
-		command1(0xEF);
+	public Object visitEi(Z8AsmParser.EiContext ctx) {
+		return command1(0x9F);
 	}
 
 	@Override
-	public void enterNop(Z8AsmParser.NopContext ctx) {
-		command1(0xFF);
+	public Object visitRet(Z8AsmParser.RetContext ctx) {
+		return command1(0xAF);
 	}
 
 	@Override
-	public void enterCallAddress(Z8AsmParser.CallAddressContext ctx) {
-		command3(0xD6, parseAddress(ctx.address()));
+	public Object visitIret(Z8AsmParser.IretContext ctx) {
+		return command1(0xBF);
 	}
 
 	@Override
-	public void enterCallIreg(Z8AsmParser.CallIregContext ctx) {
-		command2(0xD4, parseRegisterPair(ctx.iregisterPair()));
+	public Object visitRcf(Z8AsmParser.RcfContext ctx) {
+		return command1(0xCF);
 	}
 
 	@Override
-	public void enterClr(Z8AsmParser.ClrContext ctx) {
-		handleRegisterCommand(0xB0, ctx.registerOrIregister());
+	public Object visitScf(Z8AsmParser.ScfContext ctx) {
+		return command1(0xDF);
 	}
 
 	@Override
-	public void enterCom(Z8AsmParser.ComContext ctx) {
-		handleRegisterCommand(0x60, ctx.registerOrIregister());
+	public Object visitCcf(Z8AsmParser.CcfContext ctx) {
+		return command1(0xEF);
 	}
 
 	@Override
-	public void enterDa(Z8AsmParser.DaContext ctx) {
-		handleRegisterCommand(0x40, ctx.registerOrIregister());
+	public Object visitNop(Z8AsmParser.NopContext ctx) {
+		return command1(0xFF);
 	}
 
 	@Override
-	public void enterDec(Z8AsmParser.DecContext ctx) {
-		handleRegisterCommand(0x00, ctx.registerOrIregister());
+	public Object visitLd1(Z8AsmParser.Ld1Context ctx) {
+		final int register = (Integer) visit(ctx.register());
+		final int value = (Integer) visit(ctx.valueByte());
+		if (isWorkingRegister(register)) {
+			return command2(toByte(register, 0x0C), value);
+		}
+
+		return command3(0xE6, register, value);
 	}
 
 	@Override
-	public void enterDecw(Z8AsmParser.DecwContext ctx) {
-		handleRegisterCommand(0x80, ctx.registerOrIregister());
+	public Object visitLd2(Z8AsmParser.Ld2Context ctx) {
+		final int target = visitRegister(ctx.target);
+		final int sourceRegister = visitRegister(ctx.source);
+		if (isWorkingRegister(target)) {
+			return command2(toByte(target, 0x08), sourceRegister);
+		}
+
+		if (isWorkingRegister(sourceRegister)) {
+			return command2(toByte(sourceRegister, 0x09), target);
+		}
+
+		return command3(0xE4, sourceRegister, target);
 	}
 
 	@Override
-	public void enterDjnz(Z8AsmParser.DjnzContext ctx) {
+	public Object visitLd3(Z8AsmParser.Ld3Context ctx) {
+		final int target = visitRegister(ctx.register());
+		final int source = visitIregister(ctx.iregister());
+		if (isWorkingRegister(target) && isWorkingRegister(source)) {
+			return command2(0xE3, toByte(target, source));
+		}
+
+		return command3(0xF5, target, source);
+	}
+
+	@Override
+	public Object visitLd4(Z8AsmParser.Ld4Context ctx) {
+		final int target = visitIregister(ctx.iregister());
+		final int source = visitRegister(ctx.register());
+		if (isWorkingRegister(target) && isWorkingRegister(source)) {
+			return command2(0xF3, toByte(target, source));
+		}
+
+		return command3(0xE5, target, source);
+	}
+
+	@Override
+	public Object visitLdc1(Z8AsmParser.Ldc1Context ctx) {
 		final int register = parseWorkingRegister(ctx.WorkingRegister());
-		final int address = parseAddress(ctx.address());
+		final int sourceRegister = parseWorkingRegister(ctx.IWorkingRegisterPair());
+		return command2(0xC2, toByte(register, sourceRegister));
+	}
+
+	@Override
+	public Object visitLdc2(Z8AsmParser.Ldc2Context ctx) {
+		final int register = parseWorkingRegister(ctx.IWorkingRegisterPair());
+		final int sourceRegister = parseWorkingRegister(ctx.WorkingRegister());
+		return command2(0xD2, toByte(sourceRegister, register));
+	}
+
+	@Override
+	public Object visitLde1(Z8AsmParser.Lde1Context ctx) {
+		final int register = parseWorkingRegister(ctx.WorkingRegister());
+		final int sourceRegister = parseWorkingRegister(ctx.IWorkingRegisterPair());
+		return command2(0x82, toByte(register, sourceRegister));
+	}
+
+	@Override
+	public Object visitLde2(Z8AsmParser.Lde2Context ctx) {
+		final int register = parseWorkingRegister(ctx.IWorkingRegisterPair());
+		final int sourceRegister = parseWorkingRegister(ctx.WorkingRegister());
+		return command2(0x92, toByte(sourceRegister, register));
+	}
+
+	@Override
+	public Object visitLdci1(Z8AsmParser.Ldci1Context ctx) {
+		final int register = parseWorkingRegister(ctx.IWorkingRegister());
+		final int sourceRegister = parseWorkingRegister(ctx.IWorkingRegisterPair());
+		return command2(0xC3, toByte(register, sourceRegister));
+	}
+
+	@Override
+	public Object visitLdci2(Z8AsmParser.Ldci2Context ctx) {
+		final int register = parseWorkingRegister(ctx.IWorkingRegisterPair());
+		final int sourceRegister = parseWorkingRegister(ctx.IWorkingRegister());
+		return command2(0xD3, toByte(sourceRegister, register));
+	}
+
+	@Override
+	public Object visitLdei1(Z8AsmParser.Ldei1Context ctx) {
+		final int register = parseWorkingRegister(ctx.IWorkingRegister());
+		final int sourceRegister = parseWorkingRegister(ctx.IWorkingRegisterPair());
+		return command2(0x83, toByte(register, sourceRegister));
+	}
+
+	@Override
+	public Object visitLdei2(Z8AsmParser.Ldei2Context ctx) {
+		final int register = parseWorkingRegister(ctx.IWorkingRegisterPair());
+		final int sourceRegister = parseWorkingRegister(ctx.IWorkingRegister());
+		return command2(0x93, toByte(sourceRegister, register));
+	}
+
+	@Override
+	public Object visitSrp(Z8AsmParser.SrpContext ctx) {
+		final int value = (Integer) visit(ctx.valueByte());
+		if ((value & 0xF) != 0) {
+			throw new SyntaxException("lower nibble must be 0", ctx);
+		}
+
+		return command2(0x31, value);
+	}
+
+	@Override
+	public Object visitDec(Z8AsmParser.DecContext ctx) {
+		return handleRegisterCommand(0x00, ctx.registerOrIregister());
+	}
+
+	@Override
+	public Object visitRlc(Z8AsmParser.RlcContext ctx) {
+		return handleRegisterCommand(0x10, ctx.registerOrIregister());
+	}
+
+	@Override
+	public Object visitInc(Z8AsmParser.IncContext ctx) {
+		final Z8AsmParser.RegisterOrIregisterContext context = ctx.registerOrIregister();
+		final Z8AsmParser.RegisterContext registerContext = context.register();
+		if (registerContext != null) {
+			final TerminalNode wrNode = registerContext.WorkingRegister();
+			if (wrNode != null) {
+				final int register = parseWorkingRegister(wrNode);
+				return command1(toByte(register, 0x0E));
+			}
+		}
+
+		return handleRegisterCommand(0x20, ctx.registerOrIregister());
+	}
+
+	@Override
+	public Object visitDa(Z8AsmParser.DaContext ctx) {
+		return handleRegisterCommand(0x40, ctx.registerOrIregister());
+	}
+
+	@Override
+	public Object visitPop(Z8AsmParser.PopContext ctx) {
+		return handleRegisterCommand(0x50, ctx.registerOrIregister());
+	}
+
+	@Override
+	public Object visitCom(Z8AsmParser.ComContext ctx) {
+		return handleRegisterCommand(0x60, ctx.registerOrIregister());
+	}
+
+	@Override
+	public Object visitPush(Z8AsmParser.PushContext ctx) {
+		return handleRegisterCommand(0x70, ctx.registerOrIregister());
+	}
+
+	@Override
+	public Object visitDecw(Z8AsmParser.DecwContext ctx) {
+		return handleRegisterCommand(0x80, ctx.registerOrIregister());
+	}
+
+	@Override
+	public Object visitRl(Z8AsmParser.RlContext ctx) {
+		return handleRegisterCommand(0x90, ctx.registerOrIregister());
+	}
+
+	@Override
+	public Object visitIncw(Z8AsmParser.IncwContext ctx) {
+		return handleRegisterCommand(0xA0, ctx.registerOrIregister());
+	}
+
+	@Override
+	public Object visitClr(Z8AsmParser.ClrContext ctx) {
+		return handleRegisterCommand(0xB0, ctx.registerOrIregister());
+	}
+
+	@Override
+	public Object visitRrc(Z8AsmParser.RrcContext ctx) {
+		return handleRegisterCommand(0xC0, ctx.registerOrIregister());
+	}
+
+	@Override
+	public Object visitSra(Z8AsmParser.SraContext ctx) {
+		return handleRegisterCommand(0xD0, ctx.registerOrIregister());
+	}
+
+	@Override
+	public Object visitRr(Z8AsmParser.RrContext ctx) {
+		return handleRegisterCommand(0xE0, ctx.registerOrIregister());
+	}
+
+	@Override
+	public Object visitSwap(Z8AsmParser.SwapContext ctx) {
+		return handleRegisterCommand(0xF0, ctx.registerOrIregister());
+	}
+
+	@Override
+	public Object visitAdd(Z8AsmParser.AddContext ctx) {
+		return handleArithmeticCommand(0x0, ctx.arithmeticParameters());
+	}
+
+	@Override
+	public Object visitAdc(Z8AsmParser.AdcContext ctx) {
+		return handleArithmeticCommand(0x1, ctx.arithmeticParameters());
+	}
+
+	@Override
+	public Object visitSub(Z8AsmParser.SubContext ctx) {
+		return handleArithmeticCommand(0x2, ctx.arithmeticParameters());
+	}
+
+	@Override
+	public Object visitSbc(Z8AsmParser.SbcContext ctx) {
+		return handleArithmeticCommand(0x3, ctx.arithmeticParameters());
+	}
+
+	@Override
+	public Object visitOr(Z8AsmParser.OrContext ctx) {
+		return handleArithmeticCommand(0x4, ctx.arithmeticParameters());
+	}
+
+	@Override
+	public Object visitAnd(Z8AsmParser.AndContext ctx) {
+		return handleArithmeticCommand(0x5, ctx.arithmeticParameters());
+	}
+
+	@Override
+	public Object visitTcm(Z8AsmParser.TcmContext ctx) {
+		return handleArithmeticCommand(0x6, ctx.arithmeticParameters());
+	}
+
+	@Override
+	public Object visitTm(Z8AsmParser.TmContext ctx) {
+		return handleArithmeticCommand(0x7, ctx.arithmeticParameters());
+	}
+
+	@Override
+	public Object visitCp(Z8AsmParser.CpContext ctx) {
+		return handleArithmeticCommand(0xA, ctx.arithmeticParameters());
+	}
+
+	@Override
+	public Object visitXor(Z8AsmParser.XorContext ctx) {
+		return handleArithmeticCommand(0xB, ctx.arithmeticParameters());
+	}
+
+	@Override
+	public Object visitCallIreg(Z8AsmParser.CallIregContext ctx) {
+		return command2(0xD4, visitIregisterPair(ctx.iregisterPair()));
+	}
+
+	@Override
+	public Object visitCallAddress(Z8AsmParser.CallAddressContext ctx) {
+		return command3(0xD6, visitAddress(ctx.address()));
+	}
+
+	@Override
+	public Object visitJpIReg(Z8AsmParser.JpIRegContext ctx) {
+		return command2(0x30, visitIregisterPair(ctx.iregisterPair()));
+	}
+
+	@Override
+	public Object visitJpAddress(Z8AsmParser.JpAddressContext ctx) {
+		final int address = visitAddress(ctx.address());
+		jpCheckJr(ctx, address);
+		return command3(toByte(JP_CONDITIONS.get(""), 0x0d), address);
+	}
+
+	@Override
+	public Object visitJpConditionAddress(Z8AsmParser.JpConditionAddressContext ctx) {
+		final TerminalNode condition = ctx.JpCondition();
+		final String text = condition.getText().toLowerCase(Locale.ROOT);
+		int highNibble = JP_CONDITIONS.get(text);
+		final int address = visitAddress(ctx.address());
+		jpCheckJr(ctx, address);
+		return command3(toByte(highNibble, 0x0d), address);
+	}
+
+	@Override
+	public Object visitJr(Z8AsmParser.JrContext ctx) {
+		final TerminalNode condition = ctx.JpCondition();
+		int highNibble = JP_CONDITIONS.get("");
+		if (condition != null) {
+			final String text = condition.getText().toLowerCase(Locale.ROOT);
+			highNibble = JP_CONDITIONS.get(text);
+		}
+
+		final int address = visitAddress(ctx.address());
+
+		final int pc = output.getPc() + 2;
+		final int delta = address - pc;
+		if (!isValidJpDelta(delta)) {
+			throw new SyntaxException("jr needs to be jp", ctx);
+		}
+
+		return command2(toByte(highNibble, 0x0b), delta);
+	}
+
+	@Override
+	public Object visitDjnz(Z8AsmParser.DjnzContext ctx) {
+		final int register = parseWorkingRegister(ctx.WorkingRegister());
+		final int address = visitAddress(ctx.address());
 
 		final int pc = output.getPc() + 2;
 		final int delta = address - pc;
@@ -271,286 +532,94 @@ public final class Assembler extends Z8AsmBaseListener {
 			throw new IllegalStateException(getPosition(ctx) + ": djnz needs to be replaced with dec & jp nz");
 		}
 
-		command2(toByte(register, 0x0A), delta);
+		return command2(toByte(register, 0x0A), delta);
 	}
 
 	@Override
-	public void enterInc(Z8AsmParser.IncContext ctx) {
-		final Z8AsmParser.RegisterOrIregisterContext context = ctx.registerOrIregister();
-		final Z8AsmParser.RegisterContext registerContext = context.register();
-		if (registerContext != null) {
-			final TerminalNode wrNode = registerContext.WorkingRegister();
-			if (wrNode != null) {
-				final int register = parseWorkingRegister(wrNode);
-				command1(toByte(register, 0x0E));
-				return;
+	public Integer visitIregisterPair(Z8AsmParser.IregisterPairContext ctx) {
+		final TerminalNode node = ctx.IWorkingRegisterPair();
+		if (node != null) {
+			return WORKING_REGISTER_HIGH_NIBBLE | parseWorkingRegister(node);
+		}
+
+		return visitRegister(ctx.register());
+	}
+
+	@Override
+	public Integer visitIregister(Z8AsmParser.IregisterContext ctx) {
+		final Z8AsmParser.RegisterContext register = ctx.register();
+		if (register != null) {
+			return visitRegister(register);
+		}
+
+		final TerminalNode node = ctx.IWorkingRegister();
+		if (node != null) {
+			return WORKING_REGISTER_HIGH_NIBBLE + parseWorkingRegister(node);
+		}
+
+		throw new UnsupportedOperationException(ctx.getText());
+	}
+
+	@Override
+	public Integer visitRegister(Z8AsmParser.RegisterContext ctx) {
+		final TerminalNode byteNode = ctx.Byte();
+		if (byteNode != null) {
+			return parseByte(byteNode);
+		}
+
+		final TerminalNode workingRegisterNode = ctx.WorkingRegister();
+		if (workingRegisterNode != null) {
+			return WORKING_REGISTER_HIGH_NIBBLE + parseWorkingRegister(workingRegisterNode);
+		}
+
+		final TerminalNode identifierNode = ctx.Identifier();
+		if (identifierNode != null) {
+			final String text = identifierNode.getText();
+			final Integer value = constants.get(text);
+			if (value == null) {
+				throw new SyntaxException("Undefined constant " + text, ctx);
 			}
+			return value;
 		}
 
-		handleRegisterCommand(0x20, context);
+		throw new UnsupportedOperationException(ctx.getText());
 	}
 
 	@Override
-	public void enterIncw(Z8AsmParser.IncwContext ctx) {
-		handleRegisterCommand(0xA0, ctx.registerOrIregister());
-	}
+	public Integer visitAddress(Z8AsmParser.AddressContext ctx) {
+		TerminalNode addressValue = ctx.Word();
+		if (addressValue != null) {
+			return parseWord(addressValue);
+		}
 
-	@Override
-	public void enterLd1(Z8AsmParser.Ld1Context ctx) {
-		final int register = parseRegister(ctx.register());
-		final Z8AsmParser.RegisterOrIregisterContext rOIrCtx = ctx.registerOrIregister();
-		if (rOIrCtx != null) {
-			final Z8AsmParser.RegisterContext sourceRegisterCtx = rOIrCtx.register();
-			if (sourceRegisterCtx != null) {
-				final int sourceRegister = parseRegister(sourceRegisterCtx);
-				if (isWorkingRegister(register)) {
-					command2(toByte(register, 0x08), sourceRegister);
+		final Token label = ctx.label;
+		if (label != null) {
+			final String text = label.getText();
+			final Integer labelAddress = labels.get(text);
+			if (labelAddress == null) {
+				if (secondPass) {
+					throw new SyntaxException("Unknown label '" + text + "'", ctx);
 				}
-				else if (isWorkingRegister(sourceRegister)) {
-					command2(toByte(sourceRegister, 0x09), register);
-				}
-				else {
-					command3(0xE4, sourceRegister, register);
-				}
-				return;
+				return pc + 2;
 			}
-
-			final Z8AsmParser.IregisterContext sourceIRegisterCtx = rOIrCtx.iregister();
-			if (sourceIRegisterCtx != null) {
-				final int sourceRegister = parseRegister(sourceIRegisterCtx);
-				if (isWorkingRegister(register) && isWorkingRegister(sourceRegister)) {
-					command2(0xE3, toByte(register, sourceRegister));
-				}
-				else {
-					command3(0xF5, register, sourceRegister);
-				}
-				return;
-			}
+			return labelAddress.intValue();
 		}
 
-		final TerminalNode valueNode = ctx.ValueByte();
-		if (valueNode != null) {
-			final int value = parseByte(valueNode);
-			if ((register & 0xF0) == WORKING_REGISTER_HIGH_NIBBLE) {
-				command2(toByte(register, 0x0C), value);
-			}
-			else {
-				command3(0xE6, register, value);
-			}
-			return;
+		throw new SyntaxException("Unknown target", ctx);
+	}
+
+	@Override
+	public Integer visitExprNumber(Z8AsmParser.ExprNumberContext ctx) {
+		TerminalNode node = ctx.Byte();
+		if (node == null) {
+			node = ctx.Word();
 		}
-
-		throw new IllegalStateException();
+		return parseWord(node);
 	}
 
 	@Override
-	public void enterLd2(Z8AsmParser.Ld2Context ctx) {
-		final int iregister = parseRegister(ctx.iregister());
-		final int register = parseRegister(ctx.register());
-		if (isWorkingRegister(iregister) && isWorkingRegister(register)) {
-			command2(0xF3, toByte(iregister, register));
-		}
-		else {
-			command3(0xE5, iregister, register);
-		}
-	}
-
-	@Override
-	public void enterLdc1(Z8AsmParser.Ldc1Context ctx) {
-		final int register = parseWorkingRegister(ctx.WorkingRegister());
-		final int sourceRegister = parseWorkingRegister(ctx.IWorkingRegisterPair());
-		command2(0xC2, toByte(register, sourceRegister));
-	}
-
-	@Override
-	public void enterLdc2(Z8AsmParser.Ldc2Context ctx) {
-		final int register = parseWorkingRegister(ctx.IWorkingRegisterPair());
-		final int sourceRegister = parseWorkingRegister(ctx.WorkingRegister());
-		command2(0xD2, toByte(sourceRegister, register));
-	}
-
-	@Override
-	public void enterLdci1(Z8AsmParser.Ldci1Context ctx) {
-		final int register = parseWorkingRegister(ctx.IWorkingRegister());
-		final int sourceRegister = parseWorkingRegister(ctx.IWorkingRegisterPair());
-		command2(0xC3, toByte(register, sourceRegister));
-	}
-
-	@Override
-	public void enterLdci2(Z8AsmParser.Ldci2Context ctx) {
-		final int register = parseWorkingRegister(ctx.IWorkingRegisterPair());
-		final int sourceRegister = parseWorkingRegister(ctx.IWorkingRegister());
-		command2(0xD3, toByte(sourceRegister, register));
-	}
-
-	@Override
-	public void enterLde1(Z8AsmParser.Lde1Context ctx) {
-		final int register = parseWorkingRegister(ctx.WorkingRegister());
-		final int sourceRegister = parseWorkingRegister(ctx.IWorkingRegisterPair());
-		command2(0x82, toByte(register, sourceRegister));
-	}
-
-	@Override
-	public void enterLde2(Z8AsmParser.Lde2Context ctx) {
-		final int register = parseWorkingRegister(ctx.IWorkingRegisterPair());
-		final int sourceRegister = parseWorkingRegister(ctx.WorkingRegister());
-		command2(0x92, toByte(sourceRegister, register));
-	}
-
-	@Override
-	public void enterLdei1(Z8AsmParser.Ldei1Context ctx) {
-		final int register = parseWorkingRegister(ctx.IWorkingRegister());
-		final int sourceRegister = parseWorkingRegister(ctx.IWorkingRegisterPair());
-		command2(0x83, toByte(register, sourceRegister));
-	}
-
-	@Override
-	public void enterLdei2(Z8AsmParser.Ldei2Context ctx) {
-		final int register = parseWorkingRegister(ctx.IWorkingRegisterPair());
-		final int sourceRegister = parseWorkingRegister(ctx.IWorkingRegister());
-		command2(0x93, toByte(sourceRegister, register));
-	}
-
-	@Override
-	public void enterJpAddress(Z8AsmParser.JpAddressContext ctx) {
-		final int address = parseAddress(ctx.address());
-		command3(toByte(JP_CONDITIONS.get(""), 0x0d), address);
-		jpCheckJr(ctx, address);
-	}
-
-	@Override
-	public void enterJpConditionAddress(Z8AsmParser.JpConditionAddressContext ctx) {
-		final TerminalNode condition = ctx.JpCondition();
-		final String text = condition.getText().toLowerCase(Locale.ROOT);
-		int highNibble = JP_CONDITIONS.get(text);
-		final int address = parseAddress(ctx.address());
-		command3(toByte(highNibble, 0x0d), address);
-		jpCheckJr(ctx, address);
-	}
-
-	@Override
-	public void enterJpIReg(Z8AsmParser.JpIRegContext ctx) {
-		final int register = parseRegisterPair(ctx.iregisterPair());
-		command2(0x30, register);
-	}
-
-	@Override
-	public void enterJr(Z8AsmParser.JrContext ctx) {
-		final TerminalNode condition = ctx.JpCondition();
-		int highNibble = JP_CONDITIONS.get("");
-		if (condition != null) {
-			final String text = condition.getText().toLowerCase(Locale.ROOT);
-			highNibble = JP_CONDITIONS.get(text);
-		}
-		final int address = parseAddress(ctx.address());
-
-		final int pc = output.getPc() + 2;
-		final int delta = address - pc;
-		if (!isValidJpDelta(delta)) {
-			throw new IllegalStateException(getPosition(ctx) + ": jr needs to be jp");
-		}
-
-		command2(toByte(highNibble, 0x0b), delta);
-	}
-
-	@Override
-	public void enterPop(Z8AsmParser.PopContext ctx) {
-		handleRegisterCommand(0x50, ctx.registerOrIregister());
-	}
-
-	@Override
-	public void enterPush(Z8AsmParser.PushContext ctx) {
-		handleRegisterCommand(0x70, ctx.registerOrIregister());
-	}
-
-	@Override
-	public void enterRl(Z8AsmParser.RlContext ctx) {
-		handleRegisterCommand(0x90, ctx.registerOrIregister());
-	}
-
-	@Override
-	public void enterRlc(Z8AsmParser.RlcContext ctx) {
-		handleRegisterCommand(0x10, ctx.registerOrIregister());
-	}
-
-	@Override
-	public void enterRr(Z8AsmParser.RrContext ctx) {
-		handleRegisterCommand(0xE0, ctx.registerOrIregister());
-	}
-
-	@Override
-	public void enterRrc(Z8AsmParser.RrcContext ctx) {
-		handleRegisterCommand(0xC0, ctx.registerOrIregister());
-	}
-
-	@Override
-	public void enterSra(Z8AsmParser.SraContext ctx) {
-		handleRegisterCommand(0xD0, ctx.registerOrIregister());
-	}
-
-	@Override
-	public void enterSrp(Z8AsmParser.SrpContext ctx) {
-		final int value = parseByte(ctx.ValueByte());
-		if ((value & 0xF) != 0) {
-			throw new SyntaxException("lower nibble must be 0", ctx);
-		}
-
-		command2(0x31, value);
-	}
-
-	@Override
-	public void enterSwap(Z8AsmParser.SwapContext ctx) {
-		handleRegisterCommand(0xF0, ctx.registerOrIregister());
-	}
-
-	@Override
-	public void enterAdd(Z8AsmParser.AddContext ctx) {
-		handleArithmeticCommand(0x0, ctx.arithmeticParameters());
-	}
-
-	@Override
-	public void enterAdc(Z8AsmParser.AdcContext ctx) {
-		handleArithmeticCommand(0x1, ctx.arithmeticParameters());
-	}
-
-	@Override
-	public void enterSub(Z8AsmParser.SubContext ctx) {
-		handleArithmeticCommand(0x2, ctx.arithmeticParameters());
-	}
-
-	@Override
-	public void enterSbc(Z8AsmParser.SbcContext ctx) {
-		handleArithmeticCommand(0x3, ctx.arithmeticParameters());
-	}
-
-	@Override
-	public void enterOr(Z8AsmParser.OrContext ctx) {
-		handleArithmeticCommand(0x4, ctx.arithmeticParameters());
-	}
-
-	@Override
-	public void enterAnd(Z8AsmParser.AndContext ctx) {
-		handleArithmeticCommand(0x5, ctx.arithmeticParameters());
-	}
-
-	@Override
-	public void enterTcm(Z8AsmParser.TcmContext ctx) {
-		handleArithmeticCommand(0x6, ctx.arithmeticParameters());
-	}
-
-	@Override
-	public void enterTm(Z8AsmParser.TmContext ctx) {
-		handleArithmeticCommand(0x7, ctx.arithmeticParameters());
-	}
-
-	@Override
-	public void enterCp(Z8AsmParser.CpContext ctx) {
-		handleArithmeticCommand(0xA, ctx.arithmeticParameters());
-	}
-
-	@Override
-	public void enterXor(Z8AsmParser.XorContext ctx) {
-		handleArithmeticCommand(0xB, ctx.arithmeticParameters());
+	public Integer visitValueByte(Z8AsmParser.ValueByteContext ctx) {
+		return parseByte(ctx.ValueByte());
 	}
 
 	// Accessing ==============================================================
@@ -559,29 +628,17 @@ public final class Assembler extends Z8AsmBaseListener {
 		this.details = details;
 	}
 
-	public void print(Writer writer) throws IOException {
-		output.print(writer);
-	}
-
 	public void setSecondPass(boolean secondPass) {
 		this.secondPass = secondPass;
 	}
 
+	public void print(Writer writer) throws IOException {
+		output.print(writer);
+	}
+
 	// Utils ==================================================================
 
-	private void jpCheckJr(ParserRuleContext ctx, int address) {
-		final int pc = output.getPc() + 2;
-		final int delta = address - pc;
-		if (isValidJpDelta(delta)) {
-			System.out.println(getPosition(ctx) + ": jp can be jr");
-		}
-	}
-
-	private boolean isValidJpDelta(int delta) {
-		return delta >= -128 && delta < 128;
-	}
-
-	private String parseString(String text, String prefixSuffix, Z8AsmParser.DataItemContext ctx) {
+	private String parseString(String text, String prefixSuffix, ParserRuleContext ctx) {
 		if (text.length() < 2 || !text.startsWith(prefixSuffix) || !text.endsWith(prefixSuffix)) {
 			throw new SyntaxException("Unknown string", ctx);
 		}
@@ -596,7 +653,7 @@ public final class Assembler extends Z8AsmBaseListener {
 			if (prevWasBackslash) {
 				prevWasBackslash = false;
 				if (chr == '\\'
-						|| chr == '"') {
+				    || chr == '"') {
 					buffer.append(chr);
 				}
 				else if (chr == 'n') {
@@ -626,114 +683,108 @@ public final class Assembler extends Z8AsmBaseListener {
 		return buffer.toString();
 	}
 
-	private void handleRegisterCommand(int opCode, Z8AsmParser.RegisterOrIregisterContext context) {
+	private Object handleRegisterCommand(int opCode, Z8AsmParser.RegisterOrIregisterContext context) {
 		final Z8AsmParser.RegisterContext register = context.register();
 		if (register != null) {
-			command2(opCode, parseRegister(register));
-			return;
+			return command2(opCode, visitRegister(register));
 		}
 
 		final Z8AsmParser.IregisterContext iregister = context.iregister();
-		command2(opCode + 1, parseRegister(iregister));
+		return command2(opCode + 1, visitIregister(iregister));
 	}
 
-	private void handleArithmeticCommand(int highNibble, Z8AsmParser.ArithmeticParametersContext p) {
+	private boolean isValidJpDelta(int delta) {
+		return delta >= -128 && delta < 128;
+	}
+
+	private void jpCheckJr(ParserRuleContext ctx, int address) {
+		final int pc = output.getPc() + 2;
+		final int delta = address - pc;
+		if (isValidJpDelta(delta)) {
+			System.out.println(getPosition(ctx) + ": jp can be jr");
+		}
+	}
+
+	private Object handleArithmeticCommand(int highNibble, Z8AsmParser.ArithmeticParametersContext p) {
 		final Z8AsmParser.ArithmeticParameters1Context p1 = p.arithmeticParameters1();
 		if (p1 != null) {
-			final int register = parseRegister(p1.register(0));
-			final Z8AsmParser.RegisterContext sourceRegisterCtx = p1.register(1);
-			if (sourceRegisterCtx != null) {
-				final int sourceRegister = parseRegister(sourceRegisterCtx);
-				if (isWorkingRegister(register) && isWorkingRegister(sourceRegister)) {
-					command2(toByte(highNibble, 0x2), toByte(register, sourceRegister));
-					return;
-				}
-
-				command3(toByte(highNibble, 0x4), sourceRegister, register);
-				return;
-			}
-
-			final TerminalNode valueByte = p1.ValueByte();
-			if (valueByte != null) {
-				command3(toByte(highNibble, 0x6), register, parseByte(valueByte));
-				return;
-			}
+			return handleArithmeticCommand(highNibble, p1);
 		}
 
 		final Z8AsmParser.ArithmeticParameters2Context p2 = p.arithmeticParameters2();
 		if (p2 != null) {
-			final int register = parseRegister(p2.iregister());
-			final TerminalNode valueByte = p2.ValueByte();
-			if (valueByte != null) {
-				command3(toByte(highNibble, 0x7), register, parseByte(valueByte));
-				return;
-			}
+			return handleArithmeticCommand(highNibble, p2);
 		}
 
 		final Z8AsmParser.ArithmeticParameters3Context p3 = p.arithmeticParameters3();
 		if (p3 != null) {
-			final int register = parseRegister(p3.register());
-			final int iregister = parseRegister(p3.iregister());
-			if (isWorkingRegister(register) && isWorkingRegister(iregister)) {
-				command2(toByte(highNibble, 0x3), toByte(register, iregister));
-				return;
-			}
+			return handleArithmeticCommand(highNibble, p3);
+		}
+
+		final Z8AsmParser.ArithmeticParameters4Context p4 = p.arithmeticParameters4();
+		if (p4 != null) {
+			return handleArithmeticCommand(highNibble, p4);
 		}
 
 		throw new IllegalStateException(p.getText());
 	}
 
-	private void command1(int opCode) {
-		write(opCode);
+	private Object handleArithmeticCommand(int highNibble, Z8AsmParser.ArithmeticParameters1Context ctx) {
+		final int register = visitRegister(ctx.register());
+		final int value = visitValueByte(ctx.valueByte());
+		return command3(toByte(highNibble, 0x6), register, value);
 	}
 
-	private void command2(int opCode, int value) {
+	private Object handleArithmeticCommand(int highNibble, Z8AsmParser.ArithmeticParameters2Context ctx) {
+		final int target = visitRegister(ctx.target);
+		final int source = visitRegister(ctx.source);
+		if (isWorkingRegister(target) && isWorkingRegister(source)) {
+			return command2(toByte(highNibble, 0x2), toByte(target, source));
+		}
+
+		return command3(toByte(highNibble, 0x4), source, target);
+	}
+
+	private Object handleArithmeticCommand(int highNibble, Z8AsmParser.ArithmeticParameters3Context ctx) {
+		final int register = visitIregister(ctx.iregister());
+		final int value = visitValueByte(ctx.valueByte());
+		return command3(toByte(highNibble, 0x7), register, value);
+	}
+
+	private Object handleArithmeticCommand(int highNibble, Z8AsmParser.ArithmeticParameters4Context ctx) {
+		final int register = visitRegister(ctx.register());
+		final int iregister = visitIregister(ctx.iregister());
+		if (isWorkingRegister(register) && isWorkingRegister(iregister)) {
+			return command2(toByte(highNibble, 0x3), toByte(register, iregister));
+		}
+
+		throw new IllegalStateException(ctx.getText());
+	}
+
+	private Object command1(int opCode) {
+		write(opCode);
+		return null;
+	}
+
+	private Object command2(int opCode, int value) {
 		write(opCode);
 		write(value);
+		return null;
 	}
 
-	private void command3(int opCode, int address) {
-		command3(opCode, address >> 8, address);
-	}
-
-	private void command3(int opCode, int p1, int p2) {
+	private Object command3(int opCode, int p1, int p2) {
 		write(opCode);
 		write(p1);
 		write(p2);
+		return null;
+	}
+
+	private Object command3(int opCode, int address) {
+		return command3(opCode, address >> 8, address);
 	}
 
 	private void write(int value) {
 		output.write(value);
-	}
-
-	private int toByte(int highNibble, int lowNibble) {
-		return (highNibble & 0x0F) << 4 | lowNibble & 0x0F;
-	}
-
-	private boolean isWorkingRegister(int register) {
-		return (register & 0xF0) == WORKING_REGISTER_HIGH_NIBBLE;
-	}
-
-	private int parseAddress(Z8AsmParser.AddressContext addressCtx) {
-		TerminalNode addressValue = addressCtx.Word();
-		if (addressValue != null) {
-			return parseWord(addressValue);
-		}
-
-		final TerminalNode identifier = addressCtx.Identifier();
-		if (identifier != null) {
-			final String text = identifier.getText();
-			final Integer labelAddress = labels.get(text);
-			if (labelAddress == null) {
-				if (secondPass) {
-					throw new SyntaxException("Unknown label '" + text + "'", addressCtx);
-				}
-				return pc + 2;
-			}
-			return labelAddress.intValue();
-		}
-
-		throw new SyntaxException("Unknown target", addressCtx);
 	}
 
 	private int parseByte(TerminalNode valueNode) {
@@ -748,42 +799,12 @@ public final class Assembler extends Z8AsmBaseListener {
 		return Integer.parseInt(text);
 	}
 
-	private int parseRegister(Z8AsmParser.RegisterContext ctx) {
-		final TerminalNode byteNode = ctx.Byte();
-		if (byteNode != null) {
-			return parseByte(byteNode);
+	private int parseWord(TerminalNode node) {
+		String text = node.getText();
+		if (text.startsWith("%")) {
+			text = text.substring(1);
 		}
-
-		final TerminalNode workingRegisterNode = ctx.WorkingRegister();
-		if (workingRegisterNode != null) {
-			return WORKING_REGISTER_HIGH_NIBBLE + parseWorkingRegister(workingRegisterNode);
-		}
-
-		final TerminalNode identifierNode = ctx.Identifier();
-		if (identifierNode != null) {
-			final String text = identifierNode.getText();
-			final Integer value = constants.get(text);
-			if (value == null) {
-				throw new SyntaxException("Undefined constant " + text, ctx);
-			}
-			return value;
-		}
-
-		throw new UnsupportedOperationException(ctx.getText());
-	}
-
-	private int parseRegister(Z8AsmParser.IregisterContext ctx) {
-		final Z8AsmParser.RegisterContext register = ctx.register();
-		if (register != null) {
-			return parseRegister(register);
-		}
-
-		final TerminalNode node = ctx.IWorkingRegister();
-		if (node != null) {
-			return WORKING_REGISTER_HIGH_NIBBLE + parseWorkingRegister(node);
-		}
-
-		throw new UnsupportedOperationException(ctx.getText());
+		return Integer.valueOf(text, 16);
 	}
 
 	private int parseWorkingRegister(TerminalNode workingRegisterNode) {
@@ -801,15 +822,6 @@ public final class Assembler extends Z8AsmBaseListener {
 		return parseNibble(text);
 	}
 
-	private int parseRegisterPair(Z8AsmParser.IregisterPairContext ctx) {
-		final TerminalNode node = ctx.IWorkingRegisterPair();
-		if (node != null) {
-			return WORKING_REGISTER_HIGH_NIBBLE | parseWorkingRegister(node);
-		}
-
-		return parseRegister(ctx.register());
-	}
-
 	private int parseNibble(String text) {
 		final int value = Integer.parseInt(text);
 		if (value < 0 || value > 0xF) {
@@ -818,9 +830,17 @@ public final class Assembler extends Z8AsmBaseListener {
 		return value;
 	}
 
-	private int parseWord(TerminalNode node) {
-		final String text = node.getText();
-		return Integer.valueOf(text.substring(1), 16);
+	private boolean isWorkingRegister(int register) {
+		return (register & 0xF0) == WORKING_REGISTER_HIGH_NIBBLE;
+	}
+
+	private int toByte(int highNibble, int lowNibble) {
+		return (highNibble & 0x0F) << 4 | lowNibble & 0x0F;
+	}
+
+	private static String getPosition(ParserRuleContext context) {
+		final Token start = context.getStart();
+		return start.getLine() + ":" + start.getCharPositionInLine();
 	}
 
 	private static Map<String, Integer> createJpConditionsMap() {
@@ -849,11 +869,6 @@ public final class Assembler extends Z8AsmBaseListener {
 		return Collections.unmodifiableMap(map);
 	}
 
-	private static String getPosition(ParserRuleContext context) {
-		final Token start = context.getStart();
-		return start.getLine() + ":" + start.getCharPositionInLine();
-	}
-
 	// Inner Classes ==========================================================
 
 	public static class SyntaxException extends RuntimeException {
@@ -862,6 +877,11 @@ public final class Assembler extends Z8AsmBaseListener {
 		public SyntaxException(String error, ParserRuleContext context) {
 			super(error);
 			this.context = context;
+		}
+
+		@Override
+		public String getMessage() {
+			return getPosition() + " " + super.getMessage();
 		}
 
 		public String getPosition() {

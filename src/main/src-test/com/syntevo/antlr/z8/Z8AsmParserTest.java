@@ -1,15 +1,19 @@
 package com.syntevo.antlr.z8;
 
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.tree.ParseTreeWalker;
-import org.junit.Test;
-
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+
+import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.misc.ParseCancellationException;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.junit.Test;
 
 /**
  * @author Thomas Singer
@@ -32,16 +36,21 @@ public class Z8AsmParserTest {
 
 		final CommonTokenStream tokenStream = new CommonTokenStream(lexer);
 		final Z8AsmParser parser = new Z8AsmParser(tokenStream);
+		parser.addErrorListener(new BaseErrorListener() {
+			@Override
+			public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine, String msg, RecognitionException e) {
+				throw new ParseCancellationException("line " + line + ":" + charPositionInLine + " " + msg);
+			}
+		});
 
-		//		parser.addParseListener(parser.new TraceListener());
-		final Z8AsmParser.CodeContext code = parser.code();
+		final ParseTree root = parser.code();
 
 		final Assembler assembler = new Assembler();
-//		assembler.setDetails(true);
-		ParseTreeWalker.DEFAULT.walk(assembler, code);
+		assembler.setDetails(false);
+		assembler.visit(root);
 
 		assembler.setSecondPass(true);
-		ParseTreeWalker.DEFAULT.walk(assembler, code);
+		assembler.visit(root);
 
 		try (Writer writer = Files.newBufferedWriter(Paths.get(fileName + ".expected"))) {
 			assembler.print(writer);

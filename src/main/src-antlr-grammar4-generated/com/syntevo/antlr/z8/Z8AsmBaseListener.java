@@ -52,6 +52,18 @@ public class Z8AsmBaseListener implements Z8AsmListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterParserInstruction(Z8AsmParser.ParserInstructionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitParserInstruction(Z8AsmParser.ParserInstructionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterCommand(Z8AsmParser.CommandContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -88,13 +100,61 @@ public class Z8AsmBaseListener implements Z8AsmListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterDataItem(Z8AsmParser.DataItemContext ctx) { }
+	@Override public void enterDataByte(Z8AsmParser.DataByteContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitDataItem(Z8AsmParser.DataItemContext ctx) { }
+	@Override public void exitDataByte(Z8AsmParser.DataByteContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterDataAddress(Z8AsmParser.DataAddressContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitDataAddress(Z8AsmParser.DataAddressContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterDataLString(Z8AsmParser.DataLStringContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitDataLString(Z8AsmParser.DataLStringContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterDataString(Z8AsmParser.DataStringContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitDataString(Z8AsmParser.DataStringContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterDataChar(Z8AsmParser.DataCharContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitDataChar(Z8AsmParser.DataCharContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -407,6 +467,30 @@ public class Z8AsmBaseListener implements Z8AsmListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitLd2(Z8AsmParser.Ld2Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterLd3(Z8AsmParser.Ld3Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitLd3(Z8AsmParser.Ld3Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterLd4(Z8AsmParser.Ld4Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitLd4(Z8AsmParser.Ld4Context ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -772,6 +856,18 @@ public class Z8AsmBaseListener implements Z8AsmListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterArithmeticParameters4(Z8AsmParser.ArithmeticParameters4Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitArithmeticParameters4(Z8AsmParser.ArithmeticParameters4Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterRegisterOrIregister(Z8AsmParser.RegisterOrIregisterContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -815,6 +911,30 @@ public class Z8AsmBaseListener implements Z8AsmListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitIregisterPair(Z8AsmParser.IregisterPairContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterValueByte(Z8AsmParser.ValueByteContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitValueByte(Z8AsmParser.ValueByteContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterExprNumber(Z8AsmParser.ExprNumberContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitExprNumber(Z8AsmParser.ExprNumberContext ctx) { }
 
 	/**
 	 * {@inheritDoc}

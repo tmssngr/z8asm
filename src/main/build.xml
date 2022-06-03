@@ -19,6 +19,7 @@
 				<arg value="${generated}/@{dir}"/>
 				<arg value="-package"/>
 				<arg value="@{package}"/>
+				<arg value="-visitor"/>
 				<arg value="grammar/@{name}.g4"/>
 			</java>
 
@@ -47,6 +48,10 @@
 				<arg value="@{name}"/>
 				<arg value="tokens"/>
 				<arg value="-tokens"/>
+<!--
+				<arg value="code"/>
+				<arg value="-gui"/>
+-->
 				<arg value="${basedir}/examples/@{example-file}"/>
 			</java>
 		</sequential>
