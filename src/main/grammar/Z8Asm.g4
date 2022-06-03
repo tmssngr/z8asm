@@ -244,9 +244,14 @@ fragment ByteDecimal
     | '25' [0-5]
     ;
 
+fragment BinaryNibble: BinDigit BinDigit BinDigit BinDigit ;
+fragment BinaryLiteral: '0' B BinaryNibble '_' BinaryNibble ;
+
+
 Byte
     : HexPrefix  HexDigit HexDigit?
     | ByteDecimal
+    | BinaryLiteral
     ;
 
 Word

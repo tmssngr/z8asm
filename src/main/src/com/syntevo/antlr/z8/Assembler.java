@@ -614,7 +614,11 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 		if (node == null) {
 			node = ctx.Word();
 		}
-		return parseWord(node);
+		String text = node.getText();
+		if (text.startsWith("0b")) {
+			return Integer.parseUnsignedInt(text.substring(2).replace("_", ""), 2);
+		}
+		return parseNumber(text);
 	}
 
 	@Override
@@ -787,8 +791,12 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 		output.write(value);
 	}
 
-	private int parseByte(TerminalNode valueNode) {
-		String text = valueNode.getText();
+	private int parseByte(TerminalNode node) {
+		String text = node.getText();
+		return parseNumber(text);
+	}
+
+	private int parseNumber(String text) {
 		if (text.startsWith("%")) {
 			text = text.substring(1);
 			return Integer.valueOf(text, 16);
@@ -798,6 +806,10 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	private int parseWord(TerminalNode node) {
 		String text = node.getText();
+		return parseHex(text);
+	}
+
+	private Integer parseHex(String text) {
 		if (text.startsWith("%")) {
 			text = text.substring(1);
 		}

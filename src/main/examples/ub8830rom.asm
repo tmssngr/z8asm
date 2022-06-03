@@ -26,10 +26,10 @@ boot:
         SRP #0
         LD r3, #%0F
         NOP
-        TM r3, #4
+        TM r3, #0b0000_0100
         LD      R3, #%FF
         JR      NZ, M_001D
-        TM      R3, #4
+        TM      R3, #0b0000_0100
         JR      NZ, M_003D
 M_001D: LD      P01M, #%B6      ; P00-P03 = A8-A11, Stack extern, P1x = AD0-AD7, P04-P04 = A12-A15, extended memory timing
         LD      P3M, #8         ; P30-P33 input, P35-P37 output, P34 DM, Port 2 open-drain
@@ -63,14 +63,14 @@ M_004E: RLC     R1
 M_005B: LD      P01M, #%7F      ; P04-P07 = input, extended timing, P1x = high impedance, internal stack, P00-P03 = A8-A11
 M_005E: JR      M_005E          ; endless loop
 
-M_0060: OR      %7F, #%18       ; xxx1_1xxx
-        LD      P01M, %7F       ; P04-P07 = input, extended timing, P1x = high impedance, internal stack, P00-P03 = A8-A11
-        AND     %3, #%DF        ; P35 = 0
-M_0069: TM      %3, #4          ; while P32 == 0
+M_0060: OR      %7F, #0b0001_1000
+        LD      P01M, %7F        ; P04-P07 = input, extended timing, P1x = high impedance, internal stack, P00-P03 = A8-A11
+        AND     %3, #%DF         ; P35 = 0
+M_0069: TM      %3, #0b0000_0100 ; while P32 == 0
         JR      Z, M_0069
-        AND     %7F, #%F7       ; xxxx_0xxx
-        OR      %3, #%20        ; P35 = 1
-        LD      P01M, %7F       ; P04-P07 = input, extended timing, P1x = high impedance, internal stack, P00-P03 = A8-A11
+        AND     %7F, #0b1111_0111
+        OR      %3, #0b0010_0000 ; P35 = 1
+        LD      P01M, %7F        ; P04-P07 = input, extended timing, P1x = high impedance, internal stack, P00-P03 = A8-A11
         NOP
         IRET
 
