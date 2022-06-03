@@ -619,7 +619,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	@Override
 	public Integer visitValueByte(Z8AsmParser.ValueByteContext ctx) {
-		return parseByte(ctx.Byte());
+		return (Integer) visit(ctx.expression());
 	}
 
 	// Accessing ==============================================================

@@ -197,7 +197,7 @@ iregisterPair
     | IWorkingRegisterPair
     ;
 
-valueByte : '#' Byte ;
+valueByte : '#' expression ;
 
 expression : (Byte | Word) #exprNumber
            ;

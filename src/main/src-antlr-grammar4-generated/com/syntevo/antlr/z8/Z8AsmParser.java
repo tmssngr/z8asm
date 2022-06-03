@@ -4263,7 +4263,9 @@ public class Z8AsmParser extends Parser {
 	}
 
 	public static class ValueByteContext extends ParserRuleContext {
-		public TerminalNode Byte() { return getToken(Z8AsmParser.Byte, 0); }
+		public ExpressionContext expression() {
+			return getRuleContext(ExpressionContext.class,0);
+		}
 		public ValueByteContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
 		}
@@ -4292,7 +4294,7 @@ public class Z8AsmParser extends Parser {
 			setState(442);
 			match(T__0);
 			setState(443);
-			match(Byte);
+			expression();
 			}
 		}
 		catch (RecognitionException re) {
@@ -4518,10 +4520,10 @@ public class Z8AsmParser extends Parser {
 		"\u01b3\7\n\2\2\u01b3\u01b6\5v<\2\u01b4\u01b6\7\13\2\2\u01b5\u01b2\3\2"+
 		"\2\2\u01b5\u01b4\3\2\2\2\u01b6y\3\2\2\2\u01b7\u01b8\7\n\2\2\u01b8\u01bb"+
 		"\5v<\2\u01b9\u01bb\7\f\2\2\u01ba\u01b7\3\2\2\2\u01ba\u01b9\3\2\2\2\u01bb"+
-		"{\3\2\2\2\u01bc\u01bd\7\3\2\2\u01bd\u01be\7\7\2\2\u01be}\3\2\2\2\u01bf"+
-		"\u01c0\t\4\2\2\u01c0\177\3\2\2\2\27\u0084\u0086\u008c\u0090\u0095\u0098"+
-		"\u00c5\u00d1\u00d8\u0111\u0120\u0128\u013e\u0148\u0152\u015c\u0166\u019a"+
-		"\u01ae\u01b5\u01ba";
+		"{\3\2\2\2\u01bc\u01bd\7\3\2\2\u01bd\u01be\5~@\2\u01be}\3\2\2\2\u01bf\u01c0"+
+		"\t\4\2\2\u01c0\177\3\2\2\2\27\u0084\u0086\u008c\u0090\u0095\u0098\u00c5"+
+		"\u00d1\u00d8\u0111\u0120\u0128\u013e\u0148\u0152\u015c\u0166\u019a\u01ae"+
+		"\u01b5\u01ba";
 	public static final ATN _ATN =
 		new ATNDeserializer().deserialize(_serializedATN.toCharArray());
 	static {
