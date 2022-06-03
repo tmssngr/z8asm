@@ -789,9 +789,6 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	private int parseByte(TerminalNode valueNode) {
 		String text = valueNode.getText();
-		if (text.startsWith("#")) {
-			text = text.substring(1);
-		}
 		if (text.startsWith("%")) {
 			text = text.substring(1);
 			return Integer.valueOf(text, 16);
