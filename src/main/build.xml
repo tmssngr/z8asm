@@ -3,7 +3,7 @@
 	<property name="generated" value="src-antlr-grammar4-generated"/>
 	<property name="antlr.jar" value="lib/antlr-4.7.2-complete.jar"/>
 
-	<macrodef name="antlrCompile">
+	<macrodef name="antlrLexerTokens">
 		<attribute name="name"/>
 		<attribute name="package-name"/>
 		<attribute name="example-file"/>
@@ -11,13 +11,8 @@
 		<attribute name="dir"      default="com/syntevo/antlr/@{package-name}"/>
 
 		<sequential>
-			<mkdir dir="${generated}/@{dir}"/>
-			<delete>
-				<fileset dir="${generated}/@{dir}"/>
-			</delete>
-
 			<echo>
-				Generating @{package-name}...
+				Testing @{name} on @{example-file} ...
 			</echo>
 			<java jar="${antlr.jar}" fork="true" failonerror="true">
 				<arg value="-o"/>
@@ -57,7 +52,42 @@
 		</sequential>
 	</macrodef>
 
+	<macrodef name="antlrCompile">
+		<attribute name="name"/>
+		<attribute name="package-name"/>
+		<attribute name="example-file"/>
+		<attribute name="package"  default="com.syntevo.antlr.@{package-name}"/>
+		<attribute name="dir"      default="com/syntevo/antlr/@{package-name}"/>
+
+		<sequential>
+			<mkdir dir="${generated}/@{dir}"/>
+			<delete>
+				<fileset dir="${generated}/@{dir}"/>
+			</delete>
+
+			<echo>
+				Generating @{package-name}...
+			</echo>
+			<java jar="${antlr.jar}" fork="true" failonerror="true">
+				<arg value="-o"/>
+				<arg value="${generated}/@{dir}"/>
+				<arg value="-package"/>
+				<arg value="@{package}"/>
+				<arg value="grammar/@{name}.g4"/>
+			</java>
+
+			<delete>
+				<fileset dir="${generated}/@{dir}" excludes="*.java"/>
+			</delete>
+
+			<!-- testing ............................................. -->
+
+			<antlrLexerTokens name="@{name}" package-name="@{package-name}" example-file="@{example-file}"/>
+		</sequential>
+	</macrodef>
+
 	<target name="build">
-		<antlrCompile name="Z8Asm" package-name="z8"   example-file="es4.0.asm"/>
+		<antlrCompile     name="Z8Asm" package-name="z8" example-file="es4.0.asm"/>
+		<antlrLexerTokens name="Z8Asm" package-name="z8" example-file="ub8830rom.asm"/>
 	</target>
 </project>
