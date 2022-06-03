@@ -197,7 +197,7 @@ iregisterPair
     | IWorkingRegisterPair
     ;
 
-valueByte : ValueByte ;
+valueByte : '#' Byte ;
 
 expression : (Byte | Word) #exprNumber
            ;
@@ -251,17 +251,6 @@ Byte
 
 Word
     : HexPrefix  HexDigit HexDigit HexDigit HexDigit
-    ;
-
-fragment ValuePrefix
-    : '#'
-    ;
-
-ValueByte
-    : ValuePrefix
-    ( HexPrefix HexDigit HexDigit
-    | ByteDecimal
-    )
     ;
 
 fragment NibbleDec :
