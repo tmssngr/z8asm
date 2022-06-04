@@ -252,7 +252,7 @@ M_0998: LD      %0F, #4
         CLR     %0E
         LD      R0, %6
         LD      R1, %7
-        CP      R6, #%4E    ; != '.'
+        CP      R6, #'N'
         JR      NZ, M_09AC
         LD      R4, #0
         LDE     @RR0, R4
