@@ -568,12 +568,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 		final TerminalNode identifierNode = ctx.Identifier();
 		if (identifierNode != null) {
-			final String text = identifierNode.getText();
-			final Integer value = constants.get(text);
-			if (value == null) {
-				throw new SyntaxException("Undefined constant " + text, ctx);
-			}
-			return value;
+			return getIdentifierValue(identifierNode, ctx);
 		}
 
 		throw new UnsupportedOperationException(ctx.getText());
@@ -621,6 +616,11 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 	}
 
 	@Override
+	public Integer visitExprIdentifier(Z8AsmParser.ExprIdentifierContext ctx) {
+		return getIdentifierValue(ctx.Identifier(), ctx);
+	}
+
+	@Override
 	public Integer visitValueByte(Z8AsmParser.ValueByteContext ctx) {
 		return (Integer) visit(ctx.expression());
 	}
@@ -641,6 +641,14 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	// Utils ==================================================================
 
+	private Integer getIdentifierValue(TerminalNode identifierNode, ParserRuleContext ctx) {
+		final String text = identifierNode.getText();
+		final Integer value = constants.get(text);
+		if (value == null) {
+			throw new SyntaxException("Undefined constant " + text, ctx);
+		}
+		return value;
+	}
 	private char getChar(ParserRuleContext ctx) {
 		String text = ctx.getText();
 		final String string = parseString(text, "'", ctx);

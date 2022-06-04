@@ -201,6 +201,7 @@ valueByte : '#' expression ;
 
 expression : (Byte | Word) #exprNumber
            | Char          #exprChar
+           | Identifier    #exprIdentifier
            ;
 
 // lexer rules:

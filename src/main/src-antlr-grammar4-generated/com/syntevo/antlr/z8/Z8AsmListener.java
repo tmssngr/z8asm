@@ -835,4 +835,16 @@ public interface Z8AsmListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitExprChar(Z8AsmParser.ExprCharContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code exprIdentifier}
+	 * labeled alternative in {@link Z8AsmParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterExprIdentifier(Z8AsmParser.ExprIdentifierContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code exprIdentifier}
+	 * labeled alternative in {@link Z8AsmParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitExprIdentifier(Z8AsmParser.ExprIdentifierContext ctx);
 }

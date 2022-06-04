@@ -947,6 +947,18 @@ public class Z8AsmBaseListener implements Z8AsmListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitExprChar(Z8AsmParser.ExprCharContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterExprIdentifier(Z8AsmParser.ExprIdentifierContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitExprIdentifier(Z8AsmParser.ExprIdentifierContext ctx) { }
 
 	/**
 	 * {@inheritDoc}

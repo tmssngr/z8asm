@@ -15,6 +15,9 @@
 		.const  SPH   = %FE
 		.const  SPL   = %FF
 
+		.const COLUMNS = 40
+		.const ROWS = 24
+
         .ORG    %0800
 
         JP      %F500
@@ -1753,7 +1756,7 @@ M_1800: .db %40 %41 %42 %44 %45 %46 %48 %49  %4a %4c %4d %4e %50 %51 %52 %54  %5
 M_1830: LD      R0, #%18
         LD      R1, %5C
         LDC     R4, @RR0
-        ADD     R1, #%18    ; 24
+        ADD     R1, #ROWS
         LDC     R5, @RR0
         ADD     %65, %5B
         RET
@@ -1762,7 +1765,7 @@ M_1830: LD      R0, #%18
 
         ; nextVideoRamLineAddress
         ; in/out: rr4 address
-M_1840: ADD     R5, #%28    ; 40
+M_1840: ADD     R5, #COLUMNS
         JR      C, M_184D
         JR      OV, M_184E
         TCM     R5, #%78
@@ -1865,7 +1868,7 @@ M_18DC: CALL    M_1856      ; getScreenCharAddress
         LD      %5A, R2
         CALL    M_1878
         INC     %5B
-        CP      %5B, #%28   ; 40
+        CP      %5B, #COLUMNS
         JR      C, M_18F1
         INC     %5C         ; row++
         CLR     %5B         ; column = 0
@@ -1887,7 +1890,7 @@ M_1905: PUSH    RP
 M_190D: AND     %55, #0b0111_1111
         CALL    M_1878
         INC     R11
-        CP      %5B, #%28
+        CP      %5B, #COLUMNS
         JR      C, M_191F
         INC     R12
         LD      R11, #0
@@ -1910,11 +1913,11 @@ M_1930: DEC     %5C
 
 M_1938: DJNZ    R10, M_194C     ; case 2 (cursor right, Ctrl+B):
         INC     R11
-        CP      %5B, #%28
+        CP      %5B, #COLUMNS
         JR      C, M_191F       ; < 40
         LD      R11, #0
 M_1942: INC     R12
-        CP      %5C, #%18
+        CP      %5C, #ROWS
         JR      C, M_191F
         LD      R12, #0
         JR      M_191F
@@ -2088,7 +2091,7 @@ M_1A8C: DJNZ    R10, M_1AE5
         JR      Z, M_1A9D
         INC     R12
         AND     %5C, #%FE
-M_1A9D: CP      %5C, #%18
+M_1A9D: CP      %5C, #ROWS
         JR      C, M_1A8A
         TM      %55, #%10
         JP      Z, M_1956
