@@ -550,4 +550,11 @@ public class Z8AsmBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements 
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
 	@Override public T visitExprNumber(Z8AsmParser.ExprNumberContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitExprChar(Z8AsmParser.ExprCharContext ctx) { return visitChildren(ctx); }
 }

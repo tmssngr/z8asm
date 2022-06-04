@@ -222,7 +222,7 @@ M_0951: OR      %55, #0b0100_0000
         CP      %13, #%0D
         JR      Z, M_0949
         LD      R6, %13
-        CP      R6, #%3F    ; != '?'
+        CP      R6, #'?'
         JR      NZ, M_0989
         CALL    M_0815      ; GTC
         LD      R5, %13
@@ -232,15 +232,15 @@ M_0951: OR      %55, #0b0100_0000
         .db %c7 %26 %9e ;        LD      R2, -98(R6) ; -98d=9Eh  read register (13h*2+9Eh = 196d = C4) into r2 ?
         .db %c7 %36 %9f ;        LD      R3, -97(R6) ; -97d=9Fh  read register (13h*2+9Fh = 197d = C5) into r3 ?
         CALL    M_0818      ; PTC
-        LD      R5, #%3D    ; '='
+        LD      R5, #'='
         CALL    M_0818      ; PTC
         CALL    M_0EE0
         LD      R5, #%0D
         CALL    M_0818      ; PTC
         JR      M_0951
 
-M_0989: CP      R6, #%43
-        JR      NZ, M_0998  ; != 'C'
+M_0989: CP      R6, #'C'
+        JR      NZ, M_0998
         TM      %0F, #8
         JR      Z, M_09CE
         AND     %0F, #%F7
@@ -256,7 +256,7 @@ M_0998: LD      %0F, #4
         LDE     @RR0, R4
         JR      M_0949
 
-M_09AC: CP      R6, #%52    ; != 'R'
+M_09AC: CP      R6, #'R'
         JR      NZ, M_09E2
         CALL    %06C9
 M_09B4: AND     %55, #%BF
@@ -278,9 +278,9 @@ M_09DA: CLR     %12
         CALL    M_0EE0
         JP      M_0949
 
-M_09E2: CP      R6, #%45    ; == 'E'
+M_09E2: CP      R6, #'E'
         JP      Z, M_0A79
-        CP      R6, #%53    ; != 'S'
+        CP      R6, #'S'
         JR      NZ, M_0A0C
         ; S
         CALL    M_0EC5
@@ -297,7 +297,7 @@ M_09E2: CP      R6, #%45    ; == 'E'
 M_0A07: LD      R3, %24
         JP      M_09DA
 
-M_0A0C: CP      R6, #%4C    ; != 'L'
+M_0A0C: CP      R6, #'L'
         JR      NZ, M_0A20
         LD      %20, R0
         LD      %21, R1
@@ -306,7 +306,7 @@ M_0A0C: CP      R6, #%4C    ; != 'L'
         CALL    M_0824
         JR      M_0A07
 
-M_0A20: CP      R6, #%4D    ; != 'M'
+M_0A20: CP      R6, #'M'
         JP      NZ, M_0E09
         CALL    M_082A
         OR      %55, #%40
@@ -348,9 +348,9 @@ M_0A52: LD      R12, #5
         LD      R4, #0
         LD      R5, #0
 M_0A58: LDE     R13, @RR14
-        SUB     R13, #%30       ; '0'
+        SUB     R13, #'0'
         JR      C, M_0A77       ; < 0?
-        CP      R13, #%0A
+        CP      R13, #10
         JR      NC, M_0A77      ; >= 10
         LD      R10, #9         ; rr4 *= 10?
         LD      R2, R4
@@ -409,7 +409,7 @@ M_0ACA: CALL    M_0818      ; PTC
         CP      R5, #%0D
         JR      NZ, M_0ABE
         CALL    M_081E
-        CP      R3, #%20
+        CP      R3, #' '
         JR      NZ, M_0AAA
         INCW    R0
         JR      M_0AAD
@@ -456,7 +456,7 @@ M_0BD0: CALL    M_0CDC      ; getHexByteFromRR14
         JR      C, M_0BE4   ; no hex digit -> ret
         LD      R10, R13
 M_0BD7: LD      R11, @R10
-        LD      R5, #%21    ; '!'
+        LD      R5, #'!'
         CALL    M_0C9B      ; printCharWord
         INC     R10
 M_0BDF: CALL    M_0C91
@@ -469,7 +469,7 @@ M_0BE4: RET
 M_0BE5: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         LD      @R10, R11
         INC     R10
-        LD      R5, #%21
+        LD      R5, #'!'
         CALL    M_0818      ; PTC
         LD      R9, R10
         JP      M_0C72      ; printHexByte
@@ -546,7 +546,7 @@ M_0C72: PUSH    R9
         ; in: r9
 M_0C7B: LD      R5, #%0F
         AND     R5, R9
-        ADD     R5, #%30
+        ADD     R5, #'0'
         CP      R5, #%3A
         JR      C, M_0C8A
         ADD     R5, #7
@@ -592,10 +592,10 @@ M_0CB2: LD      R10, R12
         ;      r13 = hex digit (00..0F)
 M_0CB8: LDE     R13, @RR14
         INC     R15
-        CP      R13, #%30   ; < '0'
+        CP      R13, #'0'
         JR      C, M_0CD4
         SUB     R13, #%30
-        CP      R13, #%0A   ; < 10 (<= '9')
+        CP      R13, #10
         JR      C, M_0CD3
         CP      R13, #%11
         JR      C, M_0CD4
@@ -637,13 +637,13 @@ M_0CEB: POP     R0
         ; H<word address>
         ; e.g. H8000 (list 8 memory bytes from address 0x8000)
 M_0CF2: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
-M_0CF5: LD      R5, #%2C    ; ','
+M_0CF5: LD      R5, #','
         CALL    M_0C9B      ; printCharWord
         LD      R0, #8
 M_0CFC: LDE     R9, @RR10
         INCW    R10
         CALL    M_0C72      ; printHexByte
-        LD      R5, #%20
+        LD      R5, #' '
         CALL    M_0818      ; PTC
         DJNZ    R0, M_0CFC
         CALL    M_0C91
@@ -660,14 +660,14 @@ M_0D15: CALL    M_0CDC      ; getHexByteFromRR14
         LDE     @RR10, R13
         INCW    R10
         DJNZ    R0, M_0D15
-        LD      R5, #%2C    ; ','
+        LD      R5, #','
 M_0D23: JP      M_0C9B      ; printCharWord
 
         ; Mon, A
         ; A<word address>
         ; e.g. A8000 (print 16 characters starting from address %8000)
 M_0D26: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
-M_0D29: LD      R5, #%3B    ; ';'
+M_0D29: LD      R5, #';'
         CALL    M_0C9B      ; printCharWord
         LD      R0, #%10
 M_0D30: LDE     R5, @RR10
@@ -719,7 +719,7 @@ M_0D74: LDE     R2, @RR14
         INC     R15
         INCW    R10
         DJNZ    R0, M_0D74
-        LD      R5, #%3B    ; ';'
+        LD      R5, #';'
         JR      M_0D23
 
 M_0D86: RET
@@ -783,7 +783,7 @@ M_0DE4: RET
 M_0DE5: CALL    M_0A52
         LD      R10, %14
         LD      R11, %15
-        LD      R5, #%25
+        LD      R5, #'%'
         CALL    M_0C9B      ; printCharWord
         JP      M_0C8D      ; println
 
@@ -794,7 +794,7 @@ M_0DE5: CALL    M_0A52
         NOP
         NOP
 
-M_0DFA: CP      %13, #%20
+M_0DFA: CP      %13, #' '
         JR      Z, M_0E06
         LD      %5A, R3
         CALL    M_1905
@@ -804,7 +804,7 @@ M_0E06: RET
         NOP
 M_0E09: CP      R6, #%3A
 M_0E0C: JP      NC, %0951               ;!!!
-        CP      R6, #%30
+        CP      R6, #'0'
         CCF
         JR      NC, M_0E0C
         LD      R15, #0
@@ -918,7 +918,7 @@ M_0EE0: CALL    %0182
         CALL    M_0818      ; PTC
         POP     %15
 M_0EF1: LD      R11, #%15
-M_0EF3: CP      @%1B, #%30  ; != '0'
+M_0EF3: CP      @%1B, #'0'
         JR      NZ, M_0EFE
         INC     R11
         CP      R11, #%19   ; < 0x19
@@ -1492,7 +1492,7 @@ M_1614: PUSH    RP
         OR      R3, R3
         JR      NZ, M_1633
         LD      R0, #%FC
-        CALL    %1400           ;!!!
+        CALL    M_1400
         LD      R3, #%80
         LD      R0, #%F7
         LD      R1, #%A4

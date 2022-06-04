@@ -495,4 +495,11 @@ public interface Z8AsmVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitExprNumber(Z8AsmParser.ExprNumberContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code exprChar}
+	 * labeled alternative in {@link Z8AsmParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitExprChar(Z8AsmParser.ExprCharContext ctx);
 }

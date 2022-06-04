@@ -200,6 +200,7 @@ iregisterPair
 valueByte : '#' expression ;
 
 expression : (Byte | Word) #exprNumber
+           | Char          #exprChar
            ;
 
 // lexer rules:

@@ -135,13 +135,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	@Override
 	public Object visitDataChar(Z8AsmParser.DataCharContext ctx) {
-		String text = ctx.getText();
-		final String string = parseString(text, "'", ctx);
-		if (string.length() != 1) {
-			throw new SyntaxException("Char must have length of 1", ctx);
-		}
-
-		write(string.charAt(0));
+		write(getChar(ctx));
 		return null;
 	}
 
@@ -622,6 +616,11 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 	}
 
 	@Override
+	public Integer visitExprChar(Z8AsmParser.ExprCharContext ctx) {
+		return (int)getChar(ctx);
+	}
+
+	@Override
 	public Integer visitValueByte(Z8AsmParser.ValueByteContext ctx) {
 		return (Integer) visit(ctx.expression());
 	}
@@ -641,6 +640,16 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 	}
 
 	// Utils ==================================================================
+
+	private char getChar(ParserRuleContext ctx) {
+		String text = ctx.getText();
+		final String string = parseString(text, "'", ctx);
+		if (string.length() != 1) {
+			throw new SyntaxException("Char must have length of 1", ctx);
+		}
+
+		return string.charAt(0);
+	}
 
 	private String parseString(String text, String prefixSuffix, ParserRuleContext ctx) {
 		if (text.length() < 2 || !text.startsWith(prefixSuffix) || !text.endsWith(prefixSuffix)) {
