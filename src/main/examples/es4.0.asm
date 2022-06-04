@@ -231,7 +231,7 @@ M_0951: OR      %55, #0b0100_0000
         LD      R5, %13
         LD      R6, %13
         RL      %16
-        LD      R2, %9E(R6)
+        LD      R2, %9E(R6) ; load variable value into r2w, e.g. for var A, register pair %20 (%41 << 1 + %9E == %(1)20) is read
         LD      R3, %9F(R6)
         CALL    M_0818      ; PTC
         LD      R5, #'='
