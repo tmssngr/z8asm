@@ -231,9 +231,8 @@ M_0951: OR      %55, #0b0100_0000
         LD      R5, %13
         LD      R6, %13
         RL      %16
-        ; TODO
-        .db %c7 %26 %9e ;        LD      R2, -98(R6) ; -98d=9Eh  read register (13h*2+9Eh = 196d = C4) into r2 ?
-        .db %c7 %36 %9f ;        LD      R3, -97(R6) ; -97d=9Fh  read register (13h*2+9Fh = 197d = C5) into r3 ?
+        LD      R2, %9E(R6)
+        LD      R3, %9F(R6)
         CALL    M_0818      ; PTC
         LD      R5, #'='
         CALL    M_0818      ; PTC

@@ -126,7 +126,9 @@ jr : Jr address
 ld : Ld register         Comma valueByte         #ld1
    | Ld target=register  Comma source=register   #ld2
    | Ld register         Comma iregister         #ld3
-   | Ld iregister        Comma register          #ld4
+   | Ld WorkingRegister  Comma Byte '(' WorkingRegister ')'  #ld4
+   | Ld Byte '(' WorkingRegister ')' Comma WorkingRegister   #ld5
+   | Ld iregister        Comma register          #ld6
    ;
 
 ldc : Ldc WorkingRegister Comma IWorkingRegisterPair #ldc1

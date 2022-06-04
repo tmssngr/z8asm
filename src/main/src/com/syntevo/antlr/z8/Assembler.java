@@ -253,6 +253,26 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	@Override
 	public Object visitLd4(Z8AsmParser.Ld4Context ctx) {
+		// the weird command
+		// LD r1, -10(r2)
+		final int register = parseWorkingRegister(ctx.WorkingRegister(0));
+		final int offset = parseByte(ctx.Byte());
+		final int sourceRegister = parseWorkingRegister(ctx.WorkingRegister(1));
+		return command3(0xC7, toByte(register, sourceRegister), offset);
+	}
+
+	@Override
+	public Object visitLd5(Z8AsmParser.Ld5Context ctx) {
+		// the weird command
+		// LD -10(r1), r2
+		final int register = parseWorkingRegister(ctx.WorkingRegister(0));
+		final int offset = parseByte(ctx.Byte());
+		final int sourceRegister = parseWorkingRegister(ctx.WorkingRegister(1));
+		return command3(0xD7, toByte(register, sourceRegister), offset);
+	}
+
+	@Override
+	public Object visitLd6(Z8AsmParser.Ld6Context ctx) {
 		final int target = visitIregister(ctx.iregister());
 		final int source = visitRegister(ctx.register());
 		if (isWorkingRegister(target) && isWorkingRegister(source)) {

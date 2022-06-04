@@ -436,6 +436,30 @@ public interface Z8AsmListener extends ParseTreeListener {
 	 */
 	void exitLd4(Z8AsmParser.Ld4Context ctx);
 	/**
+	 * Enter a parse tree produced by the {@code ld5}
+	 * labeled alternative in {@link Z8AsmParser#ld}.
+	 * @param ctx the parse tree
+	 */
+	void enterLd5(Z8AsmParser.Ld5Context ctx);
+	/**
+	 * Exit a parse tree produced by the {@code ld5}
+	 * labeled alternative in {@link Z8AsmParser#ld}.
+	 * @param ctx the parse tree
+	 */
+	void exitLd5(Z8AsmParser.Ld5Context ctx);
+	/**
+	 * Enter a parse tree produced by the {@code ld6}
+	 * labeled alternative in {@link Z8AsmParser#ld}.
+	 * @param ctx the parse tree
+	 */
+	void enterLd6(Z8AsmParser.Ld6Context ctx);
+	/**
+	 * Exit a parse tree produced by the {@code ld6}
+	 * labeled alternative in {@link Z8AsmParser#ld}.
+	 * @param ctx the parse tree
+	 */
+	void exitLd6(Z8AsmParser.Ld6Context ctx);
+	/**
 	 * Enter a parse tree produced by the {@code ldc1}
 	 * labeled alternative in {@link Z8AsmParser#ldc}.
 	 * @param ctx the parse tree
