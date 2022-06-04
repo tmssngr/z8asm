@@ -877,6 +877,7 @@ M_0E93: LDE     R10, @RR2
 M_0E9F: DECW    R2
         DECW    R6
         JR      M_0E93
+
 M_0EA5: LDE     @RR0, R4
         INCW    R0
         LDE     @RR0, R5
@@ -893,6 +894,7 @@ M_0EB3: LDE     R10, @RR2
         LD      R10, #%0D
         LDE     @RR0, R10
         JP      M_0951
+
 M_0EC5: LD      R2, R0
         LD      R3, R1
 M_0EC9: LDE     R10, @RR2
@@ -905,6 +907,7 @@ M_0ED2: INCW    R2
         JR      NZ, M_0ED2
         INCW    R2
         JR      M_0EC9
+
 M_0EDF: RET
 
 M_0EE0: CALL    %0182
@@ -1270,15 +1273,19 @@ M_1498: POP     @%61
         DJNZ    R2, M_1498
         POP     RP
         RET
+
         NOP
         NOP
         NOP
+
 M_14A4: LD      %60, #%18
 M_14A7: DEC     %60
         JR      NZ, M_14A7
         RET
+
         NOP
         NOP
+
 M_14AE: PUSH    RP
         SRP     #%60
         LD      R1, #4
@@ -1380,11 +1387,13 @@ M_1569: SCF
 M_156A: LD      TMR, #3
         LD      %13, R14
         JR      M_1591
+
         NOP
 M_1572: NOP
         NOP
         RCF
         JR      M_156A
+
 M_1577: LD      TMR, #%43
 M_157A: CALL    M_081B
         AND     %6D, #%DF
@@ -1393,8 +1402,10 @@ M_157A: CALL    M_081B
         CP      %6D, #%43
         JR      NZ, M_157A
         JP      M_14C8
+
 M_158D: LD      R14, #%FF
         JR      M_1569
+
 M_1591: LD      R4, #%F7
         LD      R5, #%A5
         LDE     @RR4, R11
@@ -1406,8 +1417,10 @@ M_159D: POP     @%61
         DJNZ    R2, M_159D
         POP     RP
         RET
+
         NOP
         NOP
+
 M_15A8: PUSH    RP
         SRP     #%60
         LD      R2, #%F7
@@ -1420,14 +1433,16 @@ M_15A8: PUSH    RP
         CP      %64, #%80
         JR      Z, M_15C5
         LD      R0, #%FA
-        CALL    %1400           ;!!!
+        CALL    M_1400
 M_15C5: LD      R0, #%FE
-        CALL    %1400           ;!!!
+        CALL    M_1400
 M_15CA: CALL    M_0910          ; init timer/interrupts
         POP     RP
         RCF
         RET
+
         NOP
+
 M_15D2: PUSH    RP
         DI
         SRP     #%F0
@@ -1453,6 +1468,7 @@ M_15FA: LD      R3, #%A4
         POP     RP
         RCF
         RET
+
 M_1602: LD      R0, #0
         LD      R1, #0
 M_1606: LD      R5, #%18
@@ -1461,8 +1477,10 @@ M_1608: DJNZ    R5, M_1608
         JR      NZ, M_1606
         LD      R4, #%80
         JR      M_15FA
+
         NOP
         NOP
+
 M_1614: PUSH    RP
         SRP     #%60
         LD      R0, #%F7
@@ -1482,6 +1500,7 @@ M_1633: LDE     @RR0, R3
         RCF
         POP     RP
         RET
+
         NOP
 
         ; _print
@@ -1505,14 +1524,17 @@ M_1650: POP     RP
         NOP
         NOP
         NOP
+
         LD      %51, R7
         LD      %4E, R4
         LD      %4F, R5
         JP      M_17FD
+
         LD      %51, R5
         LD      %4E, R6
         LD      %4F, R7
         JP      M_17FD
+
 M_166A: PUSH    %4E
         PUSH    %4F
         PUSH    %51
@@ -1625,7 +1647,9 @@ M_1732: CALL    @%5E
         POP     %4F
         POP     %4E
         RET
+
         NOP
+
 M_174A: PUSH    RP
         SRP     #%60
         LD      R0, #%F7
@@ -1650,7 +1674,9 @@ M_1773: LDE     @RR0, R3
         RCF
 M_1776: POP     RP
         RET
+
         NOP
+
 M_177A: PUSH    RP
         SRP     #%20
         LD      %15, #1
@@ -1664,6 +1690,7 @@ M_178A: CALL    %FFF6       ; M_174A
         LDEI    @RR0, @R4
         INCW    %22
         JR      M_178A
+
 M_1797: LD      R4, #0
         CP      %13, #%88
         JR      Z, M_17A0
