@@ -15,12 +15,12 @@
 		.const  SPH   = %FE
 		.const  SPL   = %FF
 
-        .db %0800
-        .db %0803
-        .db %0806
-        .db %0809
-        .db %080c
-        .db %080f
+        .data %0800
+        .data %0803
+        .data %0806
+        .data %0809
+        .data %080c
+        .data %080f
 
 boot:
         SRP #0
@@ -398,7 +398,7 @@ M_02A9: LDE     @RR6, R5
         ; GETRR
 M_02AD: LD      R2, @R5
         INC     R5
-        .db %0D              ; skip next 2 byte command (CLR R2)
+        .data %0D              ; skip next 2 byte command (CLR R2)
         ; GETR
 M_02B1: CLR     R2
         LD      R3, @R5
@@ -407,7 +407,7 @@ M_02B1: CLR     R2
         ; GETEW
 M_02B6: LDE     R2, @RR4
         INCW    R4
-        .db %0D              ; skip next 2 byte command (CLR R2)
+        .data %0D              ; skip next 2 byte command (CLR R2)
         ; GETEB
 M_02BB: CLR     R2
         LDE     R3, @RR4
@@ -475,22 +475,22 @@ M_031C: CP      R15, #%16
 ;  letztes Zeichen
 ;  Adresse H
 ;  Adresse L
-M_0328: .db L"NOT"   M_0139
-        .db L"ABS"   M_008C
-        .db L"SETRR" M_028E
-        .db L"SETR"  M_0296
-        .db L"SETEW" M_029D
-        .db L"SETEB" M_02A6
-        .db L"GETRR" M_02AD
-        .db L"GETR"  M_02B1
-        .db L"GETEW" M_02B6
-        .db L"GETEB" M_02BB
-        .db L"RL"    M_02CD
-        .db L"RR"    M_02D8
-        .db L"INPUT" M_02E4
-        .db L"GTC"   %0815
-        .db L"PTC"   %0818
-        .db %FF
+M_0328: .data L"NOT"   M_0139
+        .data L"ABS"   M_008C
+        .data L"SETRR" M_028E
+        .data L"SETR"  M_0296
+        .data L"SETEW" M_029D
+        .data L"SETEB" M_02A6
+        .data L"GETRR" M_02AD
+        .data L"GETR"  M_02B1
+        .data L"GETEW" M_02B6
+        .data L"GETEB" M_02BB
+        .data L"RL"    M_02CD
+        .data L"RR"    M_02D8
+        .data L"INPUT" M_02E4
+        .data L"GTC"   %0815
+        .data L"PTC"   %0818
+        .data %FF
 
 M_0391: LD      R15, #%16
         LDC     R6, @RR0
@@ -520,14 +520,14 @@ M_03B6: LD      R12, #%17
 M_03C0: RET
 
 ; Daten, gelesen ab M_039A
-M_03C1: .db '+' M_007E
-        .db '-' M_0085
-        .db '*' M_00BA
-        .db '/' M_00E0
-        .db 'A' M_012F  ; A(ND)
-        .db 'O' M_012A  ; O(R)
-        .db 'X' M_0134  ; X(OR)
-        .db 'M' M_011F  ; M(OD)
+M_03C1: .data '+' M_007E
+        .data '-' M_0085
+        .data '*' M_00BA
+        .data '/' M_00E0
+        .data 'A' M_012F  ; A(ND)
+        .data 'O' M_012A  ; O(R)
+        .data 'X' M_0134  ; X(OR)
+        .data 'M' M_011F  ; M(OD)
 
         ; isLetter(@r15)
         ; C -> true
@@ -1054,42 +1054,42 @@ M_07B9: LD      R7, #%0D
         JR      M_07B7
 
         ; data read from M_0795
-M_07C8: .db 'L'
-        .db 'O'
-        .db 'G'
-        .db 'F'
-        .db '>'
-        .db 'R'
-        .db 'S'
-        .db 'W'
-        .db 'M'
-        .db 'C'
-        .db 'T'
-        .db 'E'
-        .db '!'
-        .db '/'
-        .db 'P'
-        .db 'H'
-        .db 'I'
+M_07C8: .data 'L'
+        .data 'O'
+        .data 'G'
+        .data 'F'
+        .data '>'
+        .data 'R'
+        .data 'S'
+        .data 'W'
+        .data 'M'
+        .data 'C'
+        .data 'T'
+        .data 'E'
+        .data '!'
+        .data '/'
+        .data 'P'
+        .data 'H'
+        .data 'I'
 
         ; data read from M_07A6
         ; address
-M_07D9: .db M_059C
-        .db M_05B4
-        .db M_0604
-        .db M_0649
-        .db M_0657
-        .db M_0661
-        .db M_067B
-        .db M_069F
-        .db M_0583
-        .db M_06B9
-        .db M_06C1
-        .db M_06C5
-        .db M_05AE
-        .db M_06C9
-        .db M_06DD
-        .db M_06CE
-        .db M_0715
-        .db %ffff
+M_07D9: .data M_059C
+        .data M_05B4
+        .data M_0604
+        .data M_0649
+        .data M_0657
+        .data M_0661
+        .data M_067B
+        .data M_069F
+        .data M_0583
+        .data M_06B9
+        .data M_06C1
+        .data M_06C5
+        .data M_05AE
+        .data M_06C9
+        .data M_06DD
+        .data M_06CE
+        .data M_0715
+        .data %ffff
         jp  M_072B

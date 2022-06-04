@@ -290,7 +290,7 @@ Comma
     ;
 
 Const : '.' C O N S T ;
-Data : '.' D B ;
+Data : '.' D A T A ;
 Org : '.' O R G ;
 
 Adc  : A D C ;
