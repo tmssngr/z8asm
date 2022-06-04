@@ -215,7 +215,7 @@ M_0922: CALL    M_1856          ; getScreenCharAddress in rr0
         ; edi
 M_0949: CALL    M_082D      ; print
         .db "Edi\r\0"
-M_0951: OR      %55, #%40   ; x1xx_xxxx
+M_0951: OR      %55, #0b0100_0000
         LD      %58, #%FF
         SRP     #%10
         CALL    M_0815      ; GTC
@@ -370,7 +370,7 @@ M_0A77: RCF
 M_0A79: LD      R15, #1
         LD      R14, #%F7
         CALL    M_0A52      ; asciiToUInt
-        OR      R4, #%80    ; 1xxx_xxxx
+        OR      R4, #0b1000_0000
 M_0A83: LDE     R10, @RR0
         INCW    R0
         LDE     R11, @RR0
@@ -394,17 +394,17 @@ M_0A9D: INCW    R0
 M_0AAA: JP      M_0951
 
 M_0AAD: LDE     R2, @RR0
-        TM      R2, #%80
+        TM      R2, #0b1000_0000
         JR      Z, M_0AAA
         INCW    R0
         LDE     R3, @RR0
-        AND     R2, #%7F
+        AND     R2, #0b0111_1111
         CALL    M_0EE0
 M_0ABE: INCW    R0
         LDE     R5, @RR0
         CP      R5, #%0D
         JR      Z, M_0ACA
-        OR      %55, #%80
+        OR      %55, #0b1000_0000
 M_0ACA: CALL    M_0818      ; PTC
         CP      R5, #%0D
         JR      NZ, M_0ABE
@@ -487,7 +487,7 @@ M_0C07: LDEI    @RR0, @R2
         DJNZ    R3, M_0C07  ; }
         SRP     #%10
 M_0C0D: LD      %58, #%FF
-        AND     %55, #%BF   ; x0xx_xxxx
+        AND     %55, #0b1011_1111
         CALL    M_0815      ; GTC
         LD      R15, #0
         LD      R14, #%F7
@@ -671,7 +671,7 @@ M_0D29: LD      R5, #%3B    ; ';'
         CALL    M_0C9B      ; printCharWord
         LD      R0, #%10
 M_0D30: LDE     R5, @RR10
-        OR      %55, #%80
+        OR      %55, #0b1000_0000
         INCW    R10
         CALL    M_0818      ; PTC
         DJNZ    R0, M_0D30
@@ -1814,9 +1814,9 @@ M_18A1: LDE     @RR8, R9    ; #60xx color?
 
 M_18BE: LD      R3, #%27
         SUB     %63, %5B
-        TM      %55, #%40
+        TM      %55, #0b0100_0000
         JR      Z, M_18D0
-        TM      %5C, #1
+        TM      %5C, #0b0000_0001
         JR      NZ, M_18D0
         ADD     %63, #%28
 M_18D0: LD      %5F, R3
@@ -1848,7 +1848,7 @@ M_18F1: DECW    %5E
         POP     %5B
         RET
 
-M_18FA: TM      %55, #%20       ; xx0x_xxxx?
+M_18FA: TM      %55, #0b0010_0000
         JR      Z, M_1902
         CALL    %F512
 M_1902: LD      %5A, %15
@@ -1857,7 +1857,7 @@ M_1905: PUSH    RP
         OR      R5, R5          ; if %55 == 0xxx_xxx
         JR      PL, M_1922
         ; %55==1xxx_xxxx -> print (next) character (don't interpret < 0x10)
-M_190D: AND     %55, #%7F       ; 0xxx_xxxx
+M_190D: AND     %55, #0b0111_1111
         CALL    M_1878
         INC     R11
         CP      %5B, #%28
@@ -1905,7 +1905,7 @@ M_1956: LD      R11, #0         ; case 5 (cursor home, Ctrl+E):
 
 M_195C: DJNZ    R10, M_196A
         LD      R11, #0         ; case 6 (begin of line, Ctrl+F):
-        TM      %55, #%40       ; if %55==x1xx_xxxx, each line = 2 screen lines
+        TM      %55, #0b0100_0000 ; if %55==x1xx_xxxx, each line = 2 screen lines
         JR      Z, M_191F
         AND     %5C, #%FE
         JR      M_191F
