@@ -461,7 +461,7 @@ M_0BD7: LD      R11, @R10
         LD      R5, #'!'
         CALL    M_0C9B      ; printCharWord
         INC     R10
-M_0BDF: CALL    M_0C91
+        CALL    M_0C91
         JR      Z, M_0BD7
 M_0BE4: RET
 
@@ -493,7 +493,8 @@ M_0C0D: LD      %58, #%FF
         CALL    M_0815      ; GTC
         LD      R15, #0
         LD      R14, #%F7
-M_0C1A: LDE     R0, @RR14
+//M_0C1A:
+        LDE     R0, @RR14
         INC     R15
         LD      R12, #%0C   ; read data from 0c39 into r1
         LD      R13, #%39
@@ -515,21 +516,21 @@ M_0C33: INC     R13
 
 M_0C39: ; data read from M_0C1A
         ; value  address
-        .data 'F' %0AE0
-        .data 'R' %0BD0
-        .data 'H' %0CF2
-        .data ',' %0D10
-        .data 'J' %0D42
-        .data 'A' %0D26
-        .data ';' %0D6F
-        .data 'S' %0D56
-        .data 'L' %0D93
-        .data 'M' %0F7D
-        .data '?' %0DC6
-        .data 'Q' %0CEB
-        .data '!' %0BE5
-        .data '#' %0DE5
-        .data '%' %1ED0
+        .data 'F' M_0AE0
+        .data 'R' M_0BD0
+        .data 'H' M_0CF2
+        .data ',' M_0D10
+        .data 'J' M_0D42
+        .data 'A' M_0D26
+        .data ';' M_0D6F
+        .data 'S' M_0D56
+        .data 'L' M_0D93
+        .data 'M' M_0F7D
+        .data '?' M_0DC6
+        .data 'Q' M_0CEB
+        .data '!' M_0BE5
+        .data '#' M_0DE5
+        .data '%' M_1ED0
         .data %FF %FFFF
 
         ; printHexWord

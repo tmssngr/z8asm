@@ -24,7 +24,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	// Fields =================================================================
 
-	private final Map<String, Integer> labels = new HashMap<>();
+	private final Map<String, UsageDetectingInt> labels = new HashMap<>();
 	private final Map<String, Integer> constants = new HashMap<>();
 
 	private boolean details;
@@ -43,7 +43,11 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 	@Override
 	public Object visitCode(Z8AsmParser.CodeContext ctx) {
 		output = new Output();
-		return super.visitCode(ctx);
+		super.visitCode(ctx);
+		if (secondPass) {
+			reportUnusedValues();
+		}
+		return null;
 	}
 
 	@Override
@@ -103,12 +107,17 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	@Override
 	public Object visitLabelDefinition(Z8AsmParser.LabelDefinitionContext ctx) {
-		final String label = ctx.Identifier().getText();
+		final String text = ctx.Identifier().getText();
 		final int pc = output.getPc();
-		if (details && !new Formatter().format("M_%04X", pc).toString().equals(label)) {
-			System.err.println("address differs from label: " + label);
+		if (details && !new Formatter().format("M_%04X", pc).toString().equals(text)) {
+			System.err.println("address differs from label: " + text);
 		}
-		labels.put(label, pc);
+
+		final UsageDetectingInt value = new UsageDetectingInt(pc);
+		final UsageDetectingInt prevValue = labels.put(text, value);
+		if (prevValue != null) {
+			value.updateFrom(prevValue);
+		}
 		return null;
 	}
 
@@ -604,14 +613,14 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 		final Token label = ctx.label;
 		if (label != null) {
 			final String text = label.getText();
-			final Integer labelAddress = labels.get(text);
+			final UsageDetectingInt labelAddress = labels.get(text);
 			if (labelAddress == null) {
 				if (secondPass) {
 					throw new SyntaxException("Unknown label '" + text + "'", ctx);
 				}
 				return pc + 2;
 			}
-			return labelAddress.intValue();
+			return labelAddress.readValue();
 		}
 
 		throw new SyntaxException("Unknown target", ctx);
@@ -632,7 +641,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	@Override
 	public Integer visitExprChar(Z8AsmParser.ExprCharContext ctx) {
-		return (int)getChar(ctx);
+		return (int) getChar(ctx);
 	}
 
 	@Override
@@ -661,6 +670,14 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	// Utils ==================================================================
 
+	private void reportUnusedValues() {
+		for (Map.Entry<String, UsageDetectingInt> entry : labels.entrySet()) {
+			if (entry.getValue().isUnused()) {
+				System.out.println("label " + entry.getKey() + " is unused");
+			}
+		}
+	}
+
 	private Integer getIdentifierValue(TerminalNode identifierNode, ParserRuleContext ctx) {
 		final String text = identifierNode.getText();
 		final Integer value = constants.get(text);
@@ -669,6 +686,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 		}
 		return value;
 	}
+
 	private char getChar(ParserRuleContext ctx) {
 		String text = ctx.getText();
 		final String string = parseString(text, "'", ctx);
@@ -932,6 +950,29 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 		public String getPosition() {
 			return Assembler.getPosition(context);
+		}
+	}
+
+	private static class UsageDetectingInt {
+		private final int value;
+
+		private boolean used;
+
+		public UsageDetectingInt(int value) {
+			this.value = value;
+		}
+
+		public int readValue() {
+			used = true;
+			return value;
+		}
+
+		public boolean isUnused() {
+			return !used;
+		}
+
+		public void updateFrom(UsageDetectingInt other) {
+			used = other.used;
 		}
 	}
 }
