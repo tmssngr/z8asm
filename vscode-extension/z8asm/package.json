@@ -1,0 +1,30 @@
+{
+	"name": "z8asm",
+	"displayName": "Z8 Asm",
+	"description": "Z8 Assembly language support for Visual Studio Code",
+	"version": "0.0.1",
+	"engines": {
+		"vscode": "^1.61.0"
+	},
+	"contributes": {
+		"languages": [
+			{
+				"id": "z8asm",
+				"aliases": [
+					"Z8 Asm",
+					"Asm"
+				],
+				"extensions": [
+					".asm"
+				]
+			}
+		],
+		"grammars": [
+			{
+				"language": "z8asm",
+				"scopeName": "source.z8asm",
+				"path": "./syntaxes/z8asm.tmLanguage.json"
+			}
+		]
+	}
+}

@@ -1,0 +1,49 @@
+{
+	"scopeName" : "source.z8asm",
+	"patterns" : [
+		{
+			"name" : "keyword.asm",
+			"match" : "\\b(?i:(adc|add|and|call|ccf|clr|com|cp|da|dec|decw|di|djnz|ei|inc|incw|iret|ld|ldc|ldci|lde|ldei|nop|or|pop|push|rcf|ret|rl|rlc|rr|rrc|sbc|scf|sra|srp|sub|swap|tcm|tm|xor))\\b"
+		},
+		{
+			"name" : "keyword.control.asm",
+			"match" : "\\b(?i:(jp|jr)[ \\t]+(lt|le|ule|ov|mi|z|eq|c|ult|ge|gt|ugt|nov|pl|nz|ne|nc|uge)?)\\b"
+		},
+		{
+			"name" : "keyword.other.asm",
+			"match" : "\\.(?i:(const|data|org))\\b"
+		},
+		{
+			"begin" : ";",
+			"beginCaptures" : {
+				"0" : {
+					"name" : "punctuation.definition.comment.asm"
+				}
+			},
+			"end": "\\n",
+			"name": "comment.line.double-slash.asm.two"
+		},
+		{
+			"begin" : "/\\*",
+			"beginCaptures" : {
+				"0" : {
+					"name" : "punctuation.definition.comment.asm"
+				}
+			},
+			"end": "\\*/",
+			"name": "comment.block.asm"
+		},
+		{
+			"match" : "(#|\\b)[0-9]+\\b",
+			"name" : "constant.numeric.asm"
+		},
+		{
+			"match" : "#?%[0-9A-Fa-f_]+\\b",
+			"name" : "constant.numeric.asm"
+		},
+		{
+			"match" : "#0b[01_]+\\b",
+			"name" : "constant.numeric.asm"
+		}
+	]
+}
