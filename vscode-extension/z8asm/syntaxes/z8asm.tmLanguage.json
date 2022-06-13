@@ -34,6 +34,16 @@
 			"name": "comment.block.asm"
 		},
 		{
+			"name": "string.quoted.double.asm",
+			"begin": "\"",
+			"end" : "\""
+		},
+		{
+			"name": "string.quoted.single.asm",
+			"begin": "'",
+			"end" : "'"
+		},
+		{
 			"match" : "(#|\\b)[0-9]+\\b",
 			"name" : "constant.numeric.asm"
 		},
