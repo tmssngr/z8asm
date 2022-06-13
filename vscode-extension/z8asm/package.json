@@ -16,7 +16,8 @@
 				],
 				"extensions": [
 					".asm"
-				]
+				],
+                "configuration": "./z8asm.configuration.json"
 			}
 		],
 		"grammars": [
