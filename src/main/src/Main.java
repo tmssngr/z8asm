@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -25,7 +26,7 @@ public class Main {
 	// Static =================================================================
 
 	public static void main(String[] args) throws IOException {
-		buildAst(Paths.get("src/main/examples/z8.asm"));
+		buildAst(Paths.get("src/main/examples/video.asm"));
 	}
 
 	// Utils ==================================================================
@@ -57,6 +58,9 @@ public class Main {
 		assembler.setSecondPass(true);
 		assembler.visit(root);
 
-		//		assembler.print();
+		try (Writer writer = Files.newBufferedWriter(Paths.get("data.h"))) {
+//		try (PrintWriter writer = new PrintWriter(System.out)) {
+			assembler.printC(writer);
+		}
 	}
 }

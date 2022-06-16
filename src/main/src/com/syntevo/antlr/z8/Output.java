@@ -66,6 +66,46 @@ public final class Output {
 		}
 	}
 
+	public void printC(Writer writer) throws IOException {
+		writer.write("#ifndef DATA_H");
+		writer.write(NL);
+		writer.write("#define DATA_H");
+		writer.write(NL);
+		writer.write("const static uint8_t DATA[] PROGMEM = {");
+		writer.write(NL);
+
+		for (int i = 0; i < pc; i++) {
+			if (i % 16 == 0) {
+				writer.write("\t");
+			}
+
+			writer.write("0x");
+			writer.write(byteToHex(i));
+
+			final boolean isLast = i + 1 == pc;
+			if (isLast) {
+				writer.write("  ");
+			}
+			else {
+				writer.write(", ");
+			}
+			if (isLast || i % 16 == 15) {
+				writer.write("// ");
+				writer.write(toHex((i - 1) & ~15, 4));
+				writer.write(NL);
+			}
+		}
+
+		writer.write("};");
+		writer.write(NL);
+		writer.write("const int DATA_LENGTH = 0x");
+		writer.write(toHex(pc, 4));
+		writer.write(";");
+		writer.write(NL);
+		writer.write("#endif");
+		writer.write(NL);
+	}
+
 	public void printFrom(int pc) {
 		pc -= offset;
 		int count = this.pc - pc;

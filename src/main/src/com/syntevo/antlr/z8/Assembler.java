@@ -668,6 +668,10 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 		output.print(writer);
 	}
 
+	public void printC(Writer writer) throws IOException {
+		output.printC(writer);
+	}
+
 	// Utils ==================================================================
 
 	private void reportUnusedValues() {
