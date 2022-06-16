@@ -94,5 +94,6 @@
 	<target name="build">
 		<antlrCompile     name="Z8Asm" package-name="z8" example-file="es4.0.asm"/>
 		<antlrLexerTokens name="Z8Asm" package-name="z8" example-file="ub8830rom.asm"/>
+		<antlrLexerTokens name="Z8Asm" package-name="z8" example-file="video.asm"/>
 	</target>
 </project>

@@ -26,6 +26,7 @@ public class Z8AsmParserTest {
 	public void test() throws IOException {
 		assemble("src/main/examples/es4.0.asm");
 		assemble("src/main/examples/ub8830rom.asm");
+		assemble("src/main/examples/video.asm");
 	}
 
 	// Utils ==================================================================
