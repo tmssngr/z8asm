@@ -14,24 +14,14 @@
 			"match" : "\\.(?i:(const|data|org))\\b"
 		},
 		{
+			"name": "comment.line.double-slash.asm",
 			"begin" : ";",
-			"beginCaptures" : {
-				"0" : {
-					"name" : "punctuation.definition.comment.asm"
-				}
-			},
-			"end": "\\n",
-			"name": "comment.line.double-slash.asm.two"
+			"end": "\\n"
 		},
 		{
+			"name": "comment.block.asm",
 			"begin" : "/\\*",
-			"beginCaptures" : {
-				"0" : {
-					"name" : "punctuation.definition.comment.asm"
-				}
-			},
-			"end": "\\*/",
-			"name": "comment.block.asm"
+			"end": "\\*/"
 		},
 		{
 			"name": "string.quoted.double.asm",
@@ -44,16 +34,16 @@
 			"end" : "'"
 		},
 		{
-			"match" : "(#|\\b)[0-9]+\\b",
-			"name" : "constant.numeric.asm"
+			"name" : "constant.numeric.asm",
+			"match" : "(#|\\b)[0-9]+\\b"
 		},
 		{
-			"match" : "#?%[0-9A-Fa-f_]+\\b",
-			"name" : "constant.numeric.asm"
+			"name" : "constant.numeric.asm",
+			"match" : "#?%[0-9A-Fa-f_]+\\b"
 		},
 		{
-			"match" : "#0b[01_]+\\b",
-			"name" : "constant.numeric.asm"
+			"name" : "constant.numeric.asm",
+			"match" : "#0b[01_]+\\b"
 		}
 	]
 }
