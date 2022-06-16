@@ -26,7 +26,13 @@
 		{
 			"name": "string.quoted.double.asm",
 			"begin": "\"",
-			"end" : "\""
+			"end" : "\"",
+			"patterns" : [
+				{
+					"name" : "constant.character.escape.asm",
+					"match" : "\\\\."
+				}
+			]
 		},
 		{
 			"name": "string.quoted.single.asm",
