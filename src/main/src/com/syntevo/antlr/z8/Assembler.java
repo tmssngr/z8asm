@@ -184,6 +184,20 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 	}
 
 	@Override
+	public Object visitRepeat(Z8AsmParser.RepeatContext ctx) {
+		int count = (Integer) visit(ctx.expression());
+		if (count <= 0) {
+			throw new SyntaxException("Expression needs to be a value > 0", ctx);
+		}
+
+		while (count-- > 0) {
+			visit(ctx.repeatInstructions());
+		}
+
+		return null;
+	}
+
+	@Override
 	public Object visitDi(Z8AsmParser.DiContext ctx) {
 		return command1(0x8F);
 	}

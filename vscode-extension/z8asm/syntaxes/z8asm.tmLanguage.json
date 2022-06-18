@@ -11,7 +11,7 @@
 		},
 		{
 			"name" : "keyword.other.asm",
-			"match" : "\\.(?i:(const|data|org))\\b"
+			"match" : "\\.(?i:(const|data|org|repeat|end))\\b"
 		},
 		{
 			"name": "comment.line.double-slash.asm",

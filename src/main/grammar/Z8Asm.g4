@@ -20,6 +20,7 @@ address
 parserInstruction: ( defConst
                    | data
                    | org
+                   | repeat
                    )
                    NL?
                    ;
@@ -89,6 +90,13 @@ dataItem
 org
     : Org Word
     ;
+
+repeat: Repeat expression
+          repeatInstructions
+        End
+      ;
+
+repeatInstructions: (code | NL)+;
 
 dec : Dec registerOrIregister ;
 rlc : Rlc registerOrIregister ;
@@ -257,8 +265,21 @@ Byte
     | BinaryLiteral
     ;
 
+fragment WordDecimal
+	: Digit
+	| [1-9] Digit
+	| [1-9] Digit Digit
+	| [1-9] Digit Digit Digit
+	| [1-5] Digit Digit Digit Digit
+	| '6' [0-4] Digit Digit Digit
+	| '65' [0-4] Digit Digit
+	| '655' [0-2] Digit
+	| '6553' [0-5]
+	;
+
 Word
     : HexPrefix  HexDigit HexDigit HexDigit HexDigit
+    | WordDecimal
     ;
 
 fragment NibbleDec :
@@ -288,9 +309,11 @@ Comma
     : ','
     ;
 
-Const : '.' C O N S T ;
-Data : '.' D A T A ;
-Org : '.' O R G ;
+Const  : '.' C O N S T ;
+Data   : '.' D A T A ;
+Org    : '.' O R G ;
+Repeat : '.' R E P E A T;
+End    : '.' E N D;
 
 Adc  : A D C ;
 Add  : A D D ;

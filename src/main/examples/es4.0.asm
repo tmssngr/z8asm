@@ -333,14 +333,9 @@ M_0A3F: CALL    M_081E
         RCF
         RET
 
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
+        .repeat 8
+            NOP
+        .end
 
         ; asciiToUInt
         ; in: rr14 = address to string with (up to 5 digit) number
@@ -726,18 +721,10 @@ M_0D74: LDE     R2, @RR14
         JR      M_0D23
 
 M_0D86: RET
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
+
+        .repeat 12
+            NOP
+        .end
 
         ; L
 M_0D93: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
@@ -790,12 +777,9 @@ M_0DE5: CALL    M_0A52
         CALL    M_0C9B      ; printCharWord
         JP      M_0C8D      ; println
 
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
+        .repeat 6
+            NOP
+        .end
 
 M_0DFA: CP      %13, #' '
         JR      Z, M_0E06
@@ -806,7 +790,7 @@ M_0E06: RET
         NOP
         NOP
 M_0E09: CP      R6, #%3A
-M_0E0C: JP      NC, %0951               ;!!!
+M_0E0C: JP      NC, M_0951
         CP      R6, #'0'
         CCF
         JR      NC, M_0E0C
@@ -1231,10 +1215,9 @@ M_143B: LDE     R7, @RR4
         JR      NZ, M_143B
         ADC     %6, #0
         LD      R5, #%7B
-        NOP
-        NOP
-        NOP
-        NOP
+        .repeat 4
+            NOP
+        .end
         LDE     @RR4, R15
         INC     R5
         LDE     @RR4, R15
@@ -1523,10 +1506,9 @@ M_1642: LD      R2, #%15
 M_1650: POP     RP
         JP      @%70
 
-        NOP
-        NOP
-        NOP
-        NOP
+        .repeat 4
+            NOP
+        .end
 
         LD      %51, R7
         LD      %4E, R4
@@ -2121,22 +2103,17 @@ M_1ACE: LDE     @RR0, R8
         CLR     %5C
         CALL    M_18D8
         LD      %5C, #%14
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
+        .repeat 7
+            NOP
+        .end
         JR      M_1A8A
 
 M_1AE5: DJNZ    R10, M_1AEA
         OR      %55, #%80           ; case 0x0E print control character (Ctrl+N):
 M_1AEA: JR      M_1A8A
-        NOP
-        NOP
-        NOP
-        NOP
+		.repeat 4
+            NOP
+        .end
 
         ; short beep
 M_1AF0: PUSH    RP
@@ -2280,22 +2257,19 @@ M_1BFC: CLR     %5E
         POP     RP
         RET
 
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
+		.repeat 7
+            NOP
+        .end
 
         ; interrupt
 M_1C0E: OR      %6F, %6F
         JR      Z, M_1C15
         DEC     %6F
 M_1C15: IRET
-        NOP
-        NOP
-        NOP
+
+		.repeat 3
+            NOP
+        .end
 
 M_1C19: PUSH    RP
         SRP     #%50
@@ -2437,15 +2411,17 @@ M_1D00: .data %FF %FF "1234567890<" %FF %FF %FF
         .data %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF
         .data %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF
 
-        .data %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF
-        .data %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF
-        .data %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF
-        .data %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF
+		.repeat 4
+			.repeat 16
+				.data %FF
+			.end
+		.end
 
-        .data %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF
-        .data %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF
-        .data %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF
-        .data %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF
+		.repeat 4
+			.repeat 16
+				.data %FF
+			.end
+		.end
 
 M_1E80: PUSH    RP
         SRP     #%60
@@ -2611,59 +2587,9 @@ M_1F92: LDE     R6, @RR2
         POP     RP
         RET
 
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
+		.repeat 53
+            NOP
+        .end
 
         ; copied to FFE0..FFFF
 M_1FE0: NOP

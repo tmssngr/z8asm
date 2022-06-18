@@ -158,6 +158,26 @@ public interface Z8AsmListener extends ParseTreeListener {
 	 */
 	void exitOrg(Z8AsmParser.OrgContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link Z8AsmParser#repeat}.
+	 * @param ctx the parse tree
+	 */
+	void enterRepeat(Z8AsmParser.RepeatContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link Z8AsmParser#repeat}.
+	 * @param ctx the parse tree
+	 */
+	void exitRepeat(Z8AsmParser.RepeatContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link Z8AsmParser#repeatInstructions}.
+	 * @param ctx the parse tree
+	 */
+	void enterRepeatInstructions(Z8AsmParser.RepeatInstructionsContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link Z8AsmParser#repeatInstructions}.
+	 * @param ctx the parse tree
+	 */
+	void exitRepeatInstructions(Z8AsmParser.RepeatInstructionsContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link Z8AsmParser#dec}.
 	 * @param ctx the parse tree
 	 */

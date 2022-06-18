@@ -100,6 +100,18 @@ public interface Z8AsmVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitOrg(Z8AsmParser.OrgContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link Z8AsmParser#repeat}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitRepeat(Z8AsmParser.RepeatContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link Z8AsmParser#repeatInstructions}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitRepeatInstructions(Z8AsmParser.RepeatInstructionsContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link Z8AsmParser#dec}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
