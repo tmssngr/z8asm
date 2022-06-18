@@ -8,6 +8,16 @@ import org.antlr.v4.runtime.tree.ParseTreeListener;
  */
 public interface Z8AsmListener extends ParseTreeListener {
 	/**
+	 * Enter a parse tree produced by {@link Z8AsmParser#root}.
+	 * @param ctx the parse tree
+	 */
+	void enterRoot(Z8AsmParser.RootContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link Z8AsmParser#root}.
+	 * @param ctx the parse tree
+	 */
+	void exitRoot(Z8AsmParser.RootContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link Z8AsmParser#code}.
 	 * @param ctx the parse tree
 	 */

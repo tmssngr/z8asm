@@ -1,12 +1,11 @@
 grammar Z8Asm;
 
+root: (code | NL)*;
+
 code
-    :
-    ( labelDefinition
+    : labelDefinition
     | parserInstruction
     | command
-    | NL
-    )*
     ;
 
 labelDefinition

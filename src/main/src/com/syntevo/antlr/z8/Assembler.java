@@ -41,9 +41,9 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 	// Implemented ============================================================
 
 	@Override
-	public Object visitCode(Z8AsmParser.CodeContext ctx) {
+	public Object visitRoot(Z8AsmParser.RootContext ctx) {
 		output = new Output();
-		super.visitCode(ctx);
+		super.visitRoot(ctx);
 		if (secondPass) {
 			reportUnusedValues();
 		}

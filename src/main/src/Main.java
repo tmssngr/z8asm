@@ -49,7 +49,7 @@ public class Main {
 			}
 		});
 
-		final ParseTree root = parser.code();
+		final ParseTree root = parser.root();
 
 		final Assembler assembler = new Assembler();
 		assembler.setDetails(false);

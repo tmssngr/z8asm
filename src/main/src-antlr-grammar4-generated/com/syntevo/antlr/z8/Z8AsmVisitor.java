@@ -11,6 +11,12 @@ import org.antlr.v4.runtime.tree.ParseTreeVisitor;
  */
 public interface Z8AsmVisitor<T> extends ParseTreeVisitor<T> {
 	/**
+	 * Visit a parse tree produced by {@link Z8AsmParser#root}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitRoot(Z8AsmParser.RootContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link Z8AsmParser#code}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
