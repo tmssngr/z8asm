@@ -62,6 +62,11 @@ M_082D: JP      M_163A   ; _print
 
         NOP
 
+        ; in: %4E
+        ;     %4F
+        ;     %51
+        ;     %53
+        ; destroys: %60-6A
 M_083A: PUSH    RP
         SRP     #%60
         CALL    M_0FBB
@@ -70,9 +75,9 @@ M_083A: PUSH    RP
         XOR     R6, R3
         LD      R2, #0
         LD      R4, #%60
-        LD      R5, #%EF
+        LD      R5, #0b1110_1111
         LD      P01M, #%B2
-M_0850: TM      %3, #4      ; while P32==0 {}
+M_0850: TM      %3, #4      ; while P32(BUSY)==0 {}
         JR      NZ, M_0850  ; -"-
 M_0855: LDE     @RR4, R5
         LD      R8, #%31
@@ -80,7 +85,7 @@ M_0855: LDE     @RR4, R5
         RLC     R8
         LDE     R9, @RR0
         AND     R9, R6
-        OR      R9, @R8
+        OR      R9, @R8    ; read R2(%62) or R3(%63), depending on Bit0(R10)
         LDE     @RR0, R9
         RL      R5
         JR      C, M_0855
@@ -188,32 +193,9 @@ M_0922: CALL    M_1856          ; getScreenCharAddress in rr0
         POP     %5B
         JR      M_08EC
 
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
+        .repeat 26
+           NOP
+        .end
 
         ; edi
 M_0949: CALL    M_082D      ; print
@@ -443,7 +425,8 @@ M_0B00: .data %00 %20 %40 %60 %80 %A0 %01 %21  %41 %61 %81 %A1 %02 %22 %42 %62
         .data %55 %75 %95 %B5 %16 %36 %56 %76  %96 %B6 %17 %37 %57 %77 %97 %B7
         .data %18 %38 %58 %78 %98 %B8 %19 %39  %59 %79 %99 %B9 %1A %3A %5A %7A
         .data %9A %BA %1B %3B %5B %7B %9B %BB  %1C %3C %5C %7C %9C %BC %1D %3D
-        .data %5D %7D %9D %BD %1E %3E %5E %7E  %9E %BE %1F %3F %5F %7F %9F %BF
+        ; data read from M_0FCA
+M_0BC0: .data %5D %7D %9D %BD %1E %3E %5E %7E  %9E %BE %1F %3F %5F %7F %9F %BF
         .data %00 %28 %50 %80 %A8 %D0 %FF %FF  %80 %08 %20 %02 %40 %04 %10 %01
 
         ; Mon, R(egister)
@@ -917,6 +900,10 @@ M_0EFE: LD      R5, @R11
         JR      C, M_0EFE
         RET
 
+        ; in: %4E
+        ;     %4F
+        ;     %51
+        ; out: %53
 M_0F0A: PUSH    RP
         SRP     #%60
         CALL    M_0FBB
@@ -924,7 +911,7 @@ M_0F0A: PUSH    RP
         LD      R4, #%60
         LD      R5, #%EF
         LD      P01M, #%B2
-M_0F1A: TM      %3, #4
+M_0F1A: TM      %3, #0b0000_0100        ; wait until P32(BUSY) == 0
         JR      NZ, M_0F1A
 M_0F1F: LDE     @RR4, R5
         LDE     R9, @RR0
@@ -939,6 +926,7 @@ M_0F29: RRC     %53
         SWAP    %53
         POP     RP
 M_0F36: RET
+
 M_0F37: LD      R12, #%80
         LD      R13, #0
 M_0F3B: LDE     R2, @RR12
@@ -1005,16 +993,21 @@ M_0FAC: LDE     R0, @RR8
         JR      NZ, M_0FAC
 M_0FB8: JP      M_0AF7
 
-M_0FBB: CP      %51, #%C0   ; >= C0
+        ; in: %4E/%4F  = x_pixel
+        ;     %51      = y_pixel
+        ; out: %50/%51
+        ;      %53
+        ; expects RP==%50
+M_0FBB: CP      %51, #%C0   ; >= 192
         JR      NC, M_1000
         OR      %4E, %4E    ; == 0
         JR      Z, M_0FCA
-        CP      %4F, #%40   ; >= '@'
+        CP      %4F, #%40   ; >= 64/'@'
         JR      NC, M_1000
 M_0FCA: LD      R11, %51    ; { ld r0, 0B00+%51
         LD      R10, #%0B
         LDC     R0, @RR10   ; }
-        LD      R3, #%E0
+        LD      R3, #0b1110_0000
         AND     R3, R0
         SWAP    R3
         RR      R3
@@ -1022,7 +1015,7 @@ M_0FCA: LD      R11, %51    ; { ld r0, 0B00+%51
         LD      R2, #%0B
         LDC     R1, @RR2
         LD      R2, %4E
-        LD      R3, #%19
+        LD      R3, #%19    ; 0b0001_1001
         LD      R10, %4F
         RRC     R2
         RRC     R10
@@ -1034,14 +1027,16 @@ M_0FCA: LD      R11, %51    ; { ld r0, 0B00+%51
         ADD     R1, R10
         LD      R2, #%0B
         LDC     R3, @RR2
-        AND     R0, #%1F
+        AND     R0, #%1F    ; 0b0001_1111
         ADD     R0, #%40
         RET
 
-M_1000: LD      R0, #%40            ; 0x00
+        ; return invisible address in case of invalid x,y
+M_1000: LD      R0, #%40
         LD      R1, #%79
         LD      R3, #1
         RET
+
         NOP
 
         ; char bitmap data
@@ -1060,6 +1055,7 @@ M_1000: LD      R0, #%40            ; 0x00
         .data %00 %33 %63 %FF %60 %30 %00 %00     ; 0x0d
         .data %F8 %C0 %F8 %C0 %FE %18 %1E %00     ; 0x0e
         .data %FF %FF %FF %FF %FF %FF %FF %FF     ; 0x0f
+
         .data %7E %66 %66 %66 %66 %66 %7E %00     ; 0x10
         .data %06 %06 %06 %06 %06 %06 %06 %00     ; 0x11
         .data %7E %06 %06 %7E %60 %60 %7E %00     ; 0x12
@@ -1722,9 +1718,9 @@ M_17E9: PUSH    %13
         POP     %13
         RET
 
-        JP      M_17E9
-        JP      M_166A
-        JP      M_0F0A
+M_17F4: JP      M_17E9
+M_17F7: JP      M_166A
+M_17FA: JP      M_0F0A
 M_17FD: JP      M_083A
 
         ; data read from M_1830
@@ -2111,7 +2107,7 @@ M_1ACE: LDE     @RR0, R8
 M_1AE5: DJNZ    R10, M_1AEA
         OR      %55, #%80           ; case 0x0E print control character (Ctrl+N):
 M_1AEA: JR      M_1A8A
-		.repeat 4
+        .repeat 4
             NOP
         .end
 
@@ -2257,7 +2253,7 @@ M_1BFC: CLR     %5E
         POP     RP
         RET
 
-		.repeat 7
+        .repeat 7
             NOP
         .end
 
@@ -2267,7 +2263,7 @@ M_1C0E: OR      %6F, %6F
         DEC     %6F
 M_1C15: IRET
 
-		.repeat 3
+        .repeat 3
             NOP
         .end
 
@@ -2411,17 +2407,17 @@ M_1D00: .data %FF %FF "1234567890<" %FF %FF %FF
         .data %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF
         .data %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF
 
-		.repeat 4
-			.repeat 16
-				.data %FF
-			.end
-		.end
+        .repeat 4
+            .repeat 16
+                .data %FF
+            .end
+        .end
 
-		.repeat 4
-			.repeat 16
-				.data %FF
-			.end
-		.end
+        .repeat 4
+            .repeat 16
+                .data %FF
+            .end
+        .end
 
 M_1E80: PUSH    RP
         SRP     #%60
@@ -2587,7 +2583,7 @@ M_1F92: LDE     R6, @RR2
         POP     RP
         RET
 
-		.repeat 53
+        .repeat 53
             NOP
         .end
 
