@@ -59,7 +59,7 @@
         LD      R8, #%B2    ; P01M = P01M_P00_P03_A8_A11
                             ;      | P01M_STACK_EXTERN
                             ;      | P01M_P10_P17_AD0_AD7
-                            ;      | P01M_MEM_TIMING_EXTENDED
+                            ;      | P01M_MEM_TIMING_EXTENDED  << 4 instead of 3 machine cycles per byte read from/written to memory
                             ;      | P01M_P04_P07_A12_A15
         LD      R7, #9      ; P3M = P3M_P30_P37_IO
                             ;     | P3M_P31_P36_IO
@@ -79,26 +79,29 @@
         .end
         CP      R10, R2
 M_08FC:
-        LD      R3, #%F0    ; Shift = 1, BUSY = 1, /SYN = 0
+        LD      R3, #%F0    ; Shift = 1, BUSY = 1, /SYN = 1
+; 08FE - 7 lowest bits start with 0x00:
+; while Shift  == 1, each 2-byte command shifts out 2 bytes of video RAM data
         .repeat 19
-            CP      R10, R2
+            CP      R10, R2 ; needs 2us @8Mzh
         .end
         LD      R3, #%70    ; Shift = 0
-        CP      R10, R2
-        CP      R10, R2
-        CP      R10, R2
+        .repeat 3
+            CP      R10, R2
+        .end
         LD      R3, #%50    ; /SYN = 0 
         CP      R10, R2
         LD      R3, #%70    ; /SYN = 1
         CP      R10, R2
         CP      R10, R2
-        JP      %DA22       ; M_0A22
+        JP      %DA22       ; M_0A22    needs 3us @8Mhz
         .repeat 233
             NOP
         .end
 M_0A22:
         CP      R10, R2
-        LD      R3, #%F0    ; Shift = 1, BUSY = 1, /SYN = 0
+        LD      R3, #%F0    ; Shift = 1, BUSY = 1, /SYN = 1
+; 0A26 - 7 lowest bits start with 0x28:
         .repeat 19
             CP      R10, R2
         .end
@@ -117,7 +120,8 @@ M_0A22:
         .end
 M_0B4A:
         CP      R10, R2
-        LD      R3, #%F0    ; Shift = 1, BUSY = 1, /SYN = 0
+        LD      R3, #%F0    ; Shift = 1, BUSY = 1, /SYN = 1
+; 0b4E - 7 lowest bits start with 0x50:
         .repeat 19
             CP      R10, R2
         .end
@@ -128,10 +132,10 @@ M_0B4A:
         LD      R3, #%50    ; /SYN = 0
         LD      R14, #55
         LD      R3, #%70    ; /SYN = 1
-        INC     %2
+        INC     %2          ; inc next 4 bits VA7-VA10
         DEC     %0D
-        OR      R13, R13
-        JP      NZ, %D8FC   ; %08FC
+        OR      R13, R13    ; %0D
+        JP      NZ, %D8FC   ; %08FC, needs 12 machine cycles if jumped (3us?), 10 if ignored
         JR      M_0B8D
 M_0B8D: JR      M_0B8F
 M_0B8F: JR      M_0B9B
@@ -147,7 +151,7 @@ M_0B9B: LD      R3, #%30    ; BUSY = 0
         CP      R10, R2
         LD      R3, #%30    ; /SYN = 1
         LD      R15, #10
-        DEC     %0E
+        DEC     %0E         ; initialized above with LD R14, #55
         OR      R14, R14
         JP      NZ, %DB91   ; M_0B91
         JR      M_0BD2
@@ -164,17 +168,19 @@ M_0BE0: .repeat 17
         CP      R10, R2
         LD      R3, #%10    ; /SYN = 0
         CP      R10, R2
-        LD      R3, #%10    ; /SYN = 0
+        LD      R3, #%10    ; /SYN = 0 ?????????????
         LD      R14, #57
-        DEC     %0F
+        DEC     %0F         ; initialized above with LD R15, #10
         OR      R15, R15
         JP      NZ, %DBD6   ; M_0BD6
         JR      M_0C17
 M_0C17: JR      M_0C19
 M_0C19: JR      M_0C25
+        ; ?????????????
         .repeat 5
             CP      R10, R2
         .end
+
 M_0C25: .repeat 11
             CP      R10, R2
         .end
