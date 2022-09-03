@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,18 +27,31 @@ public class Main {
 	// Static =================================================================
 
 	public static void main(String[] args) throws IOException {
-		buildAst(Paths.get("src/main/examples/video.asm"));
+		if (args.length != 1) {
+			System.out.println("asm-file missing");
+			return;
+		}
+
+		final Assembler assembler = buildAst(Paths.get(args[0]));
+		try (OutputStream stream = Files.newOutputStream(Paths.get("output.bin"))) {
+			assembler.write(stream);
+		}
+/*
+		try (Writer writer = Files.newBufferedWriter(Paths.get("data.h"))) {
+			assembler.printC(writer);
+		}
+*/
 	}
 
 	// Utils ==================================================================
 
-	private static void buildAst(Path path) throws IOException {
+	private static Assembler buildAst(Path path) throws IOException {
 		try (final InputStream stream = Files.newInputStream(path)) {
-			buildAst(stream);
+			return buildAst(stream);
 		}
 	}
 
-	private static void buildAst(InputStream stream) throws IOException {
+	private static Assembler buildAst(InputStream stream) throws IOException {
 		final CharStream charStream = CharStreams.fromStream(stream);
 		final Z8AsmLexer lexer = new Z8AsmLexer(charStream);
 		final CommonTokenStream tokenStream = new CommonTokenStream(lexer);
@@ -58,9 +72,7 @@ public class Main {
 		assembler.setSecondPass(true);
 		assembler.visit(root);
 
-		try (Writer writer = Files.newBufferedWriter(Paths.get("data.h"))) {
-//		try (PrintWriter writer = new PrintWriter(System.out)) {
-			assembler.printC(writer);
-		}
+		return
+		assembler;
 	}
 }

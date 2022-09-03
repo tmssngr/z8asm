@@ -1,6 +1,7 @@
 package com.syntevo.antlr.z8;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.Writer;
 
 /**
@@ -42,6 +43,10 @@ public final class Output {
 	public void write(int value) {
 		buffer[pc] = (byte) value;
 		pc++;
+	}
+
+	public void write(OutputStream stream) throws IOException {
+		stream.write(buffer, 0, pc);
 	}
 
 	public void print(Writer writer) throws IOException {

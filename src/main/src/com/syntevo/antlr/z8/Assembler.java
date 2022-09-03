@@ -1,6 +1,7 @@
 package com.syntevo.antlr.z8;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.Writer;
 import java.util.Collections;
 import java.util.Formatter;
@@ -684,6 +685,10 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	public void printC(Writer writer) throws IOException {
 		output.printC(writer);
+	}
+
+	public void write(OutputStream stream) throws IOException {
+		output.write(stream);
 	}
 
 	// Utils ==================================================================
