@@ -23,9 +23,17 @@ public class Z8AsmParserTest {
 	// Accessing ==============================================================
 
 	@Test
-	public void test() throws IOException {
-		assemble("src/main/examples/es4.0.asm");
+	public void testUB8830Rom() throws IOException {
 		assemble("src/main/examples/ub8830rom.asm");
+	}
+
+	@Test
+	public void testES40() throws IOException {
+		assemble("src/main/examples/es4.0.asm");
+	}
+
+	@Test
+	public void testVideo() throws IOException {
 		assemble("src/main/examples/video.asm");
 	}
 
