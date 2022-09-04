@@ -484,6 +484,18 @@ public class Z8AsmBaseListener implements Z8AsmListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterJpr(Z8AsmParser.JprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitJpr(Z8AsmParser.JprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterLd1(Z8AsmParser.Ld1Context ctx) { }
 	/**
 	 * {@inheritDoc}

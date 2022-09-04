@@ -56,10 +56,8 @@ public class Z8AsmParserTest {
 
 		final Assembler assembler = new Assembler();
 		assembler.setDetails(false);
-		assembler.visit(root);
 
-		assembler.setSecondPass(true);
-		assembler.visit(root);
+		assembler.process(root);
 
 		try (Writer writer = Files.newBufferedWriter(Paths.get(fileName + ".expected"))) {
 			assembler.print(writer);

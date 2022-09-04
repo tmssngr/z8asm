@@ -20,6 +20,7 @@ address
 parserInstruction: ( defConst
                    | data
                    | org
+                   | jpr
                    | repeat
                    )
                    NL?
@@ -129,6 +130,10 @@ jp : Jp iregisterPair             #jpIReg
 jr : Jr address
    | Jr JpCondition Comma address
    ;
+
+jpr : Jpr address
+    | Jpr JpCondition Comma address
+    ;
 
 ld : Ld register         Comma valueByte         #ld1
    | Ld target=register  Comma source=register   #ld2
@@ -312,6 +317,7 @@ Comma
 Const  : '.' C O N S T ;
 Data   : '.' D A T A ;
 Org    : '.' O R G ;
+Jpr    : '.' J P ;
 Repeat : '.' R E P E A T;
 End    : '.' E N D;
 

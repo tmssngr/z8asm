@@ -1,7 +1,6 @@
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -67,12 +66,9 @@ public class Main {
 
 		final Assembler assembler = new Assembler();
 		assembler.setDetails(false);
-		assembler.visit(root);
 
-		assembler.setSecondPass(true);
-		assembler.visit(root);
+		assembler.process(root);
 
-		return
-		assembler;
+		return assembler;
 	}
 }

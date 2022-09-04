@@ -78,7 +78,7 @@ M_083A: PUSH    RP
         LD      R5, #0b1110_1111
         LD      P01M, #%B2
 M_0850: TM      %3, #4      ; while P32(BUSY)==0 {}
-        JR      NZ, M_0850  ; -"-
+        .JP     NZ, M_0850  ; -"-
 M_0855: LDE     @RR4, R5
         LD      R8, #%31
         RRC     R10
@@ -88,7 +88,7 @@ M_0855: LDE     @RR4, R5
         OR      R9, @R8    ; read R2(%62) or R3(%63), depending on Bit0(R10)
         LDE     @RR0, R9
         RL      R5
-        JR      C, M_0855
+        .JP     C, M_0855
         LD      P01M, #%92
         POP     RP
         RET
@@ -128,7 +128,7 @@ M_08A0: LDE     R4, @RR0
         LDE     @RR2, R4
         INC     R1
         INC     R3
-        JR      NZ, M_08A0          ; }
+        .JP     NZ, M_08A0          ; }
         CLR     %8
         CLR     %7
         LD      %6, #%E0
@@ -147,7 +147,7 @@ M_08A0: LDE     R4, @RR0
 M_08E0: PUSH    RP
         SRP     #%50
         OR      R3, R3
-        JR      NZ, M_08EF
+        .JP     NZ, M_08EF
 M_08E8: LD      %51, R12
         LD      %4F, R11
 M_08EC: POP     RP
@@ -155,12 +155,12 @@ M_08EC: POP     RP
 
 M_08EF: DJNZ    R3, M_0901
         CP      %51, #%18       ; %53 was 1
-        JR      NC, M_08EC      ; >= 24
+        .JP     NC, M_08EC      ; >= 24
         CP      %4F, #%28
-        JR      NC, M_08EC      ; >= 40
+        .JP     NC, M_08EC      ; >= 40
         LD      R12, %51
         LD      R11, %4F
-        JR      M_08EC
+        .JP     M_08EC
 
 M_0901: DJNZ    R3, M_08EC
         PUSH    %5B             ; %53 was 2
@@ -168,7 +168,7 @@ M_0901: DJNZ    R3, M_08EC
         LD      R12, %51
         LD      R11, %4F
         SRP     #%60
-        JR      M_0922
+        .JP     M_0922
 
         NOP
 
@@ -191,7 +191,7 @@ M_0922: CALL    M_1856          ; getScreenCharAddress in rr0
         LD      %53, R2
         POP     %5C
         POP     %5B
-        JR      M_08EC
+        .JP     M_08EC
 
         .repeat 26
            NOP
@@ -205,10 +205,10 @@ M_0951: OR      %55, #0b0100_0000
         SRP     #%10
         CALL    M_0815      ; GTC
         CP      %13, #%0D
-        JR      Z, M_0949
+        .JP     Z, M_0949
         LD      R6, %13
         CP      R6, #'?'
-        JR      NZ, M_0989
+        .JP     NZ, M_0989
         CALL    M_0815      ; GTC
         LD      R5, %13
         LD      R6, %13
@@ -291,7 +291,7 @@ M_0A0C: CP      R6, #'L'
         JR      M_0A07
 
 M_0A20: CP      R6, #'M'
-        JP      NZ, M_0E09
+        .JP     NZ, M_0E09
         CALL    M_082A
         OR      %55, #%40
         JP      M_0949

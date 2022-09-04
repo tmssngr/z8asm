@@ -255,6 +255,12 @@ public interface Z8AsmVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitJr(Z8AsmParser.JrContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link Z8AsmParser#jpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitJpr(Z8AsmParser.JprContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code ld1}
 	 * labeled alternative in {@link Z8AsmParser#ld}.
 	 * @param ctx the parse tree
