@@ -415,7 +415,7 @@ fragment Y : [yY] ;
 fragment Z : [zZ] ;
 
 Identifier
-    : [a-zA-Z] [0-9a-zA-Z_]*
+    : [a-zA-Z_] [0-9a-zA-Z_]*
     ;
 
 Whitespace
