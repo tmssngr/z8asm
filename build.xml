@@ -1,0 +1,89 @@
+<project name="BLikeLang" default="rebuild">
+
+	<property name="app" value="asm"/>
+	<property name="build" value=".build"/>
+	<property name="build.classes" value="${build}/classes"/>
+	<property name="build.jars"    value="${build}/jars"/>
+	<property file="user.properties"/>
+
+	<path id="classpath">
+		<pathelement location="src/main/lib/antlr-runtime-4.7.2.jar"/>
+	</path>
+
+	<path id="classpath.compile">
+		<path refid="classpath"/>
+		<pathelement location="src/main/lib/annotations.jar"/>
+	</path>
+
+	<target name="rebuild">
+		<delete dir="${build}" failonerror="false"/>
+		<mkdir dir="${build.classes}"/>
+
+		<javac destdir="${build.classes}" debug="on" optimize="off" deprecation="on" includeantruntime="false" >
+			<src path="src/main/src"/>
+			<src path="src/main/src-antlr-grammar4-generated"/>
+			<classpath refid="classpath.compile"/>
+		</javac>
+
+		<mkdir dir="${build.jars}"/>
+		<jar destfile="${build.jars}/${app}.jar">
+			<fileset dir="${build.classes}"/>
+			<manifest>
+				<attribute name="Main-Class" value="Main"/>
+			</manifest>
+		</jar>
+
+		<copy todir="${build.jars}" flatten="true">
+			<path refid="classpath"/>
+		</copy>
+	</target>
+
+	<target name="rebuild.dist" depends="rebuild" if="dest.dir">
+		<echo>Copy from "${build.jars}" to "${dest.dir}"...</echo>
+		<copy todir="${dest.dir}">
+			<fileset dir="${build.jars}"/>
+		</copy>
+	</target>
+
+	<target name="analyze" depends="rebuild">
+		<delete dir="${basedir}/config"/>
+
+		<java fork="true" classname="Main" failonerror="true">
+			<jvmarg value="-agentlib:native-image-agent=config-output-dir=${basedir}/config"/>
+			 <classpath>
+				 <pathelement location="${build.jars}/${app}.jar"/>
+				 <pathelement location="${build.jars}/antlr-runtime-4.7.2.jar"/>
+			 </classpath>
+			<arg value="src/main/examples/es4.0.asm"/>
+		</java>
+	</target>
+
+	<target name="native">
+		<exec executable="native-image.cmd" dir="${build.jars}" failonerror="true">
+			<arg value="--verbose"/>
+			<arg value="-H:Name=${app}"/>
+			<arg value="-cp"/>
+			<arg value="${app}.jar;antlr-runtime-4.7.2.jar"/>
+			<arg value="--no-fallback"/>
+			<arg value="-H:JNIConfigurationFiles=${basedir}/config/jni-config.json"/>
+			<arg value="-H:+PrintClassInitialization"/>
+			<arg value="--initialize-at-build-time=*"/>
+			<arg value="Main"/>
+		</exec>
+
+<!--
+		<exec executable="editbin.exe" dir="${build.jars}" failonerror="true">
+			<arg value="/SUBSYSTEM:WINDOWS"/>
+			<arg value="${app}.exe"/>
+		</exec>
+
+		<exec executable="${basedir}/build/rcedit-x64.exe" dir="${build.jars}" failonerror="true">
+			<arg value="${app}.exe"/>
+			<arg value="&#45;&#45;set-icon"/>
+			<arg value="${basedir}/build/icon.ico"/>
+		</exec>
+-->
+
+		<move file="${build.jars}/${app}.exe" todir="${build}"/>
+	</target>
+</project>
