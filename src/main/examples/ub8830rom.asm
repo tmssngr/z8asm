@@ -224,6 +224,7 @@ M_015E: LD      R8, R3
         LD      R4, #%25
         LD      R10, #4
 M_016E: LD      R11, #%15
+		; nibble to ASCII
 M_0170: AND     @R11, #%0F
         ADD     @R11, #%30
         CP      @R11, #%3A
@@ -233,6 +234,10 @@ M_017E: INC     R11
         DJNZ    R10, M_0170
         RET
 
+        ; intToAscii (decimal)
+        ; input: rr2
+        ; output: r4 = ' ' or '-'
+        ;         r5-r9 = ascii
 M_0182: LD      R4, R2
         LD      R5, R3
         CALL    M_008C
@@ -718,6 +723,7 @@ M_0528: INCW    R0
         DECW    R0
         RET
 
+		; printQuotedString
 M_052F: LD      R7, #%22        ; '"'
         CALL    M_0391
         JR      NZ, M_0542
@@ -946,7 +952,7 @@ M_06C9: CLR     %4
         RET
 
         ; PTH
-M_06CE: CALL    M_052F
+M_06CE: CALL    M_052F		; printQuotedString
         CALL    M_04C7
         JR      NC, M_06F8
         CALL    M_015E
@@ -954,10 +960,10 @@ M_06CE: CALL    M_052F
         JR      M_06EA
 
         ; PRINT
-M_06DD: CALL    M_052F
+M_06DD: CALL    M_052F		; printQuotedString
         CALL    M_04C7
         JR      NC, M_06F8
-        CALL    M_0182
+M_06E5: CALL    M_0182		; intToAscii
         LD      R10, #6
 M_06EA: LD      R11, #%14
 M_06EC: PUSH    R5
@@ -982,7 +988,7 @@ M_0710: LD      R5, #%0D
         JP      %0818
 
         ; INPUT
-M_0715: CALL    M_052F
+M_0715: CALL    M_052F		; printQuotedString
         CALL    M_02E9
         CALL    M_04F3
         JP      M_05A8
