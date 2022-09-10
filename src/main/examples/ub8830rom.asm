@@ -1,19 +1,19 @@
-		.const  SIO   = %F0
-		.const  TMR   = %F1
-		.const  T1    = %F2
-		.const  PRE1  = %F3
-		.const  T0    = %F4
-		.const  PRE0  = %F5
-		.const  P2M   = %F6
-		.const  P3M   = %F7
-		.const  P01M  = %F8
-		.const  IPR   = %F9
-		.const  IRQ   = %FA
-		.const  IMR   = %FB
-		.const  FLAGS = %FC
-		.const  RP    = %FD
-		.const  SPH   = %FE
-		.const  SPL   = %FF
+        .const  SIO   = %F0
+        .const  TMR   = %F1
+        .const  T1    = %F2
+        .const  PRE1  = %F3
+        .const  T0    = %F4
+        .const  PRE0  = %F5
+        .const  P2M   = %F6
+        .const  P3M   = %F7
+        .const  P01M  = %F8
+        .const  IPR   = %F9
+        .const  IRQ   = %FA
+        .const  IMR   = %FB
+        .const  FLAGS = %FC
+        .const  RP    = %FD
+        .const  SPH   = %FE
+        .const  SPL   = %FF
 
         .data %0800
         .data %0803
@@ -759,6 +759,7 @@ M_0569: PUSH    R10
         AND     R8, %0F
         RET
 
+        ; REM
 M_0583: LD      R7, #%3B        ; ';'
 M_0585: CALL    M_0391
         JR      Z, M_0590
@@ -773,6 +774,7 @@ M_0593: CALL    M_0583
         INCW    R0
         JR      M_0593
 
+        ; LET
 M_059C: CALL    M_04F3
         PUSH    R8
         INCW    R0
@@ -783,10 +785,12 @@ M_05A8: LD      @R8, R2
         LD      @R8, R3
         RET
 
+        ; TRAP
 M_05AE: LD      %4, R0
         LD      %5, R1
 M_05B2: JR      M_0583
 
+        ; PROC
 M_05B4: PUSH    %4
         PUSH    %5
         LD      %4, R0
@@ -827,6 +831,7 @@ M_05FE: POP     %5
         POP     %4
         JR      M_05B2
 
+        ; GOTO
 M_0604: CALL    M_04C7
         CALL    M_0500
         CALL    M_0141
@@ -860,6 +865,7 @@ M_063D: CALL    M_0141
         DECW    R0
         JR      M_0631
 
+        ; IF
 M_0649: AND     %F, #%FE
         CALL    M_0545
         JR      NZ, M_0656
@@ -868,11 +874,13 @@ M_0649: AND     %F, #%FE
 
 M_0656: RET
 
+        ; ELSE
 M_0657: TM      %F, #1
         JP      Z, M_0593
         AND     %F, #%FE
         RET
 
+        ; RETURN
 M_0661: CP      %E, #0
         JR      NZ, M_066C
         OR      %E, #%20
@@ -886,6 +894,7 @@ M_066C: DEC     %E
         AND     %F, #%FE
         JP      @RR6
 
+        ; GOSUB
 M_067B: LD      R8, R0
         LD      R9, R1
         CALL    M_0583
@@ -903,6 +912,7 @@ M_0692: INC     %E
         CALL    M_0583
         JR      M_0669
 
+        ; WAIT
 M_069F: CALL    M_04C7
         LD      R6, R2
         OR      R6, R3
@@ -916,21 +926,26 @@ M_06AE: DECW    R6
         JP      NZ, M_06A8
 M_06B8: RET
 
+        ; CALL
 M_06B9: CALL    M_04C7
         CALL    @RR2
         SRP     #%10
         RET
 
+        ; STOP
 M_06C1: OR      %F, #8
         RET
 
+        ; END
 M_06C5: OR      %F, #2
         RET
 
+        ; TOFF
 M_06C9: CLR     %4
         CLR     %5
         RET
 
+        ; PTH
 M_06CE: CALL    M_052F
         CALL    M_04C7
         JR      NC, M_06F8
@@ -938,6 +953,7 @@ M_06CE: CALL    M_052F
         LD      R10, #5
         JR      M_06EA
 
+        ; PRINT
 M_06DD: CALL    M_052F
         CALL    M_04C7
         JR      NC, M_06F8
@@ -965,6 +981,7 @@ M_070F: RET
 M_0710: LD      R5, #%0D
         JP      %0818
 
+        ; INPUT
 M_0715: CALL    M_052F
         CALL    M_02E9
         CALL    M_04F3
@@ -1054,42 +1071,42 @@ M_07B9: LD      R7, #%0D
         JR      M_07B7
 
         ; data read from M_0795
-M_07C8: .data 'L'
-        .data 'O'
-        .data 'G'
-        .data 'F'
-        .data '>'
-        .data 'R'
-        .data 'S'
-        .data 'W'
-        .data 'M'
-        .data 'C'
-        .data 'T'
-        .data 'E'
-        .data '!'
-        .data '/'
-        .data 'P'
-        .data 'H'
-        .data 'I'
+M_07C8: .data 'L' ; let
+        .data 'O' ; proc
+        .data 'G' ; goto
+        .data 'F' ; if
+        .data '>' ; else
+        .data 'R' ; return
+        .data 'S' ; gosub
+        .data 'W' ; wait
+        .data 'M' ; rem
+        .data 'C' ; call
+        .data 'T' ; stop
+        .data 'E' ; end
+        .data '!' ; trap
+        .data '/' ; toff
+        .data 'P' ; print
+        .data 'H' ; pth
+        .data 'I' ; input
 
         ; data read from M_07A6
         ; address
-M_07D9: .data M_059C
-        .data M_05B4
-        .data M_0604
-        .data M_0649
-        .data M_0657
-        .data M_0661
-        .data M_067B
-        .data M_069F
-        .data M_0583
-        .data M_06B9
-        .data M_06C1
-        .data M_06C5
-        .data M_05AE
-        .data M_06C9
-        .data M_06DD
-        .data M_06CE
-        .data M_0715
+M_07D9: .data M_059C ; LET
+        .data M_05B4 ; PROC
+        .data M_0604 ; GOTO
+        .data M_0649 ; IF
+        .data M_0657 ; ELSE
+        .data M_0661 ; RETURN
+        .data M_067B ; GOSUB
+        .data M_069F ; WAIT
+        .data M_0583 ; REM
+        .data M_06B9 ; CALL
+        .data M_06C1 ; STOP
+        .data M_06C5 ; END
+        .data M_05AE ; TRAP
+        .data M_06C9 ; TOFF
+        .data M_06DD ; PRINT
+        .data M_06CE ; PTH
+        .data M_0715 ; INPUT
         .data %ffff
         jp  M_072B
