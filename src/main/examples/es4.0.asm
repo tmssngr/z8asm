@@ -880,15 +880,18 @@ M_0ED2: INCW    R2
 
 M_0EDF: RET
 
-M_0EE0: CALL    %0182
-        CP      R4, #%20
+        ; printInt (decimal) without leading ' '
+        ; input: rr2
+        ; assumes RP==%10
+M_0EE0: CALL    %0182       ; intToAscii (decimal)
+        CP      R4, #' '
         JR      Z, M_0EF1
         PUSH    %15
         LD      R5, R4
         CALL    M_0818      ; PTC
         POP     %15
 M_0EF1: LD      R11, #%15
-M_0EF3: CP      @%1B, #'0'
+M_0EF3: CP      @%1B, #'0'  ; r11==%1B
         JR      NZ, M_0EFE
         INC     R11
         CP      R11, #%19   ; < 0x19
