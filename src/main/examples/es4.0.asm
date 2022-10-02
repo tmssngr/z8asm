@@ -2141,7 +2141,7 @@ M_1B0A: PUSH    RP
 M_1B1B: LD      R4, #%7F    ; read keyboard matrix from 7f00
         LDC     R3, @RR4
         PUSH    R5
-        LD      R1, #4      ; line numbers
+        LD      R1, #8      ; line numbers
 M_1B23: RLC     R3
         JR      NC, M_1B37
         LD      R4, #%1D    ; key pressed
@@ -2390,7 +2390,33 @@ M_1CF9: LDEI    @RR0, @R2
         RET
 
         ; keyboard mapping
-M_1D00: .data %FF %FF "1234567890<" %FF %FF %FF
+        ; read from M_1B0A
+M_1D00:
+		.data %FF %FF %FF %FF  %FF %FF %FF %FF  "xvn,;" %0E ' ' %FF
+		.data %FF %FF %FF %FF  %FF %FF %C2 %FF  "sfhk:#\r" %FF
+		.data %FF %FF %FF %FF  %FF %FF %FF %FF  "wrzip" %02 ']' %FF
+		.data %FF %FF %FF %FF  %FF %FF %FF %FF  "24680" %03 '[' %FF
+		.data %FF %FF %FF %FF  %FF %FF %FF %FF  "ycbm." %08 %07 %FF
+		.data %FF %FF %FF %FF  %FF %FF %FF %FF  "adgjl" %04 %05 %FF
+		.data %FF %FF %FF %FF  %FF %FF %FF %FF  "qetuo" %01 %FF %FF
+		.data %FF %FF %FF %FF  %FF %FF %FF %FF  "13579-^" %FF
+
+		.data %FF %FF %FF %FF  %FF %FF %FF %FF  "XVN<?" %0E ' ' %FF
+		.data %FF %FF %FF %FF  %FF %FF %FF %FF  "SFHK*|\r" %FF
+		.data %FF %FF %FF %FF  %FF %FF %FF %FF  "WRZIP" %02 '}' %FF
+		.data %FF %FF %FF %FF  %FF %FF %FF %FF  "\"$&(=" %03 '{' %FF
+		.data %FF %FF %FF %FF  %FF %FF %FF %FF  "YCBM>" %FF %07 %FF
+		.data %FF %FF %FF %FF  %FF %FF %FF %FF  "ADGJL" %04 %05 %FF
+		.data %FF %FF %FF %FF  %FF %FF %FF %FF  "QETUO" %01 %FF %FF
+		.data %FF %FF %FF %FF  %FF %FF %FF %FF  "!@%/)+\\" %FF
+
+        .repeat 8
+            .repeat 16
+                .data %FF
+            .end
+        .end
+/*
+        .data %FF %FF "1234567890<" %FF %FF %FF
         .data %FF %C3 "qwertyuiop+" %FF %FF %FF
         .data %FF %C2 "asdfghjkl;*" %FF %FF %FF
         .data %FF %C1 "zxcvbnm,. \r" %FF %FF %FF
@@ -2421,6 +2447,7 @@ M_1D00: .data %FF %FF "1234567890<" %FF %FF %FF
                 .data %FF
             .end
         .end
+*/
 
 M_1E80: PUSH    RP
         SRP     #%60
