@@ -724,8 +724,8 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 		output.print(writer);
 	}
 
-	public void printC(Writer writer) throws IOException {
-		output.printC(writer);
+	public int printC(Writer writer) throws IOException {
+		return output.printC(writer);
 	}
 
 	public void write(OutputStream stream) throws IOException {

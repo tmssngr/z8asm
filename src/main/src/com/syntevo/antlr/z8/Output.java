@@ -11,7 +11,22 @@ public final class Output {
 
 	// Constants ==============================================================
 
-	private static final String NL = System.getProperty("line.separator", "\n");
+	public static final String NL = System.getProperty("line.separator", "\n");
+
+	// Static =================================================================
+
+	public static String toHex(int value, int digits) {
+		final StringBuilder builder = new StringBuilder(digits);
+		while (digits-- > 0) {
+			final int nibble = value & 0xF;
+			value >>= 4;
+			final int chr = nibble > 9
+					? 'a' + nibble - 10
+					: '0' + nibble;
+			builder.insert(0, (char) chr);
+		}
+		return builder.toString();
+	}
 
 	// Fields =================================================================
 
@@ -71,14 +86,7 @@ public final class Output {
 		}
 	}
 
-	public void printC(Writer writer) throws IOException {
-		writer.write("#ifndef DATA_H");
-		writer.write(NL);
-		writer.write("#define DATA_H");
-		writer.write(NL);
-		writer.write("const static uint8_t DATA[] PROGMEM = {");
-		writer.write(NL);
-
+	public int printC(Writer writer) throws IOException {
 		for (int i = 0; i < pc; i++) {
 			if (i % 16 == 0) {
 				writer.write("\t");
@@ -100,15 +108,7 @@ public final class Output {
 				writer.write(NL);
 			}
 		}
-
-		writer.write("};");
-		writer.write(NL);
-		writer.write("const int DATA_LENGTH = 0x");
-		writer.write(toHex(pc, 4));
-		writer.write(";");
-		writer.write(NL);
-		writer.write("#endif");
-		writer.write(NL);
+		return pc;
 	}
 
 	public void printFrom(int pc) {
@@ -131,18 +131,5 @@ public final class Output {
 
 	private String byteToHex(int i) {
 		return toHex(buffer[i], 2);
-	}
-
-	private String toHex(int value, int digits) {
-		final StringBuilder builder = new StringBuilder(digits);
-		while (digits-- > 0) {
-			final int nibble = value & 0xF;
-			value >>= 4;
-			final int chr = nibble > 9
-					? 'a' + nibble - 10
-					: '0' + nibble;
-			builder.insert(0, (char) chr);
-		}
-		return builder.toString();
 	}
 }
