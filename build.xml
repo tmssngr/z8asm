@@ -71,19 +71,6 @@
 			<arg value="Main"/>
 		</exec>
 
-<!--
-		<exec executable="editbin.exe" dir="${build.jars}" failonerror="true">
-			<arg value="/SUBSYSTEM:WINDOWS"/>
-			<arg value="${app}.exe"/>
-		</exec>
-
-		<exec executable="${basedir}/build/rcedit-x64.exe" dir="${build.jars}" failonerror="true">
-			<arg value="${app}.exe"/>
-			<arg value="&#45;&#45;set-icon"/>
-			<arg value="${basedir}/build/icon.ico"/>
-		</exec>
--->
-
 		<move file="${build.jars}/${app}.exe" todir="${build}"/>
 	</target>
 </project>
