@@ -37,6 +37,11 @@ public class Z8AsmParserTest {
 		assemble("src/main/examples/video.asm");
 	}
 
+	@Test
+	public void testForth() throws IOException {
+		assemble("src/main/examples/forth.asm");
+	}
+
 	// Utils ==================================================================
 
 	private static void assemble(String fileName) throws IOException {
