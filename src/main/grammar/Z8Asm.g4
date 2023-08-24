@@ -1,6 +1,6 @@
 grammar Z8Asm;
 
-root: (code | NL)*;
+root: (code | NL)* EOF;
 
 code
     : labelDefinition
