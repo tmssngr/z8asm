@@ -18,7 +18,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	// Fields =================================================================
 
-	private final Map<String, LabelAdress> labels = new HashMap<>();
+	private final Map<String, LabelAddress> labels = new HashMap<>();
 	private final Map<String, Integer> constants = new HashMap<>();
 
 	private boolean details;
@@ -111,8 +111,8 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 			System.err.println("address differs from label: " + text);
 		}
 
-		final LabelAdress value = new LabelAdress(pc);
-		final LabelAdress prevValue = labels.put(text, value);
+		final LabelAddress value = new LabelAddress(pc);
+		final LabelAddress prevValue = labels.put(text, value);
 		if (prevValue != null) {
 			if (value.hasDifferentAddressThan(prevValue)) {
 				labelChanged = true;
@@ -653,7 +653,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 		final Token label = ctx.label;
 		if (label != null) {
 			final String text = label.getText();
-			final LabelAdress labelAddress = labels.get(text);
+			final LabelAddress labelAddress = labels.get(text);
 			if (labelAddress == null) {
 				if (pass > 1) {
 					throw new SyntaxException("Unknown label '" + text + "'", ctx);
@@ -729,7 +729,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 	}
 
 	public void reportUnusedLabels() {
-		for (Map.Entry<String, LabelAdress> entry : labels.entrySet()) {
+		for (Map.Entry<String, LabelAddress> entry : labels.entrySet()) {
 			if (entry.getValue().isUnused()) {
 				System.out.println("label " + entry.getKey() + " is unused");
 			}
@@ -1013,12 +1013,12 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 		}
 	}
 
-	private static class LabelAdress {
+	private static class LabelAddress {
 		private final int address;
 
 		private boolean used;
 
-		public LabelAdress(int address) {
+		public LabelAddress(int address) {
 			this.address = address;
 		}
 
@@ -1031,11 +1031,11 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 			return !used;
 		}
 
-		public void updateFrom(LabelAdress other) {
+		public void updateFrom(LabelAddress other) {
 			used = other.used;
 		}
 
-		public boolean hasDifferentAddressThan(LabelAdress otherAdress) {
+		public boolean hasDifferentAddressThan(LabelAddress otherAdress) {
 			return address != otherAdress.address;
 		}
 	}
