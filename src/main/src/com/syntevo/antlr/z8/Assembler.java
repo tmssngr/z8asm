@@ -1,18 +1,10 @@
 package com.syntevo.antlr.z8;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.Writer;
-import java.util.Collections;
-import java.util.Formatter;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.io.*;
+import java.util.*;
 
-import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.tree.ParseTree;
-import org.antlr.v4.runtime.tree.TerminalNode;
+import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.tree.*;
 
 /**
  * @author Thomas Singer
@@ -92,7 +84,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 	@Override
 	public Object visitDefConst(Z8AsmParser.DefConstContext ctx) {
 		final String text = ctx.name.getText();
-		final int value = (Integer) visit(ctx.expr);
+		final int value = (Integer)visit(ctx.expr);
 
 		final Integer prevValue = constants.put(text, value);
 		if (pass > 1) {
@@ -197,7 +189,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	@Override
 	public Object visitRepeat(Z8AsmParser.RepeatContext ctx) {
-		int count = (Integer) visit(ctx.expression());
+		int count = (Integer)visit(ctx.expression());
 		if (count <= 0) {
 			throw new SyntaxException("Expression needs to be a value > 0", ctx);
 		}
@@ -251,8 +243,8 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	@Override
 	public Object visitLd1(Z8AsmParser.Ld1Context ctx) {
-		final int register = (Integer) visit(ctx.register());
-		final int value = (Integer) visit(ctx.valueByte());
+		final int register = (Integer)visit(ctx.register());
+		final int value = (Integer)visit(ctx.valueByte());
 		if (isWorkingRegister(register)) {
 			return command2(toByte(register, 0x0C), value);
 		}
@@ -375,7 +367,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	@Override
 	public Object visitSrp(Z8AsmParser.SrpContext ctx) {
-		final int value = (Integer) visit(ctx.valueByte());
+		final int value = (Integer)visit(ctx.valueByte());
 		if ((value & 0xF) != 0) {
 			throw new SyntaxException("lower nibble must be 0", ctx);
 		}
@@ -689,7 +681,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	@Override
 	public Integer visitExprChar(Z8AsmParser.ExprCharContext ctx) {
-		return (int) getChar(ctx);
+		return (int)getChar(ctx);
 	}
 
 	@Override
@@ -699,7 +691,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	@Override
 	public Integer visitValueByte(Z8AsmParser.ValueByteContext ctx) {
-		return (Integer) visit(ctx.expression());
+		return (Integer)visit(ctx.expression());
 	}
 
 	// Accessing ==============================================================
