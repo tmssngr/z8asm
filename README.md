@@ -19,6 +19,11 @@ where
 - `char`: a char converted to US-ASCII, e.g. `'?'` (= `%2F`)
 - `string`: a series of characters (US-ASCII), e.g. `"12"` (= `%31 %32`)
 
+### Comments
+
+Line comments start with a semicolon `;` or with C-like double slashes `//`.
+Block comments are also C-like: they start with `/*` and end with the next `*/` (they can't be nested).
+
 ## Examples
 
 Please see directory `src/main/src/examples` for example files used to build internal ROM, ROM and video ROM for the JU+TE computer (east-german computer from 1988).
