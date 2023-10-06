@@ -14,7 +14,7 @@ It accepts the `.asm` file as input and writes the compiled binary file to `outp
 `.repeat <number>` start a block which is repeated <number> times, `.end` it.
 
 where
-- `hex2`: a 2-digit hex value, e.g. '%0d`
+- `hex2`: a 2-digit hex value, e.g. `%0d`
 - `hex4`: a 4-digit hex value, e.g. `%ABCD` (= `%AB %CD`)
 - `char`: a char converted to US-ASCII, e.g. `'?'` (= `%2F`)
 - `string`: a series of characters (US-ASCII), e.g. `"12"` (= `%31 %32`)
