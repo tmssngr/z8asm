@@ -41,6 +41,10 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 		labelChanged = false;
 		pass++;
 
+		if (pass > 10) {
+			throw new SyntaxException("Too many passes", ctx);
+		}
+
 		System.out.println("Pass " + pass + "...");
 
 		super.visitRoot(ctx);
