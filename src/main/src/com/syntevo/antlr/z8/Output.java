@@ -65,11 +65,15 @@ public final class Output {
 	}
 
 	public void print(Writer writer) throws IOException {
+		print(writer, NL);
+	}
+
+	public void print(Writer writer, String newLine) throws IOException {
 		boolean newline = false;
 		for (int i = 0; i < pc; i++) {
 			if (i % 16 == 0) {
 				if (newline) {
-					writer.write(NL);
+					writer.write(newLine);
 				}
 				writer.write(toHex(i, 4));
 			}
@@ -82,7 +86,7 @@ public final class Output {
 		}
 
 		if (newline) {
-			writer.write(NL);
+			writer.write(newLine);
 		}
 	}
 
