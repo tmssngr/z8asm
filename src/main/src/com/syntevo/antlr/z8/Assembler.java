@@ -115,9 +115,15 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 			System.err.println("address differs from label: " + text);
 		}
 
-		final LabelAddress value = new LabelAddress(pc);
+		final Token token = ctx.Identifier().getSymbol();
+		final LabelAddress value = new LabelAddress(pc, token.getLine(), token.getCharPositionInLine());
 		final LabelAddress prevValue = labels.put(text, value);
 		if (prevValue != null) {
+			if (value.line != prevValue.line
+			    || value.column != prevValue.column) {
+				throw new SyntaxException("Label '" + text + "' was already defined at " + prevValue.line + ":" + (prevValue.column + 1), ctx);
+			}
+
 			if (value.hasDifferentAddressThan(prevValue)) {
 				labelChanged = true;
 			}
@@ -1019,11 +1025,15 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	private static class LabelAddress {
 		private final int address;
+		private final int line;
+		private final int column;
 
 		private boolean used;
 
-		public LabelAddress(int address) {
+		public LabelAddress(int address, int line, int column) {
 			this.address = address;
+			this.line = line;
+			this.column = column;
 		}
 
 		public int readValue() {

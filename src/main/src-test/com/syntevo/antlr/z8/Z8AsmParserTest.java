@@ -1,19 +1,12 @@
 package com.syntevo.antlr.z8;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.*;
+import java.nio.file.*;
 
-import org.antlr.v4.runtime.BaseErrorListener;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.Recognizer;
-import org.antlr.v4.runtime.misc.ParseCancellationException;
-import org.antlr.v4.runtime.tree.ParseTree;
-import org.junit.Test;
+import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.misc.*;
+import org.antlr.v4.runtime.tree.*;
+import org.junit.*;
 
 /**
  * @author Thomas Singer
@@ -24,28 +17,95 @@ public class Z8AsmParserTest {
 
 	@Test
 	public void testUB8830Rom() throws IOException {
-		assemble("src/main/examples/ub8830rom.asm");
+		assembleFile("src/main/examples/ub8830rom.asm");
 	}
 
 	@Test
 	public void testES40() throws IOException {
-		assemble("src/main/examples/es4.0.asm");
+		assembleFile("src/main/examples/es4.0.asm");
 	}
 
 	@Test
 	public void testVideo() throws IOException {
-		assemble("src/main/examples/video.asm");
+		assembleFile("src/main/examples/video.asm");
 	}
 
 	@Test
 	public void testForth() throws IOException {
-		assemble("src/main/examples/forth.asm");
+		assembleFile("src/main/examples/forth.asm");
 	}
 
-	// Utils ==================================================================
+	@Test
+	public void testDuplicateLabels() {
+		try {
+			assemble("""
+					         main:
+					           ld r0, #10
+					         main:
+					           call %1000
+					           djnz r0, main
+					           ret""");
+			Assert.fail();
+		}
+		catch (Assembler.SyntaxException ignored) {
+		}
+	}
 
-	private static void assemble(String fileName) throws IOException {
+	private static void assembleFile(String fileName) throws IOException {
 		final CharStream charStream = CharStreams.fromFileName(fileName);
+		final Assembler assembler = assemble(charStream);
+
+		try (Writer writer = Files.newBufferedWriter(Paths.get(fileName + ".expected"))) {
+			assembler.print(writer);
+		}
+	}
+
+	private static String assemble(String input) {
+		if (false) {
+			printTokens(CharStreams.fromString(input));
+		}
+
+		final Assembler assembler = assemble(CharStreams.fromString(input));
+		final StringWriter writer = new StringWriter(1024);
+		try {
+			assembler.print(writer, "\n");
+		}
+		catch (IOException e) {
+			throw new AssertionError(e);
+		}
+		return writer.toString();
+	}
+
+	private static void printTokens(CharStream charStream) {
+		final Z8AsmLexer lexer = new Z8AsmLexer(charStream);
+
+		while (true) {
+			final Token token = lexer.nextToken();
+			if (token.getType() < 0) {
+				break;
+			}
+
+			System.out.print(token.getLine());
+			System.out.print(':');
+			System.out.print(token.getCharPositionInLine());
+			System.out.print(" \"");
+			String txt = token.getText();
+			if (txt != null) {
+				txt = txt.replace("\n", "\\n");
+				txt = txt.replace("\r", "\\r");
+				txt = txt.replace("\t", "\\t");
+			}
+			else {
+				txt = "";
+			}
+			System.out.print(txt);
+			System.out.print("\" ");
+			System.out.print(Z8AsmLexer.VOCABULARY.getDisplayName(token.getType()));
+			System.out.println();
+		}
+	}
+
+	private static Assembler assemble(CharStream charStream) {
 		final Z8AsmLexer lexer = new Z8AsmLexer(charStream);
 
 		final CommonTokenStream tokenStream = new CommonTokenStream(lexer);
@@ -63,9 +123,6 @@ public class Z8AsmParserTest {
 		assembler.setDetails(false);
 
 		assembler.process(root);
-
-		try (Writer writer = Files.newBufferedWriter(Paths.get(fileName + ".expected"))) {
-			assembler.print(writer);
-		}
+		return assembler;
 	}
 }
