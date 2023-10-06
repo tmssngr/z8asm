@@ -29,11 +29,17 @@ public interface Z8AsmVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitLabelDefinition(Z8AsmParser.LabelDefinitionContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link Z8AsmParser#address}.
+	 * Visit a parse tree produced by {@link Z8AsmParser#globalAddress}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitAddress(Z8AsmParser.AddressContext ctx);
+	T visitGlobalAddress(Z8AsmParser.GlobalAddressContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link Z8AsmParser#localOrGlobalAddress}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitLocalOrGlobalAddress(Z8AsmParser.LocalOrGlobalAddressContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link Z8AsmParser#parserInstruction}.
 	 * @param ctx the parse tree

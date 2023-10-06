@@ -9,12 +9,17 @@ code
     ;
 
 labelDefinition
-    : Identifier Colon NL?
+    : label=(Identifier | LocalLabel) Colon NL?
     ;
 
-address
+globalAddress
     : Word
     | label=Identifier
+    ;
+
+localOrGlobalAddress
+    : globalAddress
+    | label=LocalLabel
     ;
 
 parserInstruction: ( defConst
@@ -81,11 +86,11 @@ data
     ;
 
 dataItem
-    : Byte       #dataByte
-    | address    #dataAddress
-    | LString    #dataLString
-    | String     #dataString
-    | Char       #dataChar
+    : Byte          #dataByte
+    | globalAddress #dataAddress
+    | LString       #dataLString
+    | String        #dataString
+    | Char          #dataChar
     ;
 
 org
@@ -116,23 +121,23 @@ rr  : Rr registerOrIregister ;
 swap: Swap registerOrIregister ;
 srp : Srp valueByte ;
 
-call : Call address        #callAddress
+call : Call globalAddress  #callAddress
      | Call iregisterPair  #callIreg
      ;
 
-djnz : Djnz WorkingRegister Comma address;
+djnz : Djnz WorkingRegister Comma localOrGlobalAddress;
 
-jp : Jp iregisterPair             #jpIReg
-   | Jp address                   #jpAddress
-   | Jp JpCondition Comma address #jpConditionAddress
+jp : Jp iregisterPair                          #jpIReg
+   | Jp localOrGlobalAddress                   #jpAddress
+   | Jp JpCondition Comma localOrGlobalAddress #jpConditionAddress
    ;
 
-jr : Jr address
-   | Jr JpCondition Comma address
+jr : Jr localOrGlobalAddress
+   | Jr JpCondition Comma localOrGlobalAddress
    ;
 
-jpr : Jpr address
-    | Jpr JpCondition Comma address
+jpr : Jpr localOrGlobalAddress
+    | Jpr JpCondition Comma localOrGlobalAddress
     ;
 
 ld : Ld register         Comma valueByte         #ld1
@@ -413,6 +418,10 @@ fragment W : [wW] ;
 fragment X : [xX] ;
 fragment Y : [yY] ;
 fragment Z : [zZ] ;
+
+LocalLabel
+	: '.' [0-9a-zA-Z_]+
+	;
 
 Identifier
     : [a-zA-Z_] [0-9a-zA-Z_]*

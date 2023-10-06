@@ -52,13 +52,25 @@ public class Z8AsmBaseListener implements Z8AsmListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterAddress(Z8AsmParser.AddressContext ctx) { }
+	@Override public void enterGlobalAddress(Z8AsmParser.GlobalAddressContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitAddress(Z8AsmParser.AddressContext ctx) { }
+	@Override public void exitGlobalAddress(Z8AsmParser.GlobalAddressContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterLocalOrGlobalAddress(Z8AsmParser.LocalOrGlobalAddressContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitLocalOrGlobalAddress(Z8AsmParser.LocalOrGlobalAddressContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

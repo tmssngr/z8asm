@@ -18,12 +18,14 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	// Fields =================================================================
 
-	private final Map<String, LabelAddress> labels = new HashMap<>();
+	private final Map<String, LabelAddress> globalLabels = new HashMap<>();
+	private final Map<String, Map<String, LabelAddress>> globalToLocalLabels = new HashMap<>();
 	private final Map<String, Integer> constants = new HashMap<>();
 
 	private boolean details;
 	private int pass;
 	private boolean labelChanged;
+	private String prevGlobalLabel;
 
 	private Output output;
 	private int pc;
@@ -39,6 +41,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 	public Object visitRoot(Z8AsmParser.RootContext ctx) {
 		output = new Output();
 		labelChanged = false;
+		prevGlobalLabel = null;
 		pass++;
 
 		if (pass > 10) {
@@ -109,15 +112,31 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	@Override
 	public Object visitLabelDefinition(Z8AsmParser.LabelDefinitionContext ctx) {
-		final String text = ctx.Identifier().getText();
+		final String text = ctx.label.getText();
 		final int pc = output.getPc();
 		if (details && !new Formatter().format("M_%04X", pc).toString().equals(text)) {
 			System.err.println("address differs from label: " + text);
 		}
 
-		final Token token = ctx.Identifier().getSymbol();
-		final LabelAddress value = new LabelAddress(pc, token.getLine(), token.getCharPositionInLine());
-		final LabelAddress prevValue = labels.put(text, value);
+		final LabelAddress value = new LabelAddress(pc, ctx.label.getLine(), ctx.label.getCharPositionInLine());
+
+		final LabelAddress prevValue;
+		// local label?
+		if (text.startsWith(".")) {
+			Map<String, LabelAddress> localLabels = getLocalLabels(ctx);
+			if (localLabels == null) {
+				labelChanged = true;
+				localLabels = new HashMap<>();
+				globalToLocalLabels.put(prevGlobalLabel, localLabels);
+			}
+
+			prevValue = localLabels.put(text, value);
+		}
+		else {
+			prevValue = globalLabels.put(text, value);
+			prevGlobalLabel = text;
+		}
+
 		if (prevValue != null) {
 			if (value.line != prevValue.line
 			    || value.column != prevValue.column) {
@@ -150,7 +169,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	@Override
 	public Object visitDataAddress(Z8AsmParser.DataAddressContext ctx) {
-		final int address = visitAddress(ctx.address());
+		final int address = visitGlobalAddress(ctx.globalAddress());
 		write(address >> 8);
 		write(address);
 		return null;
@@ -527,7 +546,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	@Override
 	public Object visitCallAddress(Z8AsmParser.CallAddressContext ctx) {
-		return command3(0xD6, visitAddress(ctx.address()));
+		return command3(0xD6, visitGlobalAddress(ctx.globalAddress()));
 	}
 
 	@Override
@@ -537,7 +556,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	@Override
 	public Object visitJpAddress(Z8AsmParser.JpAddressContext ctx) {
-		final int address = visitAddress(ctx.address());
+		final int address = visitLocalOrGlobalAddress(ctx.localOrGlobalAddress());
 		jpCheckJr(ctx, address);
 		return command3(toByte(JP_CONDITIONS.get(""), 0x0d), address);
 	}
@@ -547,7 +566,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 		final TerminalNode condition = ctx.JpCondition();
 		final String text = condition.getText().toLowerCase(Locale.ROOT);
 		int highNibble = JP_CONDITIONS.get(text);
-		final int address = visitAddress(ctx.address());
+		final int address = visitLocalOrGlobalAddress(ctx.localOrGlobalAddress());
 		jpCheckJr(ctx, address);
 		return command3(toByte(highNibble, 0x0d), address);
 	}
@@ -561,7 +580,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 			highNibble = JP_CONDITIONS.get(text);
 		}
 
-		final int address = visitAddress(ctx.address());
+		final int address = visitLocalOrGlobalAddress(ctx.localOrGlobalAddress());
 
 		final int pc = output.getPc() + 2;
 		final int delta = address - pc;
@@ -575,7 +594,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 	@Override
 	public Object visitDjnz(Z8AsmParser.DjnzContext ctx) {
 		final int register = parseWorkingRegister(ctx.WorkingRegister());
-		final int address = visitAddress(ctx.address());
+		final int address = visitLocalOrGlobalAddress(ctx.localOrGlobalAddress());
 
 		final int pc = output.getPc() + 2;
 		final int delta = address - pc;
@@ -595,7 +614,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 			highNibble = JP_CONDITIONS.get(text);
 		}
 
-		final int address = visitAddress(ctx.address());
+		final int address = visitLocalOrGlobalAddress(ctx.localOrGlobalAddress());
 
 		if (pass > 1) {
 			final int pc = output.getPc() + 2;
@@ -654,7 +673,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 	}
 
 	@Override
-	public Integer visitAddress(Z8AsmParser.AddressContext ctx) {
+	public Integer visitGlobalAddress(Z8AsmParser.GlobalAddressContext ctx) {
 		TerminalNode addressValue = ctx.Word();
 		if (addressValue != null) {
 			return parseWord(addressValue);
@@ -663,7 +682,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 		final Token label = ctx.label;
 		if (label != null) {
 			final String text = label.getText();
-			final LabelAddress labelAddress = labels.get(text);
+			final LabelAddress labelAddress = globalLabels.get(text);
 			if (labelAddress == null) {
 				if (pass > 1) {
 					throw new SyntaxException("Unknown label '" + text + "'", ctx);
@@ -674,6 +693,26 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 		}
 
 		throw new SyntaxException("Unknown target", ctx);
+	}
+
+	@Override
+	public Integer visitLocalOrGlobalAddress(Z8AsmParser.LocalOrGlobalAddressContext ctx) {
+		final TerminalNode localAddressValue = ctx.LocalLabel();
+		if (localAddressValue == null) {
+			return visitGlobalAddress(ctx.globalAddress());
+		}
+
+		final Map<String, LabelAddress> localLabels = getLocalLabels(ctx);
+
+		final String text = localAddressValue.getText();
+		final LabelAddress labelAddress = localLabels.get(text);
+		if (labelAddress == null) {
+			if (pass > 1) {
+				throw new SyntaxException("Unknown local label '" + text + "' after '" + prevGlobalLabel + "'", ctx);
+			}
+			return pc + 2;
+		}
+		return labelAddress.readValue();
 	}
 
 	@Override
@@ -739,11 +778,19 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 	}
 
 	public void reportUnusedLabels() {
-		for (Map.Entry<String, LabelAddress> entry : labels.entrySet()) {
+		for (Map.Entry<String, LabelAddress> entry : globalLabels.entrySet()) {
 			if (entry.getValue().isUnused()) {
 				System.out.println("label " + entry.getKey() + " is unused");
 			}
 		}
+	}
+
+	private Map<String, LabelAddress> getLocalLabels(ParserRuleContext ctx) {
+		if (prevGlobalLabel == null) {
+			throw new SyntaxException("A local label (with a leading dot) can only be used after a global label", ctx);
+		}
+
+		return globalToLocalLabels.get(prevGlobalLabel);
 	}
 
 	// Utils ==================================================================

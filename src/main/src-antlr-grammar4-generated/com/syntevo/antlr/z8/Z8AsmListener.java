@@ -38,15 +38,25 @@ public interface Z8AsmListener extends ParseTreeListener {
 	 */
 	void exitLabelDefinition(Z8AsmParser.LabelDefinitionContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link Z8AsmParser#address}.
+	 * Enter a parse tree produced by {@link Z8AsmParser#globalAddress}.
 	 * @param ctx the parse tree
 	 */
-	void enterAddress(Z8AsmParser.AddressContext ctx);
+	void enterGlobalAddress(Z8AsmParser.GlobalAddressContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link Z8AsmParser#address}.
+	 * Exit a parse tree produced by {@link Z8AsmParser#globalAddress}.
 	 * @param ctx the parse tree
 	 */
-	void exitAddress(Z8AsmParser.AddressContext ctx);
+	void exitGlobalAddress(Z8AsmParser.GlobalAddressContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link Z8AsmParser#localOrGlobalAddress}.
+	 * @param ctx the parse tree
+	 */
+	void enterLocalOrGlobalAddress(Z8AsmParser.LocalOrGlobalAddressContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link Z8AsmParser#localOrGlobalAddress}.
+	 * @param ctx the parse tree
+	 */
+	void exitLocalOrGlobalAddress(Z8AsmParser.LocalOrGlobalAddressContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link Z8AsmParser#parserInstruction}.
 	 * @param ctx the parse tree

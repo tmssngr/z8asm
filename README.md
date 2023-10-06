@@ -24,6 +24,29 @@ where
 Line comments start with a semicolon `;` or with C-like double slashes `//`.
 Block comments are also C-like: they start with `/*` and end with the next `*/` (they can't be nested).
 
+### Labels
+
+Z8ASM supports global labels and local labels.
+Global labels must not start with a dot (`.`) and are available globally.
+
+Local labels start with a dot `.` and are valid only after a global label until the next global label occurs:
+```
+main:             // global label
+     ld r0, #10
+.1:               // local label valid after 'main'
+     call sub1
+     djnz r0, .1  // jump to local label above
+     ret
+
+sub1:             // another global label, the above '.1' is forgotten
+     ld r1, #10
+.1:               // hence we can define it again for `sub1`
+     nop
+     djnz r1, .1  // jump to the '.1' label inside 'sub1'
+     ret
+
+```
+
 ## Examples
 
 Please see directory `src/main/src/examples` for example files used to build internal ROM, ROM and video ROM for the JU+TE computer (east-german computer from 1988).

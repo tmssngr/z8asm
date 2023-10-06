@@ -51,6 +51,70 @@ public class Z8AsmParserTest {
 		}
 	}
 
+	@Test
+	public void testDotLabels() {
+		final String expected = "0000  0c 0a d6 00 08 0a fb af  1c 0a ff 1a fd af\n";
+		Assert.assertEquals(expected,
+		                    assemble("""
+				                             main:
+				                               ld r0, #10
+				                             main1:
+				                               call sub1
+				                               djnz r0, main1
+				                               ret
+
+				                             sub1:
+				                               ld r1, #10
+				                             sub2:
+				                               nop
+				                               djnz r1, sub2
+				                               ret
+				                             """));
+		Assert.assertEquals(expected,
+		                    assemble("""
+				                             main:
+				                               ld r0, #10
+				                             .1:
+				                               call sub1
+				                               djnz r0, .1
+				                               ret
+
+				                             sub1:
+				                               ld r1, #10
+				                             .1:
+				                               nop
+				                               djnz r1, .1
+				                               ret
+				                             """));
+
+		try {
+			assemble("""
+					         .1:
+					           ld r0, #10
+					           call %1000
+					         .2:
+					           djnz r0, .1
+					           ret""");
+			Assert.fail();
+		}
+		catch (Assembler.SyntaxException ignored) {
+		}
+
+		try {
+			assemble("""
+					         main:
+					           ld r0, #10
+					         .1:
+					           call %1000
+					         .1:
+					           djnz r0, .1
+					           ret""");
+			Assert.fail();
+		}
+		catch (Assembler.SyntaxException ignored) {
+		}
+	}
+
 	private static void assembleFile(String fileName) throws IOException {
 		final CharStream charStream = CharStreams.fromFileName(fileName);
 		final Assembler assembler = assemble(charStream);

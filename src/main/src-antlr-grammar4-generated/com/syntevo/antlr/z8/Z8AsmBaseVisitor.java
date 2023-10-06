@@ -38,7 +38,14 @@ public class Z8AsmBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements 
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitAddress(Z8AsmParser.AddressContext ctx) { return visitChildren(ctx); }
+	@Override public T visitGlobalAddress(Z8AsmParser.GlobalAddressContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitLocalOrGlobalAddress(Z8AsmParser.LocalOrGlobalAddressContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *
