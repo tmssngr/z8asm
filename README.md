@@ -49,4 +49,4 @@ sub1:             // another global label, the above '.1' is forgotten
 
 ## Examples
 
-Please see directory `src/main/src/examples` for example files used to build internal ROM, ROM and video ROM for the JU+TE computer (east-german computer from 1988).
+Please see directory [src/main/examples](src/main/examples) for example files used to build internal ROM, ROM and video ROM for the JU+TE computer (East-German DIY computer from 1988).
