@@ -23,10 +23,10 @@
         .data %080f
 
 boot:
-        SRP #0
-        LD r3, #%0F
+        SRP     #0
+        LD      r3, #%0F
         NOP
-        TM r3, #0b0000_0100
+        TM      r3, #0b0000_0100
         LD      R3, #%FF
         JR      NZ, M_001D
         TM      R3, #0b0000_0100
