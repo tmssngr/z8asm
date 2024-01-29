@@ -115,6 +115,17 @@ public final class Output {
 		return pc;
 	}
 
+	public void printVerilog(Writer writer) throws IOException {
+		for (int i = 0; i < pc; i++) {
+			writer.write("memory[16'h");
+			writer.write(toHex(offset + i, 4));
+			writer.write("] = 8'h");
+			writer.write(byteToHex(i));
+			writer.write(";");
+			writer.write(NL);
+		}
+	}
+
 	public void printFrom(int pc) {
 		pc -= offset;
 		int count = this.pc - pc;

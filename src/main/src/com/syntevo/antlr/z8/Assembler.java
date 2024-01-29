@@ -773,6 +773,10 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 		return output.printC(writer);
 	}
 
+	public void printVerilog(Writer writer) throws IOException {
+		output.printVerilog(writer);
+	}
+
 	public void write(OutputStream stream) throws IOException {
 		output.write(stream);
 	}
