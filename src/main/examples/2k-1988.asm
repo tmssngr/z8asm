@@ -829,7 +829,7 @@ M_0E98: .data   %CC "ET"
         .data   %C9 "NPUT"
         .data   %C5 "RROR"
         .data   %8B "THEN"
-        .data   %C3 "OMP JU+TE R \\\\\\\\\\\\\\\\\\\\\\\\\r"
+        .data   %C3 "OMP JU+TE R \\\\\\\\\\\\\\\\\\\\\\\\\n"
         .data   %FF
 
         .data   %00 " YXCVBNM,./\r" %1B %00 %00
