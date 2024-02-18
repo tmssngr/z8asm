@@ -501,7 +501,7 @@ M_0BE5: LDE     @RR4, R8
         ADC     R4, #0
         RET
 
-        ; print r8-th string from 0E98
+        ; print 58-th string from 0E98
 M_0BF2: PUSH    RP
         SRP     #%50
         LD      R14, #%0E       ; ldw rE, #%0E98
