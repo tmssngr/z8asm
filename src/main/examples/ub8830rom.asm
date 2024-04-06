@@ -32,7 +32,7 @@ boot:
         TM      R3, #0b0000_0100
         JR      NZ, M_003D
 M_001D: LD      P01M, #%B6      ; P00-P03 = A8-A11, Stack extern, P1x = AD0-AD7, P04-P04 = A12-A15, extended memory timing
-        LD      P3M, #8         ; P30-P33 input, P35-P37 output, P34 DM, Port 2 open-drain
+M_0020: LD      P3M, #8         ; P30-P33 input, P35-P37 output, P34 DM, Port 2 open-drain
         LD      R4, #8          ; if %0812 is writable
         LD      R5, #%12
         LDC     R6, @RR4
@@ -224,7 +224,7 @@ M_015E: LD      R8, R3
         LD      R4, #%25
         LD      R10, #4
 M_016E: LD      R11, #%15
-		; nibble to ASCII
+        ; nibble to ASCII
 M_0170: AND     @R11, #%0F
         ADD     @R11, #%30
         CP      @R11, #%3A
@@ -447,7 +447,7 @@ M_02EB: INC     R15
         CP      R15, #%1F
         JR      Z, M_0311
 M_02F1: CALL    %0815      ; GTC
-        LD      @R15, R3
+M_02F4: LD      @R15, R3
         CP      R3, #%0D
         JR      Z, M_0311
         CP      R3, #8
@@ -534,7 +534,7 @@ M_03C1: .data '+' M_007E
         .data 'X' M_0134  ; X(OR)
         .data 'M' M_011F  ; M(OD)
 
-        ; isLetter(@r15)
+        ; isUpperCaseLetter(@r15)
         ; C -> true
 M_03D9: CP      @R15, #%41
         JR      C, M_03F0
@@ -723,7 +723,7 @@ M_0528: INCW    R0
         DECW    R0
         RET
 
-		; printQuotedString
+        ; printQuotedString
 M_052F: LD      R7, #%22        ; '"'
         CALL    M_0391
         JR      NZ, M_0542
@@ -924,7 +924,7 @@ M_069F: CALL    M_04C7
         OR      R6, R3
         JR      Z, M_06B8
 M_06A8: DA      R6
-        LD      R6, #0
+M_06AA: LD      R6, #0
         LD      R7, #%B4
 M_06AE: DECW    R6
         JP      NZ, M_06AE
@@ -952,7 +952,7 @@ M_06C9: CLR     %4
         RET
 
         ; PTH
-M_06CE: CALL    M_052F		; printQuotedString
+M_06CE: CALL    M_052F      ; printQuotedString
         CALL    M_04C7
         JR      NC, M_06F8
         CALL    M_015E
@@ -960,10 +960,10 @@ M_06CE: CALL    M_052F		; printQuotedString
         JR      M_06EA
 
         ; PRINT
-M_06DD: CALL    M_052F		; printQuotedString
+M_06DD: CALL    M_052F      ; printQuotedString
         CALL    M_04C7
         JR      NC, M_06F8
-M_06E5: CALL    M_0182		; intToAscii
+M_06E5: CALL    M_0182      ; intToAscii
         LD      R10, #6
 M_06EA: LD      R11, #%14
 M_06EC: PUSH    R5
@@ -988,7 +988,7 @@ M_0710: LD      R5, #%0D
         JP      %0818
 
         ; INPUT
-M_0715: CALL    M_052F		; printQuotedString
+M_0715: CALL    M_052F      ; printQuotedString
         CALL    M_02E9
         CALL    M_04F3
         JP      M_05A8
