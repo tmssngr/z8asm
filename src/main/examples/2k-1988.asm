@@ -40,18 +40,18 @@ M_0824: CALL    M_0C1D
         ; print char in %5A
 M_0827: CP      %5A, #%7F
         JR      Z, M_086B
-        CP      %5A, #%20
+        CP      %5A, #%20       ; space
         JR      NC, M_0872
-        CP      %5A, #%1B
+        CP      %5A, #%1B       ; cursor right
         JR      Z, M_0875
         LD      %5C, #%F0
-        CP      %5A, #%1A
+        CP      %5A, #%1A       ; cursor up
         JR      Z, M_0878
         LD      %5C, #%10
-        CP      %5A, #%0A
+        CP      %5A, #%0A       ; cursor down
         JR      Z, M_0878
         LD      %5C, #%FF
-        CP      %5A, #%0B
+        CP      %5A, #%0B       ; cursor left
         JR      Z, M_0878
         CP      %5A, #8
         JR      NZ, M_0860
@@ -60,16 +60,18 @@ M_0827: CP      %5A, #%7F
         CALL    M_0B95
         LD      %5A, #8
         RET
-M_0860: CP      %5A, #%0D
+
+M_0860: CP      %5A, #%0D       ; Enter
         JR      NZ, M_086C
         CALL    M_0AD4
         LD      %5A, #%0D
 M_086B: RET
 
-M_086C: CP      %5A, #%0C
+M_086C: CP      %5A, #%0C       ; CLS
         JR      Z, M_08DD
         RET
 
+        ; any char entered >= ' '
 M_0872: CALL    M_0B95
 M_0875: LD      %5C, #1
 M_0878: ADD     %5B, %5C
@@ -162,14 +164,14 @@ M_08FF: SRP     #%F0
         LD      %58, #%14
         CALL    M_0BF2
 M_0924: SRP     #%10
-        LD      %5A, #%4B
+        LD      %5A, #'K'
         CALL    M_0B95
         CALL    M_0824
         LD      R6, %5A
         LD      R15, #%16
-        CALL    %03D9
-        JR      NC, M_094D
-        SUB     R6, #%31
+        CALL    %03D9           ; isUpperCaseLetter(@R15)?
+        JR      NC, M_094D      ; no
+        SUB     R6, #%31        ; yes, print variable value
         ADD     R6, R6
         LD      R2, @R6
         INC     R6
@@ -178,8 +180,8 @@ M_0924: SRP     #%10
         CALL    M_0872
         CALL    M_0E92
         JR      M_0924
-
-M_094D: CP      R6, #%2A
+        ; no upper case character entered
+M_094D: CP      R6, #'*'        ; * ... Continue
         JR      NZ, M_095C
         TM      %0F, #8
         JR      Z, M_098D
@@ -190,13 +192,13 @@ M_095C: LD      %0F, #4
         CLR     %0E
         LD      R0, %6
         LD      R1, %7
-        CP      R6, #8
+        CP      R6, #8          ; tab?
         JR      NZ, M_0970
         LD      R4, #0
         LDE     @RR0, R4
         JR      M_0924
 
-M_0970: CP      R6, #%2B
+M_0970: CP      R6, #'+'        ; + ... Run
         JR      NZ, M_09AB
         CALL    %06C9
 M_0978: CALL    %0738
@@ -221,7 +223,7 @@ M_0992: CALL    M_0BF2
         POP     R0
         JR      M_0990
 
-M_09AB: CP      R6, #%2D
+M_09AB: CP      R6, #'-'        ; - ... List
         LD      %6E, #%0C
         JR      NZ, M_09D9
         LD      %6F, #%E6
@@ -241,9 +243,9 @@ M_09B6: LDE     R2, @RR0
         INCW    R0
         JR      M_09B6
 
-M_09D9: CALL    %03E7
-        JR      NC, M_0A38
-        LD      R3, R6
+M_09D9: CALL    %03E7           ; isDigit
+        JR      NC, M_0A38      ; no
+        LD      R3, R6          ; yes
         CALL    %02F4
         LD      R15, #%16
         LD      R8, #%80
@@ -279,10 +281,13 @@ M_0A13: LD      %6F, #%D7
         JR      MI, M_0A30
         CALL    M_0E80
         JR      M_0A30
+
 M_0A2D: CALL    M_0CA4
 M_0A30: JP      M_0924
+
 M_0A33: CALL    M_0A81
         JR      M_0A13
+
 M_0A38: DI
         LD      PRE0, #%21
         LD      T0, #%0D
@@ -290,7 +295,7 @@ M_0A38: DI
         LD      P3M, #%48
         LD      SIO, #%FF
         CLR     IRQ
-        CP      R6, #%5F
+        CP      R6, #'_'        ; shift O ... Load
         JR      NZ, M_0A63
 M_0A4F: TM      IRQ, #8
         JR      Z, M_0A4F
@@ -301,11 +306,12 @@ M_0A4F: TM      IRQ, #8
         OR      R6, R6
         JR      NZ, M_0A4F
 M_0A60: JP      %0020
-M_0A63: CP      R6, #%40
+
+M_0A63: CP      R6, #'@'        ; shift P ... Save
         JR      NZ, M_0A60
         LD      R2, #%14
-        CALL    %06AA
-        INC     R6
+        CALL    %06AA           ; wait ca 2M internal clock cycles
+        INC     R6              ; after the wait, it was zero, so it become != 0 now
 M_0A6E: TM      IRQ, #%10
         JR      Z, M_0A6E
         CLR     IRQ
@@ -315,6 +321,7 @@ M_0A6E: TM      IRQ, #%10
         LD      SIO, R6
         INCW    R0
         JR      M_0A6E
+
 M_0A81: CALL    %0500
         LD      R2, R0
         LD      R3, R1
@@ -455,9 +462,12 @@ M_0B8C: ADD     R5, #%38
         DJNZ    R6, M_0B8C
         RET
 
+        ; print char at position
+        ; input: R5A character
+        ;        R5B position
 M_0B95: PUSH    RP
         SRP     #%60
-        LD      R0, #%FD        ; ldw r0, #FD5B
+        LD      R0, #%FD        ; ldw r0, #FD00+R5B
         LD      R1, %5B
         LD      R2, %5A
         LDE     @RR0, R2
@@ -501,7 +511,7 @@ M_0BE5: LDE     @RR4, R8
         ADC     R4, #0
         RET
 
-        ; print 58-th string from 0E98
+        ; print R58-th string from 0E98
 M_0BF2: PUSH    RP
         SRP     #%50
         LD      R14, #%0E       ; ldw rE, #%0E98
@@ -522,6 +532,8 @@ M_0C0A: CALL    M_0827
         POP     RP
         JP      M_0872
 
+        ; read keyboard waiting with caret
+        ; out: %5A = ascii
 M_0C1D: CP      %54, #%77
         JR      NZ, M_0C1D
         PUSH    RP
@@ -539,7 +551,7 @@ M_0C2B: LD      R6, #0
 M_0C3C: CP      %54, #%77
         JR      NZ, M_0C3C
         CALL    M_0B95
-        CALL    M_0C56
+        CALL    M_0C56          ; read keyboard
         TM      %6D, #%7F
         JR      Z, M_0C1D
         LD      %5A, %6D
@@ -547,6 +559,8 @@ M_0C3C: CP      %54, #%77
         AND     %5A, #%7F
         RET
 
+        ; read keyboard (non-waiting)
+        ; out: %6D = ascii + 0x80
 M_0C56: PUSH    RP
         SRP     #%60
         LD      R0, #%7F        ; ldw r0, #7f0f
@@ -568,11 +582,11 @@ M_0C74: SUB     R3, #%10
         JR      NC, M_0C74
         OR      R1, R3
         LD      R0, #%0F
-        LDC     R3, @RR0
+        LDC     R3, @RR0        ; read char from keyboard layout map
         LD      R0, #%FF
         LD      R1, #%FF
-        LDE     R2, @RR0
-        CP      R3, #%15
+        LDE     R2, @RR0        ; read %FFFF
+        CP      R3, #%15        ; == Shift?
         JR      Z, M_0C9E
         OR      R2, R2
         JR      NZ, M_0C9A
@@ -585,6 +599,7 @@ M_0C9A: OR      R13, R3
 M_0C9E: COM     R2
         LDE     @RR0, R2
         JR      M_0C69
+
 M_0CA4: LD      R2, R0
         LD      R3, R1
 M_0CA8: LDE     R7, @RR2
@@ -599,30 +614,35 @@ M_0CB8: DECW    R2
         LDE     R7, @RR2
         INCW    R2
         JR      M_0CB0
+
 M_0CC0: CP      R0, R2
         JR      C, M_0CB8
         LDE     @RR0, R6
         INCW    R0
         RET
+
 M_0CC9: CALL    M_0CA4
         JR      Z, M_0CD6
 M_0CCE: CALL    M_0824
         LD      R6, %5A
 M_0CD3: CP      R6, #%60
 M_0CD6: RET
-        CALL    M_0CC9
+
+M_0CD7: CALL    M_0CC9
         JR      Z, M_0CD6
 M_0CDC: CP      R6, #%20
         JR      NZ, M_0CD3
         CALL    M_0CCE
         JR      M_0CDC
-        INCW    R0
+
+M_0CE6: INCW    R0
         LDE     R6, @RR0
         LD      %5A, R6
         CALL    M_0827
         OR      R6, R6
         JR      NZ, M_0CD3
         RET
+
 M_0CF4: CALL    M_0D32
         JR      NC, M_0D6A
         CALL    M_0D09
@@ -632,12 +652,14 @@ M_0CF4: CALL    M_0D32
         CALL    M_0D09
         JR      Z, M_0D32
         JR      M_0D36
+
 M_0D09: CP      R6, #%3C
         JR      Z, M_0D6A
         CP      R6, #%3D
         JR      Z, M_0D6A
         CP      R6, #%3E
         RET
+
 M_0D17: CP      %6F, #%E6
         JR      Z, M_0D1F
         LD      %6F, #%C9
@@ -649,6 +671,7 @@ M_0D1F: CALL    @%6E
         JR      Z, M_0D30
         LD      %6F, #%D7
 M_0D30: JP      @%6E
+
 M_0D32: CALL    @%6E
         JR      NC, M_0D6A
 M_0D36: CALL    M_0D58
@@ -667,6 +690,7 @@ M_0D36: CALL    M_0D58
         JR      Z, M_0D32
 M_0D56: RCF
         RET
+
 M_0D58: CP      R6, #%28
         JR      NZ, M_0D6B
         CALL    M_0D32
@@ -674,8 +698,10 @@ M_0D58: CP      R6, #%28
         CP      R6, #%29
         JR      NZ, M_0D56
         JP      @%6E
+
 M_0D69: SCF
 M_0D6A: RET
+
 M_0D6B: CALL    %03D9
         JR      NC, M_0D8E
         CALL    @%6E
@@ -691,6 +717,7 @@ M_0D79: CALL    @%6E
         CP      R6, #%5D
         JR      NZ, M_0D79
         JP      @%6E
+
 M_0D8E: LD      R4, #5
         CALL    %03E7
         JR      C, M_0DAD
@@ -705,6 +732,7 @@ M_0D9F: CALL    @%6E
         DJNZ    R4, M_0D9F
         RCF
         RET
+
 M_0DAC: INC     R4
 M_0DAD: CALL    @%6E
         JR      NC, M_0D6A
@@ -713,14 +741,11 @@ M_0DAD: CALL    @%6E
         DJNZ    R4, M_0DAD
 M_0DB8: CCF
         RET
-        ADD     R2, R7
-        JP      F, %3723
-        SUB     R0, @R13
-        JP      F, %270D
-        SUB     R2, @R3
-        DJNZ    R3, M_0DEB
-        COM     %60
-        POP     SPL
+
+M_0DBA: .data %02 %27 %0D %37 %23 %23
+        .data %0D %0D %27 %0D %23 %23
+        .data %3A %23 %60 %60 %50 %FF
+
 M_0DCC: LD      %5A, #%41
         CALL    M_0B95
         CLR     %58
@@ -736,6 +761,7 @@ M_0DDC: LD      R13, #%17
         CP      %58, #%12
         JR      C, M_0DDC
 M_0DEB: RET
+
 M_0DEC: LD      R3, %58
         ADD     R3, #%B9
         LD      %5C, #%FF
@@ -745,6 +771,7 @@ M_0DEC: LD      R3, %58
         LD      R4, #%0E
         LDC     R5, @RR2
         JP      @RR4
+
 M_0E02: CALL    @%6E
         CALL    %03D9
         JR      NC, M_0DEB
@@ -760,8 +787,10 @@ M_0E17: CP      R6, #%3B
         JR      Z, M_0E35
 M_0E21: RCF
         RET
+
 M_0E23: CALL    @%6E
         JR      M_0E17
+
 M_0E27: CALL    @%6E
         JR      NC, M_0DEB
         CP      R6, #%3B
@@ -770,6 +799,7 @@ M_0E27: CALL    @%6E
         JR      NZ, M_0E27
 M_0E35: SCF
         RET
+
         LD      R5, #0
         JP      F, %5C01
         CALL    M_0CF4
@@ -780,6 +810,7 @@ M_0E35: SCF
         LD      %58, #%13
         CALL    M_0BF2
 M_0E4D: JP      M_0DCC
+
         CALL    @%6E
         CP      R6, #%22
         JR      NZ, M_0E5A
@@ -787,6 +818,7 @@ M_0E4D: JP      M_0DCC
 M_0E5A: CALL    %03D9
         JR      C, M_0E23
         RET
+
 M_0E60: CALL    @%6E
         CP      R6, #%22
         JR      NZ, M_0E6A
@@ -800,6 +832,7 @@ M_0E6A: CP      R6, #%3B
         CP      R6, #%2C
         JR      NZ, M_0E17
         JR      M_0E60
+
 M_0E80: CALL    M_0AD4
         LD      %58, #%12
         CALL    M_0BF2
@@ -832,7 +865,7 @@ M_0E98: .data   %CC "ET"
         .data   %C3 "OMP JU+TE R \\\\\\\\\\\\\\\\\\\\\\\\\n"
         .data   %FF
 
-        .data   %00 " YXCVBNM,./\r" %1B %00 %00
+M_0F00: .data   %00 " YXCVBNM,./\r" %1B %00 %00
         .data   %00 %15 "ASDFGHJKL*-\n" %00 %00
         .data   %00 %0B "QWERTZUIOP+" %0B %00 %00
         .data   %00 %0A "1234567890" %08 %1A %00 %00
