@@ -289,15 +289,29 @@ M_0A33: CALL    M_0A81
         JR      M_0A13
 
 M_0A38: DI
-        LD      PRE0, #%21
-        LD      T0, #%0D
-        LD      TMR, #%43
-        LD      P3M, #%48
+        LD      PRE0, #%21      ; 001000 0 1
+                                ;      |   +-- repeating
+                                ;      +------ prescaler = 8
+        LD      T0, #%0D        ; max = 13
+        LD      TMR, #%43       ; 01 00 0 0 1 1
+                                ;  |  | | | | +-- load T0
+                                ;  |  | | | +---- enable T0
+                                ;  |  | | +------ don't load T1
+                                ;  |  | +-------- disable T1
+                                ;  |  +---------- external clock input at P31
+                                ;  +------------- T0 out at P36
+        LD      P3M, #%48       ; 0 1 0 01 0 0 0
+                                ; | | |  | |   +-- Port 2 open-drain
+                                ; | | |  | +------ P32=input P35=output
+                                ; | | |  +-------- P33=Input P34 = DM
+                                ; | | +----------- P31=Input (TIN), P36=Output(TOUT)
+                                ; | +------------- P30=Serial In, P37=Serial Out
+                                ; +--------------- Parity On
         LD      SIO, #%FF
         CLR     IRQ
         CP      R6, #'_'        ; shift O ... Load
         JR      NZ, M_0A63
-M_0A4F: TM      IRQ, #8
+M_0A4F: TM      IRQ, #8         ; IRQ3 (received byte)?
         JR      Z, M_0A4F
         CLR     IRQ
         LD      R6, SIO
@@ -312,7 +326,7 @@ M_0A63: CP      R6, #'@'        ; shift P ... Save
         LD      R2, #%14
         CALL    %06AA           ; wait ca 2M internal clock cycles
         INC     R6              ; after the wait, it was zero, so it become != 0 now
-M_0A6E: TM      IRQ, #%10
+M_0A6E: TM      IRQ, #%10       ; IRQ4 (T0 overflow)?
         JR      Z, M_0A6E
         CLR     IRQ
         OR      R6, R6
