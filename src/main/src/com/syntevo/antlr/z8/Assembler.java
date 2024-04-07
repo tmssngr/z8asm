@@ -304,7 +304,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 			return command2(0xE3, toByte(target, source));
 		}
 
-		return command3(0xF5, target, source);
+		return command3(0xE5, source, target);
 	}
 
 	@Override
@@ -335,7 +335,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 			return command2(0xF3, toByte(target, source));
 		}
 
-		return command3(0xE5, target, source);
+		return command3(0xF5, source, target);
 	}
 
 	@Override
