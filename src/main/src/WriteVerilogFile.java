@@ -19,8 +19,10 @@ public class WriteVerilogFile {
 			final Assembler ub8830rom = buildAst(Paths.get("src/main/examples/ub8830rom.asm"));
 			ub8830rom.printVerilog(writer);
 
-			final Assembler os2k = buildAst(Paths.get("src/main/examples/2k-1988.asm"));
-			os2k.printVerilog(writer);
+			final Assembler os = buildAst(Paths.get(true
+					                                        ? "src/main/examples/4k-1988.asm"
+					                                        : "src/main/examples/2k-1988.asm"));
+			os.printVerilog(writer);
 		}
 	}
 
