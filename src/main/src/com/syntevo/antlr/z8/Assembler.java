@@ -705,7 +705,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 		final Map<String, LabelAddress> localLabels = getLocalLabels(ctx);
 
 		final String text = localAddressValue.getText();
-		final LabelAddress labelAddress = localLabels.get(text);
+		final LabelAddress labelAddress = localLabels != null ? localLabels.get(text) : null;
 		if (labelAddress == null) {
 			if (pass > 1) {
 				throw new SyntaxException("Unknown local label '" + text + "' after '" + prevGlobalLabel + "'", ctx);
