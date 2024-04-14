@@ -31,6 +31,11 @@ public class Z8AsmParserTest {
 	}
 
 	@Test
+	public void testES23() throws IOException {
+		assembleFile("src/main/examples/es2.3.asm");
+	}
+
+	@Test
 	public void testES40() throws IOException {
 		assembleFile("src/main/examples/es4.0.asm");
 	}
