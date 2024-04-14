@@ -21,7 +21,7 @@
         JP      %F503
         JP      %F506
         JP      %F509
-        JP      @%56
+        JP      @%56    ; M_0830
         NOP
         JP      %F50F
 
@@ -38,33 +38,36 @@ M_0827: JP      M_17A5
 M_082A: JP      M_0BF5
 M_082D: JP      %FFFF
 
-M_0830: OR      %3, #%80
-        AND     %3, #%7F
-        DEC     %54
-        JR      Z, M_083B
+        ; Video-ISR
+M_0830: OR      %3, #%80    ; P37 = 1, 10 cycles (2.5us)
+        AND     %3, #%7F    ; P37 = 0, -"-
+        DEC     %54         ; 6 cycles
+        JR      Z, .1       ; 10/12 cycles
         IRET
 
-M_083B: LD      %56, SPH
+.1:     LD      %56, SPH
         LD      %57, SPL
         INCW    %6E
-        LD      SPH, #%F4
+        LD      SPH, #%F4   ; video-RAM from F400
         CLR     SPL
-        LD      %54, #8
-M_084B: DEC     %54
-        JR      NZ, M_084B
-        JR      F, M_0851
-M_0851: LD      %54, #%C0
-M_0854: OR      %3, #%80
-        AND     %3, #%7F
-        TM      %6D, #%FF
-        JR      Z, M_0864
-        XOR     %3, #%40
-        JR      M_0869
+        LD      %54, #8     ; 10 cycles
+.2:     DEC     %54         ; 6 cycles
+        JR      NZ, .2      ; 10/12cycles
+        JR      F, .3
+.3:     LD      %54, #%C0   ; 10 cycles
 
-M_0864: AND     %3, #%3F
-        JR      F, M_0869
-M_0869: JR      F, M_086B
-M_086B: NOP
+.4:     OR      %3, #%80    ; P37 = 1, 10 cycles (2.5us)
+        AND     %3, #%7F    ; P37 = 0, -"-
+        TM      %6D, #%FF   ; 10 cycles
+        JR      Z, .5       ; 10/12 cycles
+        XOR     %3, #%40    ; 10 cycles
+        JR      .6          ; 12 cycles
+
+.5:     AND     %3, #%3F    ; P36 = P37 = 0; 10 cycles
+        JR      F, .6       ; 10 cycles
+.6:     JR      F, .7       ; -"-
+.7:     NOP                 ; 6 cycles
+        POP     %80         ; 16 times each 10 cycles, read F400-F40F
         POP     %80
         POP     %80
         POP     %80
@@ -80,10 +83,10 @@ M_086B: NOP
         POP     %80
         POP     %80
         POP     %80
-        POP     %80
-        DEC     %54
-        JR      NZ, M_0854
-        OR      %3, #%80
+        DEC     %54         ; 6 cycles
+        JR      NZ, .4      ; 10/12 cycles
+                            ; 192 loops a 256 cycles (64us)
+        OR      %3, #%80    ; P37: 10 cycles H pulse (4us)
         AND     %3, #%7F
         LD      %54, #%51
         LD      SPH, %56
@@ -113,6 +116,9 @@ M_08C3: AND     %3, #%7F
         LD      %57, #%30
         IRET
 
+        ; calculate video RAM address from screen position in %5B
+        ; in : %5B: position
+        ; out: rr4: address (F800...)
 M_08CD: LD      R4, #%F0
         AND     R4, %5B
         SWAP    R4
@@ -126,6 +132,7 @@ M_08CD: LD      R4, #%F0
 
         NOP
 
+        ; write char from %5A to screen position %5B
 M_08E4: PUSH    RP
         SRP     #%60
         LD      R0, #%F4
@@ -135,55 +142,62 @@ M_08E4: PUSH    RP
         CALL    M_08CD
         LD      R3, #0
         LD      R1, #5
-M_08F7: RCF
+
+.1:     RCF
         RRC     R2
         RRC     R3
-        DJNZ    R1, M_08F7
+        DJNZ    R1, .1
+
         ADD     R2, R7
         LD      R1, #8
-M_0902: LDC     R0, @RR2
+
+.2:     LDC     R0, @RR2
         LDE     @RR4, R0
-        ADD     R5, #%10
+        ADD     R5, #%10    ; next pixel row
         INC     R3
-        DJNZ    R1, M_0902
+        DJNZ    R1, .2
+
         POP     RP
         RET
 
         NOP
 
+        ; init-Video-ISR
 M_0910: SRP     #%F0
-        LD      R11, #%10
-        LD      R9, #8
-        LD      R8, #%92
-        LD      R7, #8
-        LD      R5, #5
-        LD      R4, #%40
-        LD      R1, #3
+        LD      R11, #%10   ; IMR
+        LD      R9, #8      ; IPR
+        LD      R8, #%92    ; P01M
+        LD      R7, #8      ; P3M
+        LD      R5, #5      ; PRE0
+        LD      R4, #%40    ; T0
+        LD      R1, #3      ; TMR
         NOP
         NOP
         NOP
         NOP
         EI
+        ; here the ISR is already executed the 1st time
         RET
 
         NOP
         NOP
 
+        ; boot
 M_0928: SRP     #%F0
-        LD      R14, #%F7
+        LD      R14, #%F7   ; SPH/SPL = %F700
         LD      R15, #0
-        LD      R8, #%92
-        LD      %6, #%E0
+        LD      R8, #%92    ; P01M
+        LD      %6, #%E0    ; RR06 = E000
         CLR     %7
         CLR     %8
         SRP     #%50
-        LD      R6, #8
+        LD      R6, #8      ; RR56 = M_0830 (Video-ISR)
         LD      R7, #%30
         LD      R13, #0
         LD      %67, #%0F
         LD      R5, #%40
-        CALL    M_0910
-        CALL    M_0AE0
+        CALL    M_0910      ; init-Video-ISR
+        CALL    M_0AE0      ; print title
         NOP
         NOP
         NOP
@@ -390,20 +404,21 @@ M_0AC5: INCW    R0
         NOP
         NOP
 
+        ; print title
 M_0AE0: SRP     #%10
-        LD      R0, #%0A
+        LD      R0, #%0A    ; rr0 = M_0AF0
         LD      R1, #%F0
-M_0AE6: LDE     R5, @RR0
+.1:     LDE     R5, @RR0
         CALL    M_0818
         INC     R1
-        JR      NZ, M_0AE6
+        JR      NZ, .1
         RET
 
         NOP
 
 M_0AF0: .data %0c "ES2.3_SWB_1989\r"
 
-        .repeat %F5
+M_0B00: .repeat %F5
             nop
         .end
 
@@ -900,7 +915,8 @@ M_1000: .data %FF %FF %FF %FF %FF %FF %FF %FF ; space
         .data %FF %F7 %E3 %C9 %9C %FF %FF %FF ; ^
         .data %FF %FF %FF %FF %FF %FF %00 %FF ; _
 
-M_1200: CP      %5D, #%4F
+        ; print char from %15
+M_1200: CP      %5D, #%4F       ; 'O'
         JR      NZ, M_1208
         CALL    %F512
 M_1208: LD      %5A, %15
@@ -909,7 +925,7 @@ M_120B: PUSH    RP
         LD      R12, %55
         DEC     %5C
         TM      %5A, #%F0
-        JR      Z, M_1263
+        JR      Z, M_1263       ; handle control char
         CALL    M_08E4
         LD      R12, #1
 M_121D: ADD     R11, R12
@@ -952,28 +968,34 @@ M_125A: LDE     @RR2, R4
 M_1260: POP     RP
         RET
 
+        ; handle control char
 M_1263: DJNZ    R10, M_1269
-        DEC     %5B
+        DEC     %5B         ; 01
         JR      M_1260
+
 M_1269: DJNZ    R10, M_126E
-        INC     R11
+        INC     R11         ; 02
         JR      M_1260
+
 M_126E: DJNZ    R10, M_1274
-        SUB     R11, R5
+        SUB     R11, R5     ; 03
         JR      M_1260
+
 M_1274: DJNZ    R10, M_127A
-M_1276: LD      R12, %55
+M_1276: LD      R12, %55    ; 04
         JR      M_121D
+
 M_127A: DJNZ    R10, M_1280
-        LD      R11, #0
+        LD      R11, #0     ; 05
         JR      M_1260
+
 M_1280: DJNZ    R10, M_1288
-        COM     %5C
+        COM     %5C         ; 06
         AND     R11, R12
         JR      M_1260
 
 M_1288: DJNZ    R10, M_12A7
-        PUSH    %5B
+        PUSH    %5B         ; 07
         LD      R14, #%F4
         LD      R15, %5B
 M_1290: TCM     R15, R12
@@ -991,7 +1013,7 @@ M_12A4: POP     RP
         RET
 
 M_12A7: DJNZ    R10, M_12B6
-        TM      R11, R12
+        TM      R11, R12    ; 08
         JR      Z, M_12B4
         DEC     %5B
         LD      R10, #%20
@@ -999,7 +1021,7 @@ M_12A7: DJNZ    R10, M_12B6
 M_12B4: JR      M_12A4
 
 M_12B6: DJNZ    R10, M_12DA
-        TCM     R11, R12
+        TCM     R11, R12    ; 09
         JR      Z, M_12D3
         LD      R9, %5B
         LD      R14, #%F4
@@ -1017,21 +1039,21 @@ M_12D3: LD      R10, #%20
         JR      M_12A4
 
 M_12DA: DJNZ    R10, M_12DE
-        NOP
+        NOP                 ; 0a
         NOP
 M_12DE: DJNZ    R10, M_12E2
-        NOP
+        NOP                 ; 0b
         NOP
 M_12E2: DJNZ    R10, M_12F0
-        LD      R11, #0
-M_12E6: LD      R10, #%20
+        LD      R11, #0     ; 0c = CLS
+.cls:   LD      R10, #%20
         CALL    M_08E4
         INC     R11
-        JR      NZ, M_12E6
+        JR      NZ, .cls
         JR      M_12A4
 
 M_12F0: DJNZ    R10, M_12F9
-        COM     %5C
+        COM     %5C         ; 0d
         AND     R11, R12
         JP      M_1276
 M_12F9: POP     RP
@@ -1042,6 +1064,7 @@ M_12F9: POP     RP
         NOP
         NOP
 
+        ; read char
 M_1300: PUSH    RP
         SRP     #%50
         OR      R8, R8
@@ -1104,22 +1127,23 @@ M_134E: INC     R15
 
 M_1360: PUSH    RP
         SRP     #%60
-        CALL    M_08CD
+        CALL    M_08CD      ; calculate video RAM address
         ADD     R5, #%70
         LDE     R0, @RR4
         PUSH    R0
         COM     R0
         LDE     @RR4, R0
         LD      %5F, R13
-        JP      F, %CC00
+        .data   %0d         ; jp f = skip next
+M_1375: LD      R12, #0
         CALL    M_081B
         LD      %13, R13
         OR      R13, R13
-        JR      Z, %1375                ;!!!
+        JR      Z, M_1375   ; repeat until key pressed
         LD      R0, #6
         ADD     R0, R15
-M_1384: CP      R0, R15
-        JR      NZ, M_1384
+.1:     CP      R0, R15
+        JR      NZ, .1      ; wait until r0==r15
         OR      R12, R12
         JR      Z, M_1399
         CP      %6D, %5F
@@ -1145,18 +1169,21 @@ M_13B0: POP     R0
 
         NOP
 
+        ; read key
+        ; out: %6D
 M_13B8: PUSH    RP
         SRP     #%60
-        LD      R0, #%7F
+        LD      R0, #%7F        ; rr0 = 7F0F (keyboard matrix)
         LD      R1, #%0F
-M_13C0: LDC     R2, @RR0
+.1:     LDC     R2, @RR0
         AND     R2, #%F0
-        JR      NZ, M_13CE
-        DJNZ    R1, M_13C0
+        JR      NZ, M_13CE      ; -> key pressed
+        DJNZ    R1, .1
         LD      R13, #0
 M_13CB: POP     RP
         RET
 
+        ; key pressed
 M_13CE: LD      R3, #%40
 M_13D0: SUB     R3, #%10
         RL      R2
