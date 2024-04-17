@@ -388,12 +388,12 @@ M_0ADA: PUSH    RP
         CLR     SPL
         LD      R4, #%40
 M_0AEB: SWAP    %80             ; bug? 8 cycles
-        OR      %3, #%80        ; P37 = 1, 10 cycles = 2.5us
-        AND     %3, #%7F        ; P37 = 0, -"-
-        TM      %6D, #%80       ; 10 cycles
-        JR      Z, M_0AFD       ; 12 cycles
-        XOR     %3, #%40        ; 10 cycles
-        JR      M_0B02          ; 12 cycles
+        OR      %3, #%80        ; P37 = 1, positive sync pulse 2.5us (10 cycles)
+        AND     %3, #%7F        ; P37 = 0   10 cycles
+        TM      %6D, #%80       ;           10 cycles
+        JR      Z, M_0AFD       ;           12 cycles
+        XOR     %3, #%40        ; flip P36; 10 cycles
+        JR      M_0B02          ;           12 cycles
 
 M_0AFD: AND     %3, #%3F        ; P36 = P37 = 0; 10 cycles
 M_0B00: JR      F, M_0B00       ; 10 cycles
@@ -426,24 +426,24 @@ M_0B27: LD      R5, #%FD
         NOP
         DJNZ    R4, M_0AEB
         AND     IRQ, #%EF       ; 0bxxx0_xxxx
-        OR      %3, #%80        ; P37 = 1
+        OR      %3, #%80        ; P37 = 1 (positive sync pulse)
         AND     %3, #%7F        ; P37 = 0
         LD      SPH, R6
         LD      SPL, R7
-        LD      R4, #%78
+        LD      R4, #%78        ; 126d
         JR      M_0B5A
 
 M_0B3E: CP      R4, #%20
-        JR      C, M_0B50
+        JR      C, M_0B50       ; < 32d
         CP      R4, #%25
-        JR      NC, M_0B54
-        AND     %3, #%7F
-        OR      %3, #%80
+        JR      NC, M_0B54      ; >= 37d
+        AND     %3, #%7F        ; P37=0 (negative sync pulse)
+        OR      %3, #%80        ; P37=1
         JR      M_0B5A
 
 M_0B50: INCW    %56
         DECW    %56
-M_0B54: OR      %3, #%80        ; P37 = 1
+M_0B54: OR      %3, #%80        ; P37 = 1 (positive sync pulse
         AND     %3, #%7F        ; P37 = 0
 M_0B5A: POP     RP
         IRET
