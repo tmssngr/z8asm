@@ -29,7 +29,7 @@ M_0806: JP      @%78
 M_0809: JP      @%7A
         NOP
 
-M_080C: JP      @%7C	; usually M_0ADA
+M_080C: JP      @%7C    ; usually M_0ADA
         NOP
 
 M_080F: JP      @%7E
@@ -745,7 +745,7 @@ M_0DAD: CALL    @%6E
 M_0DB8: CCF
         RET
 
-M_0DBA: .data	%02 %27 %0d %37 %23 %23 %0D %0D %27 %0D %23 %23 %3A %23 %60 %60 %50 %FF
+M_0DBA: .data   %02 %27 %0d %37 %23 %23 %0D %0D %27 %0D %23 %23 %3A %23 %60 %60 %50 %FF
 
 M_0DCC: LD      %5A, #%41
         CALL    M_0B95
@@ -909,23 +909,23 @@ M_201F: LD      %58, R12
         DJNZ    R12, M_201F
         EI
         CALL    M_0824
-        CP      %5A, #%42	; B ... Basic
+        CP      %5A, #%42   ; B ... Basic
         JP      Z, M_08FF
-        CP      %5A, #%53	; S ... Save
+        CP      %5A, #%53   ; S ... Save
         JR      NZ, M_2038
         CALL    M_268F
-M_2038: CP      %5A, #%4C	; L ... Load
+M_2038: CP      %5A, #%4C   ; L ... Load
         JR      NZ, M_2040
         CALL    M_27D1
-M_2040: CP      %5A, #%52	; R ... Data
+M_2040: CP      %5A, #%52   ; R ... Data
         JR      NZ, M_2048
         CALL    M_2352
-M_2048: CP      %5A, #%50	; P ... Prog
+M_2048: CP      %5A, #%50   ; P ... Prog
         JP      Z, M_23E4
-        CP      %5A, #%49	; I ... Init
+        CP      %5A, #%49   ; I ... Init
         JR      NZ, M_2000
         CALL    M_0824
-        CP      %5A, #%21	; !
+        CP      %5A, #%21   ; !
         JR      NZ, M_2000
         DI
         LD      R0, #%FD
@@ -938,11 +938,11 @@ M_2064: DECW    R0
         JR      C, M_2064
         JR      M_2000
 
-M_206E: .data	%D0 "ROG"
-	.data   %8D "  P"
-	.data   %C4 "ATA"
-	.data   %8C " EMR-ES 1988\r \r  B BASIC\r  I INIT\r  S SAVE\r  L LOAD\r  R"
-	.data   %8C "MTB"
+M_206E: .data   %D0 "ROG"
+    	.data   %8D "  P"
+    	.data   %C4 "ATA"
+    	.data   %8C " EMR-ES 1988\r \r  B BASIC\r  I INIT\r  S SAVE\r  L LOAD\r  R"
+    	.data   %8C "MTB"
 
 M_20B6: CALL    M_20B9
 M_20B9: SWAP    %5D
