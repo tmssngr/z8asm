@@ -38,9 +38,9 @@ M_0827: JP      M_17A5
 M_082A: JP      M_0BF5
 M_082D: JP      %FFFF
 
-        ; Video-ISR
-M_0830: OR      %3, #%80    ; P37 = 1, 10 cycles (2.5us)
-        AND     %3, #%7F    ; P37 = 0, -"-
+        ; Video-ISR1
+M_0830: OR      %3, #%80    ; P37 = 1, positive sync-pulse (2.5us) 10 cycles
+        AND     %3, #%7F    ; P37 = 0
         DEC     %54         ; 6 cycles
         JR      Z, .1       ; 10/12 cycles
         IRET
@@ -48,22 +48,25 @@ M_0830: OR      %3, #%80    ; P37 = 1, 10 cycles (2.5us)
 .1:     LD      %56, SPH
         LD      %57, SPL
         INCW    %6E
-        LD      SPH, #%F4   ; video-RAM from F400
+        LD      SPH, #%F4   ; set SP to %F400 though the video RAM begins from %F800
         CLR     SPL
+
+        ; 10 + 8*6 + 7*12 + 1*10 + 10 = 162 cycles = 40.5us
         LD      %54, #8     ; 10 cycles
-.2:     DEC     %54         ; 6 cycles
-        JR      NZ, .2      ; 10/12cycles
-        JR      F, .3
-.3:     LD      %54, #%C0   ; 10 cycles
+.2:     DEC     %54         ; 8*6 cycles
+        JR      NZ, .2      ; 7*12/1*10cycles
+        JR      F, .3       ; 10 cycles
 
-.4:     OR      %3, #%80    ; P37 = 1, 10 cycles (2.5us)
-        AND     %3, #%7F    ; P37 = 0, -"-
-        TM      %6D, #%FF   ; 10 cycles
-        JR      Z, .5       ; 10/12 cycles
-        XOR     %3, #%40    ; 10 cycles
-        JR      .6          ; 12 cycles
+.3:     LD      %54, #%C0   ; 10 cycles; 192 loops, though the video RAM only contains %80 rows
 
-.5:     AND     %3, #%3F    ; P36 = P37 = 0; 10 cycles
+.4:     OR      %3, #%80    ; P37 = 1, positive sync pulse (2.5us) 10 cycles
+        AND     %3, #%7F    ; P37 = 0
+        TM      %6D, #%FF   ;           10 cycles
+        JR      Z, .5       ;           10/12 cycles
+        XOR     %3, #%40    ; flip P36; 10 cycles
+        JR      .6          ;           12 cycles
+
+.5:     AND     %3, #%3F    ; also pull P36 = 0; 10 cycles
         JR      F, .6       ; 10 cycles
 .6:     JR      F, .7       ; -"-
 .7:     NOP                 ; 6 cycles
@@ -86,34 +89,36 @@ M_0830: OR      %3, #%80    ; P37 = 1, 10 cycles (2.5us)
         DEC     %54         ; 6 cycles
         JR      NZ, .4      ; 10/12 cycles
                             ; 192 loops a 256 cycles (64us)
-        OR      %3, #%80    ; P37: 10 cycles H pulse (4us)
+        OR      %3, #%80    ; P37: positive sync pulse (2.5us) 10 cycles
         AND     %3, #%7F
-        LD      %54, #%51
+        LD      %54, #%51   ; 81d
         LD      SPH, %56
         LD      SPL, %57
-        LD      %56, #8
+        LD      %56, #8     ; set next ISR=M_08A9
         LD      %57, #%A9
         AND     IRQ, #%EF
         IRET
 
-M_08A9: OR      %3, #%80
+        ; Video-ISR2
+M_08A9: OR      %3, #%80    ; positive sync pulse
         AND     %3, #%7F
         DEC     %54
         JR      Z, M_08B4
         IRET
 
 M_08B4: LD      %54, #6
-        LD      %57, #%BB
+        LD      %57, #%BB   ; set next ISR=M_08BB
         IRET
 
-        OR      %3, #%80
+        ; Video-ISR3
+M_08BB: OR      %3, #%80    ; set P37=1
         DEC     %54
         JR      Z, M_08C3
         IRET
 
-M_08C3: AND     %3, #%7F
-        LD      %54, #%20
-        LD      %57, #%30
+M_08C3: AND     %3, #%7F    ; set P37=0
+        LD      %54, #%20   ; 32d
+        LD      %57, #%30   ; set next ISR=M_0830
         IRET
 
         ; calculate video RAM address from screen position in %5B
