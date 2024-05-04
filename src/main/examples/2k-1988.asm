@@ -293,6 +293,8 @@ M_0A38: DI
                                 ;      |   +-- repeating
                                 ;      +------ prescaler = 8
         LD      T0, #%0D        ; max = 13
+        ; -> 600 baud
+
         LD      TMR, #%43       ; 01 00 0 0 1 1
                                 ;  |  | | | | +-- load T0
                                 ;  |  | | | +---- enable T0
@@ -306,35 +308,37 @@ M_0A38: DI
                                 ; | | |  +-------- P33=Input P34 = DM
                                 ; | | +----------- P31=Input (TIN), P36=Output(TOUT)
                                 ; | +------------- P30=Serial In, P37=Serial Out
-                                ; +--------------- Parity On
+                                ; +--------------- No Parity
         LD      SIO, #%FF
         CLR     IRQ
         CP      R6, #'_'        ; shift O ... Load
         JR      NZ, M_0A63
-M_0A4F: TM      IRQ, #8         ; IRQ3 (received byte)?
-        JR      Z, M_0A4F
+        ; load:
+.1:     TM      IRQ, #8         ; IRQ3= serial byte received
+        JR      Z, .1
         CLR     IRQ
         LD      R6, SIO
         LDE     @RR0, R6
         INCW    R0
         OR      R6, R6
-        JR      NZ, M_0A4F
+        JR      NZ, .1
 M_0A60: JP      %0020
 
 M_0A63: CP      R6, #'@'        ; shift P ... Save
         JR      NZ, M_0A60
+        ; save:
         LD      R2, #%14
-        CALL    %06AA           ; wait ca 2M internal clock cycles
+        CALL    %06AA           ; wait ca 2M internal clock cycles (~5s)
         INC     R6              ; after the wait, it was zero, so it become != 0 now
-M_0A6E: TM      IRQ, #%10       ; IRQ4 (T0 overflow)?
-        JR      Z, M_0A6E
+.1:     TM      IRQ, #%10       ; IRQ4= serial byte sent
+        JR      Z, .1
         CLR     IRQ
         OR      R6, R6
-        JR      Z, M_0A60
+        JR      Z, M_0A60       ; loop until a 0x00 has been sent
         LDE     R6, @RR0
         LD      SIO, R6
         INCW    R0
-        JR      M_0A6E
+        JR      .1
 
 M_0A81: CALL    %0500
         LD      R2, R0
