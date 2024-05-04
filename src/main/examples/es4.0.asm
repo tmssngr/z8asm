@@ -38,27 +38,35 @@ M_0815: JP      %FFE6
         ; P(u)TC(har)
 M_0818: JP      %FFE9
 
+        ; KEY
 M_081B: JP      M_1B0A
 
+        ; WKEY
 M_081E: JP      M_1B94
 
-        ; save?
+        ; SAVE
 M_0821: JP      M_1C86
 
+        ; LOAD
 M_0824: JP      M_177A
 
-        JP      M_08E0
+        ; SCRFUN
+M_0827: JP      M_08E0
 
+        ; MONITOR
 M_082A: JP      M_0BF8
 
-        ; print
+        ; PRISTRI
 M_082D: JP      M_163A   ; _print
 
-        JP      M_1F00
+        ; SHOWPLAYER
+M_0830: JP      M_1F00
 
-        JP      M_1F6D
+        ; HIDEPLAYER
+M_0833: JP      M_1F6D
 
-        JP      M_1CAE
+        ; RND
+M_0836: JP      M_1CAE
 
         NOP
 
@@ -463,16 +471,16 @@ M_0BF8: CALL    M_0AF7      ; printMon
         LD      R1, #%80
         LD      R2, #%10
         LD      R3, #%10
-M_0C07: LDEI    @RR0, @R2
-        DJNZ    R3, M_0C07  ; }
+.1:     LDEI    @RR0, @R2
+        DJNZ    R3, .1      ; }
         SRP     #%10
 M_0C0D: LD      %58, #%FF
         AND     %55, #0b1011_1111
         CALL    M_0815      ; GTC
         LD      R15, #0
         LD      R14, #%F7
-//M_0C1A:
-        LDE     R0, @RR14
+;M_0C1A:
+        LDE     R0, @RR14   ; read first char in line
         INC     R15
         LD      R12, #%0C   ; read data from 0c39 into r1
         LD      R13, #%39
@@ -1732,7 +1740,8 @@ M_1800: .data %40 %41 %42 %44 %45 %46 %48 %49  %4a %4c %4d %4e %50 %51 %52 %54  
 
         ; in: %5B = column
         ;     %5C = row
-        ; out rr4 = address 18xx ?
+        ; out rr4 = video start address for char at [row, column]
+        ; destroys rr0
         ; expects: RP=%60
 M_1830: LD      R0, #%18
         LD      R1, %5C
@@ -1751,7 +1760,7 @@ M_1840: ADD     R5, #COLUMNS
         JR      OV, M_184E
         TCM     R5, #%78
         JR      NZ, M_1854
-        .data %0B             ; jr f = skip next byte
+        .data   %0B             ; jr f = skip next byte
 M_184D: INC     R4
 M_184E: ADD     R5, #8
         ADC     R4, #0
@@ -1798,7 +1807,7 @@ M_1887: RCF                 ; r2 * 8 -> char bitmap memory address
         RRC     R3
         DJNZ    R1, M_1887
         ADD     R2, R7
-        CALL    M_1830
+        CALL    M_1830      ; get video-ram address in rr4
         NOP                 ; ?
         LD      R0, #8      ; 8 bytes to video ram
         LD      R8, #%F7    ; #F7A0
@@ -2474,9 +2483,9 @@ M_1E90: LDE     R4, @RR0
         RET
         RET
 
-        ; %
+        ; % (convert 4-digit-hex to decimal)
 M_1ED0: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
-        LD      R5, #%23
+        LD      R5, #'#'
         CALL    M_0818      ; PTC
         LD      R12, #0
         LD      R8, #0
