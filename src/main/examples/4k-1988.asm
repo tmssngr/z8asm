@@ -49,7 +49,7 @@ M_081D: CALL    M_0824
 
 M_0824: CALL    M_0C1D
 M_0827: CP      %5A, #%7F
-        JR      Z, M_086B
+        JR      Z, .2
         CP      %5A, #%20
         JR      NC, M_0872
         CP      %5A, #%1B
@@ -64,27 +64,27 @@ M_0827: CP      %5A, #%7F
         CP      %5A, #%0B
         JR      Z, M_0878
         CP      %5A, #8
-        JR      NZ, M_0860
+        JR      NZ, .1
         CALL    M_0878
         LD      %5A, #%20
         CALL    M_0B95
         LD      %5A, #8
         RET
 
-M_0860: CP      %5A, #%0D
-        JR      NZ, M_086C
+.1:     CP      %5A, #%0D
+        JR      NZ, .3
         CALL    M_0AD4
         LD      %5A, #%0D
-M_086B: RET
+.2:     RET
 
-M_086C: CP      %5A, #%0C
-        JR      Z, M_08DD
+.3:     CP      %5A, #%0C
+        JR      Z, CLS
         RET
 
 M_0872: CALL    M_0B95
 M_0875: LD      %5C, #1
 M_0878: ADD     %5B, %5C
-        JR      OV, M_0899
+        JR      OV, .2
         JR      MI, M_08FC
         LD      %60, %5C
         LD      %5C, %5B
@@ -92,68 +92,70 @@ M_0878: ADD     %5B, %5C
         CP      %5C, #%0D
         JR      C, M_08DC
         RL      %60
-        JR      NC, M_0894
+        JR      NC, .1
         SUB     %5B, #6
-M_0894: ADD     %5B, #3
+.1:     ADD     %5B, #3
         JR      NOV, M_08DC
-M_0899: PUSH    RP
+.2:     PUSH    RP
         SRP     #%60
         LD      R0, #%FD
         LD      R1, #0
         LD      R2, #%FD
         LD      R3, #%10
         LD      R4, #%70
-M_08A7: LDE     R5, @RR2
+.3:     LDE     R5, @RR2
         LDE     @RR0, R5
         INC     R1
         INC     R3
-        DJNZ    R4, M_08A7
+        DJNZ    R4, .3
         LD      R4, #%10
         LD      R5, #%20
-M_08B3: LDE     @RR0, R5
+.4:     LDE     @RR0, R5
         INC     R1
-        DJNZ    R4, M_08B3
+        DJNZ    R4, .4
         LD      R1, #%38
         INC     R2
         INC     R0
         LD      R3, #%70
         LD      %5B, R3
-M_08C0: LDE     R5, @RR2
+.5:     LDE     R5, @RR2
         LDE     @RR0, R5
         INCW    R0
         INCW    R2
         CP      R3, #%F0
-        JR      C, M_08C0
+        JR      C, .5
         LD      R5, #%FF
         CP      R2, R5
-        JR      C, M_08C0
+        JR      C, .5
         LD      R4, #%38
-M_08D5: LDE     @RR0, R5
+.6:     LDE     @RR0, R5
         INC     R1
-        DJNZ    R4, M_08D5
+        DJNZ    R4, .6
         POP     RP
 M_08DC: RET
 
-        ; CLS
-M_08DD: PUSH    RP
+
+M_08DD:
+CLS:    PUSH    RP
         SRP     #%60
         LD      R4, #%FD
         LD      R5, #%80
         LD      R3, #%20
         LD      R2, #%80
-M_08E9: DEC     R5
+.1:     DEC     R5
         LDE     @RR4, R3
-        DJNZ    R2, M_08E9
+        DJNZ    R2, .1
         LD      R2, #2
         LD      R3, #%FF
-M_08F3: INC     R4
-M_08F4: LDE     @RR4, R3
-        DJNZ    R5, M_08F4
-        DJNZ    R2, M_08F3
+.2:     INC     R4
+.3:     LDE     @RR4, R3
+        DJNZ    R5, .3
+        DJNZ    R2, .2
         POP     RP
 M_08FC: CLR     %5B
         RET
 
+        ; Basic
 M_08FF: SRP     #%F0
         LD      R15, #0
         LD      R14, #%FE
@@ -167,58 +169,60 @@ M_08FF: SRP     #%F0
         CLR     %7
         CLR     %8
         CLR     P3M
-        CALL    M_08DD
+        CALL    CLS          ; CLS
         EI
         LD      %58, #%14
         CALL    M_0BF2
 M_0924: SRP     #%10
-        LD      %5A, #%4B
+        LD      %5A, #'K'
         CALL    M_0B95
         CALL    M_0824
         LD      R6, %5A
         LD      R15, #%16
-        CALL    %03D9
-        JR      NC, M_094D
-        SUB     R6, #%31
+        CALL    %03D9        ; isUpperCaseLetter
+        JR      NC, .1       ; no -> .1
+        SUB     R6, #%31     ; 'A' -> %20, 'B' -> %22, ...
         ADD     R6, R6
         LD      R2, @R6
         INC     R6
         LD      R3, @R6
-        LD      %5A, #%3D
+        LD      %5A, #'='
         CALL    M_0872
         CALL    M_0E92
         JR      M_0924
-M_094D: CP      R6, #%2A
-        JR      NZ, M_095C
+
+.1:     CP      R6, #'*'     ; continue
+        JR      NZ, .2
         TM      %0F, #8
-        JR      Z, M_098D
+        JR      Z, .5
         AND     %0F, #%F7
-        JR      M_0978
-M_095C: LD      %0F, #4
+        JR      .4
+
+.2:     LD      %0F, #4
         CLR     %0E
         LD      R0, %6
         LD      R1, %7
-        CP      R6, #8
-        JR      NZ, M_0970
+        CP      R6, #8      ; Backspace (init)
+        JR      NZ, .3
         LD      R4, #0
         LDE     @RR0, R4
         JR      M_0924
 
-M_0970: CP      R6, #%2B
-        JR      NZ, M_09AB
+.3:     CP      R6, #'+'    ; run
+        JR      NZ, .8
         CALL    %06C9
-M_0978: CALL    %0738
+.4:     CALL    %0738
         CALL    M_0AD4
         LD      %58, #%0C
         TM      %0F, #2
-        JR      NZ, M_0992
+        JR      NZ, .7
         DEC     %58
         TM      %0F, #8
-        JR      NZ, M_0992
-M_098D: CALL    M_0E80
-M_0990: JR      M_0924
+        JR      NZ, .7
+.5:     CALL    M_0E80
+.6:     JR      M_0924
 
-M_0992: CALL    M_0BF2
+.7:     CALL    M_0BF2
         PUSH    R0
         PUSH    R1
         DECW    R0
@@ -228,30 +232,30 @@ M_0992: CALL    M_0BF2
         CALL    M_0E92
         POP     R1
         POP     R0
-        JR      M_0990
+        JR      .6
 
-M_09AB: CP      R6, #%2D
+.8:     CP      R6, #'-'        ; list
         LD      %6E, #%0C
-        JR      NZ, M_09D9
+        JR      NZ, .10
         LD      %6F, #%E6
-M_09B6: LDE     R2, @RR0
+.9:     LDE     R2, @RR0
         OR      R2, R2
-        JR      Z, M_0990
+        JR      Z, .6
         INCW    R0
         LDE     R3, @RR0
         AND     R2, #%7F
         CALL    M_0AA3
         CALL    M_0DCC
-        JR      NC, M_098D
+        JR      NC, .5
         CLR     %6D
         CALL    M_0C1D
-        CP      %5A, #%2D
-        JR      NZ, M_0990
+        CP      %5A, #'-'
+        JR      NZ, .6
         INCW    R0
-        JR      M_09B6
+        JR      .9
 
-M_09D9: CALL    %03E7
-        JR      NC, M_0A38
+.10:    CALL    %03E7       ; isDigit
+        JR      NC, .17     ; no -> .17
         LD      R3, R6
         CALL    %02F4
         LD      R15, #%16
@@ -259,78 +263,78 @@ M_09D9: CALL    %03E7
         OR      R8, R4
         LD      R9, R5
         OR      R9, R5
-        JR      NZ, M_09F0
+        JR      NZ, .11
         INC     R9
-M_09F0: LDE     R2, @RR0
+.11:    LDE     R2, @RR0
         OR      R2, R2
-        JR      Z, M_0A13
+        JR      Z, .13
         AND     R2, #%7F
         INCW    R0
         LDE     R3, @RR0
         CALL    %0141
         TM      %0F, #%40
-        JR      NZ, M_0A33
+        JR      NZ, .16
         TM      %0F, #%20
-        JR      NZ, M_0A11
+        JR      NZ, .12
         CALL    %0593
         INCW    R0
-        JR      M_09F0
+        JR      .11
 
-M_0A11: DECW    R0
-M_0A13: LD      %6F, #%D7
+.12:    DECW    R0
+.13:    LD      %6F, #%D7
         LD      R6, R8
         CALL    M_0CA4
         LD      R6, R9
         CALL    M_0DCC
-        JR      C, M_0A2D
+        JR      C, .14
         CALL    M_0A81
         INC     R6
-        JR      MI, M_0A30
+        JR      MI, .15
         CALL    M_0E80
-        JR      M_0A30
+        JR      .15
 
-M_0A2D: CALL    M_0CA4
-M_0A30: JP      M_0924
+.14:    CALL    M_0CA4
+.15:    JP      M_0924
 
-M_0A33: CALL    M_0A81
-        JR      M_0A13
+.16:    CALL    M_0A81
+        JR      .13
 
-M_0A38: CP      R6, #%5F
-        JR      NZ, M_0A44
+.17:    CP      R6, #'_'        ; Shift+O (load)
+        JR      NZ, .18
         DI
         CALL    M_27DF
         EI
-        JR      M_0A30
+        JR      .15
 
-M_0A44: CP      R6, #%40
-        JR      NZ, M_0A30
+.18:    CP      R6, #'@'        ; Shift+P (save)
+        JR      NZ, .15
         LD      %50, R1
         LD      %51, R0
-M_0A4D: LDE     R6, @RR0
+.19:    LDE     R6, @RR0
         INCW    R0
         OR      R6, R6
-        JR      NZ, M_0A4D
+        JR      NZ, .19
         LD      %52, R1
         LD      %53, R0
-        CALL    M_08DD
-        CALL    M_26AD
+        CALL    CLS
+        CALL    M_26AD          ; SAVE
         EI
-        JR      M_0A30
+        JR      .15
 
 M_0A62: INCW    SPH
         INCW    SPH
         INC     %5D
-        JR      NZ, M_0A7D
+        JR      NZ, .2
         LD      R0, #%FC
         LD      R1, #0
         LD      R2, #%0C
         LD      R3, #%0D
-M_0A72: LD      %5A, R3
+.1:     LD      %5A, R3
         CALL    M_0827
         LDE     R3, @RR0
         INCW    R0
-        DJNZ    R2, M_0A72
-M_0A7D: EI
+        DJNZ    R2, .1
+.2:     EI
         JP      M_0824
 
 M_0A81: CALL    %0500
@@ -339,16 +343,16 @@ M_0A81: CALL    %0500
         LD      R4, R0
         LD      R5, R1
         INCW    R4
-M_0A8E: INCW    R4
+.1:     INCW    R4
         LDE     R7, @RR4
         RL      R7
-        JR      UGT, M_0A8E
-M_0A96: LDE     R7, @RR4
+        JR      UGT, .1
+.2:     LDE     R7, @RR4
         LDE     @RR2, R7
         INCW    R2
         INCW    R4
         OR      R7, R7
-        JR      NZ, M_0A96
+        JR      NZ, .2
         RET
 
 M_0AA3: CALL    %0182
@@ -844,6 +848,7 @@ M_0E80: CALL    M_0AD4
 M_0E92: CALL    M_0AA3
         JP      M_0AD4
 
+        ; read from M_0BF2
 M_0E98: .data   %CC "ET"
         .data   %D0 "ROC"
         .data   %C7 "OTO"
@@ -1278,7 +1283,7 @@ M_2348: LD      R14, R12
         LD      R15, R12
         RET
 
-M_2352: CALL    M_08DD
+M_2352: CALL    CLS
         PUSH    RP
 M_2357: SRP     #%60
         LD      %70, R14
@@ -1365,7 +1370,7 @@ M_23E4: PUSH    FLAGS
         LD      %53, R15
 M_2403: POP     RP
 M_2405: DI
-        CALL    M_08DD
+        CALL    CLS
         LD      %58, #1
         CALL    M_210A
         POP     %6C
@@ -1669,7 +1674,7 @@ M_267F: CALL    M_20CF
         DEC     %5B
 M_268C: JP      M_0AD4
 
-M_268F: CALL    M_08DD
+M_268F: CALL    CLS
         CALL    M_231F
         JR      C, M_268F
         LD      %50, R15
@@ -1682,33 +1687,47 @@ M_268F: CALL    M_08DD
 M_26A6: LD      R14, %52
         LD      %52, %53
         LD      %53, R14
+        ; SAVE
+        ; 50=Low(start)     yes, low and high are swapped!
+        ; 51=High(start)
+        ; 52=Low(size)
+        ; 53=High(size)
 M_26AD: LD      %5B, #%20
-M_26B0: CALL    M_0824
+.1:     CALL    M_0824
         CP      %5A, #%0D
-        JR      NZ, M_26B0
+        JR      NZ, .1
         DI
         LD      R0, #%FC
         LD      %3, R0
         LD      R1, #0
         LD      R2, #%FD
         LD      R3, #%20
+        ; repeat(11) {
         LD      R4, #%0B
-M_26C5: LDE     R5, @RR2
+.2:     LDE     R5, @RR2
         LDE     @RR0, R5
         INC     R1
         INC     R3
-        DJNZ    R4, M_26C5
-M_26CD: LDE     @RR0, R4
+        DJNZ    R4, .2
+        ; }
+        ; { fill all bytes up until incl. %FCFF with %00
+.3:     LDE     @RR0, R4
         INC     R1
-        JR      PL, M_26CD
+        JR      PL, .3
+        ; }
         LD      R5, #2
         LD      R1, #%10
-        LDE     @RR0, R5
+        LDE     @RR0, R5    ; %FC10 = %02
         INC     R1
+        ; { %FC11 = Low (start)
+        ;   %FC12 = High (start)
+        ;   %FC13 = Low (size)
+        ;   %FC14 = High (size)
         LD      R5, #%50
         LD      R4, #4
-M_26DD: LDEI    @RR0, @R5
-        DJNZ    R4, M_26DD
+.4:     LDEI    @RR0, @R5
+        DJNZ    R4, .4
+        ; }
         LD      R1, #0
         LD      R6, #1
         LD      R12, #%20
@@ -1717,21 +1736,21 @@ M_26DD: LDEI    @RR0, @R5
         LD      R1, %50
         LD      R2, %53
         LD      R3, %52
-M_26F2: INC     R6
+.5:     INC     R6
         LD      R4, R2
         LD      R5, R3
         SUB     R5, R1
         SBC     R4, R0
-        JR      NC, M_26FE
+        JR      NC, .6
         RET
 
-M_26FE: SUB     R5, #%80
+.6:     SUB     R5, #%80
         SBC     R4, R12
-        JR      NC, M_2707
+        JR      NC, .7
         LD      R6, #%FF
-M_2707: LD      R13, #%A0
+.7:     LD      R13, #%A0
         CALL    M_274E
-        JR      M_26F2
+        JR      .5
 
 M_270E: LD      R4, #0
         LD      R5, R8
