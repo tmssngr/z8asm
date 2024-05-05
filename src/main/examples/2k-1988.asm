@@ -289,11 +289,11 @@ M_0A33: CALL    M_0A81
         JR      M_0A13
 
 M_0A38: DI
-        LD      PRE0, #%21      ; 001000 0 1
+        LD      PRE0, #%05      ; 001000 0 1
                                 ;      |   +-- repeating
-                                ;      +------ prescaler = 8
+                                ;      +------ prescaler = 1
         LD      T0, #%0D        ; max = 13
-        ; -> 600 baud
+        ; -> 4800 baud
 
         LD      TMR, #%43       ; 01 00 0 0 1 1
                                 ;  |  | | | | +-- load T0
