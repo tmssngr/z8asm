@@ -536,9 +536,9 @@ M_03C1: .data '+' M_007E
 
         ; isUpperCaseLetter(@r15)
         ; C -> true
-M_03D9: CP      @R15, #%41
+M_03D9: CP      @R15, #'A'
         JR      C, M_03F0
-        CP      @R15, #%5B
+        CP      @R15, #'['  ; 'Z'+1
         RET
 
         ; isLetterOrDigit(@R15)
