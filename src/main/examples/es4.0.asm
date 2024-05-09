@@ -1186,84 +1186,99 @@ M_1000: LD      R0, #%40
         .data %00 %00 %71 %DB %8E %00 %00 %00
         .data %00 %7C %66 %7C %66 %7C %60 %60
 
+        ; save block
+        ; input %60 format byte (%FC=128 byte, %FA=1..127 bytes, %FE=EOF)
 M_1400: PUSH    RP
+        ; { push registers %04-%0F
         SRP     #%60
         LD      R1, #4
         LD      R2, #%0C
-M_1408: PUSH    @%61
+.1:     PUSH    @%61
         INC     R1
-        DJNZ    R2, M_1408
+        DJNZ    R2, .1
+        ; }
         SRP     #0
-        LD      R11, %60
+        LD      R11, %60        ; r11 = format byte
         LD      R4, #%F7
         LD      R5, #%A4
-        LDE     R13, @RR4
+        LDE     R13, @RR4       ; r13 = %F7A4
         LD      R5, #%A6
+        ; inc %F7A6
         LDE     R15, @RR4
         INC     R15
         LDE     @RR4, R15
-        LD      R4, #%1C
+        ; { wait 39.427ms
+        LD      R4, #%1C        ; rr4 = 7168
         LD      R5, #0
-M_1422: DECW    %4
-        JR      NZ, M_1422
+.2:     DECW    %4
+        JR      NZ, .2
+        ; }
         LD      R4, #%F5
         LD      R5, #%FF
-        CP      %0B, #%FA
-        JR      NZ, M_1434
-        AND     %0D, #%7F
-        LDE     @RR4, R13
-M_1434: LD      R5, #%7F
-        LDE     @RR4, R11
+        CP      %0B, #%FA       ; CP r11, #%FA (1..127 bytes)
+        JR      NZ, .3
+        AND     %0D, #%7F       ; AND r13, #%7F
+        LDE     @RR4, R13       ; %F5FF = r13 (number of valid bytes)
+.3:     LD      R5, #%7F
+        LDE     @RR4, R11       ; %F57F = r11 (format byte)
+        ; { checksum calculation starting at %F57F
         LD      R6, #0
         RCF
-M_143B: LDE     R7, @RR4
+.4:     LDE     R7, @RR4
         ADC     R6, R7
         INC     R5
-        JR      NZ, M_143B
-        ADC     %6, #0
+        JR      NZ, .4
+        ADC     %6, #0          ; ADC r6, #0
+        ; }
         LD      R5, #%7B
-        .repeat 4
-            NOP
-        .end
-        LDE     @RR4, R15
+        NOP
+        NOP
+        NOP
+        NOP
+        LDE     @RR4, R15       ; %F57B = r15 (block number)
         INC     R5
-        LDE     @RR4, R15
+        LDE     @RR4, R15       ; %F57C = r15 (block number)
         INC     R5
-        LDE     @RR4, R6
+        LDE     @RR4, R6        ; %F57D = r6 (checksum)
         INC     R5
-        LDE     @RR4, R6
+        LDE     @RR4, R6        ; %F57E = r6 (checksum)
         LD      R5, #%7B
-        LD      TMR, #3
-        LD      R3, #%40
-        CALL    M_14A4
+        LD      TMR, #3         ; start, load T0
+        LD      R3, #%40        ; P36 = 1
+        CALL    delay486
         LD      R10, #%40
-        LD      R3, #0
+        LD      R3, #0          ; P36 = 0
+        ; repeat (4) { delay 2002 cycles (500.5us)
         LD      R6, #4
-M_1466: CALL    M_14A4
-        DJNZ    R6, M_1466
-M_146B: LDE     R6, @RR4
+.5:     CALL    delay486
+        DJNZ    R6, .5
+        ; }
+.6:     LDE     R6, @RR4
+        ; { output 8 bits; 0-bit: 3.9kHz, 1-bit: 2kHz
         LD      R7, #8
-M_146F: RL      %6
-        XOR     R3, R10
-        CALL    M_14A4
-        JR      NC, M_147B
-        CALL    M_14A4
-M_147B: XOR     R3, R10
-        CALL    M_14A4
-        JR      NC, M_1485
-        CALL    M_14A4
-M_1485: DJNZ    R7, M_146F
+.7:     RL      %6              ; RL r6
+        XOR     R3, R10         ; toggle P36
+        CALL    delay486
+        JR      NC, .8
+        CALL    delay486
+.8:     XOR     R3, R10         ; toggle P36
+        CALL    delay486
+        JR      NC, .9
+        CALL    delay486
+.9:     DJNZ    R7, .7
+        ; }
         INC     R5
-        JR      NZ, M_146B
-        XOR     R3, R10
-        CALL    M_14A4
-        LD      TMR, #%43
+        JR      NZ, .6
+        XOR     R3, R10         ; toggle P36
+        CALL    delay486
+        LD      TMR, #%43       ; start/load T0
+        ; restore registers 04-0F
         SRP     #%60
         LD      R1, #%0F
         LD      R2, #%0C
-M_1498: POP     @%61
+.10:    POP     @%61
         DEC     %61
-        DJNZ    R2, M_1498
+        DJNZ    R2, .10
         POP     RP
         RET
 
@@ -1271,171 +1286,203 @@ M_1498: POP     @%61
         NOP
         NOP
 
-M_14A4: LD      %60, #%18
-M_14A7: DEC     %60
-        JR      NZ, M_14A7
-        RET
+        ; delay 486 cycles = 121.5us
+        ; keeps C flag
+        ;                       20 cycles (call)
+delay486: LD      %60, #%18   ; 10 cycles
+.1:       DEC     %60         ;    6 cycles
+          JR      NZ, .1      ;   12 cycles
+                              ; 10 cycles
+          RET                 ; 14 cycles
 
         NOP
         NOP
 
+        ; readBuffer (tape)
+        ; input: %F7A6 block number
+        ; output: %F7A5 = max buffer index
+        ;         nc ... OK
+        ;         c  ... error (error code in %13)
 M_14AE: PUSH    RP
         SRP     #%60
+        ; { push registers %04-%0F
         LD      R1, #4
         LD      R2, #%0C
-M_14B6: PUSH    @%61
+.1:     PUSH    @%61
         INC     R1
-        DJNZ    R2, M_14B6
+        DJNZ    R2, .1
+        ; }
         SRP     #0
+        ; inc block number
         LD      R4, #%F7
         LD      R5, #%A6
-        LDE     R6, @RR4
+        LDE     R6, @RR4        ; r6 = %F7A6
         INC     R6
         LDE     @RR4, R6
-        LD      %5E, R6
-M_14C8: LD      R4, #%F5
+        ;
+        LD      %5E, R6         ; remember block number in %5E
+.read:  LD      R4, #%F5
         LD      R5, #%7B
         LD      R10, #%29
         LD      R9, #%21
         LD      R6, #1
-        AND     R6, R3
-M_14D4: LD      R13, #1
+        AND     R6, R3          ; read P30
+        ; { wait until P30 changes
+.3:     LD      R13, #1
         AND     R13, R3
-        CP      R13, R6
-        JR      Z, M_14D4
-M_14DC: LD      R6, #1
+        CP      R13, R6         ; P30 changed?
+        JR      Z, .3
+        ; }
+.4:     LD      R6, #1
         AND     R6, R3
         LD      R7, #%41
-M_14E2: DEC     %7
-        JR      Z, M_14DC
+.5:     DEC     %7
+        JR      Z, .4
         LD      R13, #1
         AND     R13, R3
         CP      R13, R6
-        JR      Z, M_14E2
+        JR      Z, .5
         CP      R7, R9
-        JR      NC, M_14DC
-M_14F2: LD      R8, #8
-M_14F4: LD      R7, #0
+        JR      NC, .4
+        ; { reading buffer
+.6:     LD      R8, #8
+        ;   { reading byte
+.7:     LD      R7, #0
         LD      R6, #1
         AND     R6, R3
-M_14FA: INC     R7
+.8:     INC     R7
         LD      R13, #1
         AND     R13, R3
         CP      R13, R6
-        JR      Z, M_14FA
+        JR      Z, .8
         LD      R6, #1
         AND     R6, R3
-M_1507: INC     R7
+.9:     INC     R7
         LD      R13, #1
         AND     R13, R3
         CP      R13, R6
-        JR      Z, M_1507
+        JR      Z, .9
         CP      R10, R7
         RLC     %9
-        DJNZ    R8, M_14F4
-        LDE     @RR4, R9
-        INC     R5
-        JR      NZ, M_14F2
+        DJNZ    R8, .7
+        ;   }
+        LDE     @RR4, R9        ; save detected byte in buffer
+        INC     R5              ; inc buffer index
+        JR      NZ, .6
+        ; }
         LD      R5, #%7D
-        LD      R7, #0
-        LDE     R10, @RR4
+        LD      R7, #0          ; checksum
+        LDE     R10, @RR4       ; r10 = %F57D (expected checksum, copy 1)
         INC     R5
-        LDE     R9, @RR4
+        LDE     R9, @RR4        ; r9 = %F57E (expected checksum, copy 2)
         INC     R5
         RCF
-M_1526: LDE     R6, @RR4
+        ; calculating checksum
+.10:    LDE     R6, @RR4        ; r6 = %F57F
         ADC     R7, R6
         INC     R5
-        JR      NZ, M_1526
+        JR      NZ, .10
         ADC     %7, #0
-        CP      R7, R9
-        JR      NZ, M_1577
+        CP      R7, R9          ; verify checksum
+        JR      NZ, .error
         CP      R7, R10
-        JR      NZ, M_1577
+        JR      NZ, .error
+        ; checksums OK
         LD      R5, #%7B
-        LDE     R9, @RR4
+        LDE     R9, @RR4        ; r9 = %F57B
         INC     R5
-        LDE     R10, @RR4
+        LDE     R10, @RR4       ; r10 = %F57C
         NOP
         NOP
-        CP      %9, %5E
-        JR      NZ, M_1577
+        CP      %9, %5E         ; verify block number
+        JR      NZ, .error
         XOR     R9, R10
-        JR      NZ, M_1577
+        JR      NZ, .error
+        ; block number OK
         LD      R5, #%7F
-        LDE     R7, @RR4
+        LDE     R7, @RR4        ; r7 = %F57F (format byte)
         LD      R11, #0
-        CP      %7, #%FC
-        JR      Z, M_1572
+        CP      %7, #%FC        ; block with 128 bytes?
+        JR      Z, .retOK
+        ; %F57F != %FC
         LD      R5, #%FF
-        LDE     R8, @RR4
+        LDE     R8, @RR4        ; r8 = %F5FF (number of valid bytes)
         LD      R11, #%80
-        OR      R11, R8
-        CP      %7, #%FA
-        JR      Z, M_1572
-        CP      %7, #%FE
-        JR      NZ, M_1577
+        OR      R11, R8         ; r11 = r8 or #%80
+        CP      %7, #%FA        ; block with 1..127 bytes?
+        JR      Z, .retOK
+        CP      %7, #%FE        ; EOF?
+        JR      NZ, .error
+        ; EOF
         LD      R14, #%88
-M_1569: SCF
-M_156A: LD      TMR, #3
+.retEr: SCF
+.12:    LD      TMR, #3
         LD      %13, R14
-        JR      M_1591
+        JR      .ret
 
         NOP
-M_1572: NOP
+.retOK: NOP
         NOP
         RCF
-        JR      M_156A
+        JR      .12
 
-M_1577: LD      TMR, #%43
-M_157A: CALL    M_081B
+.error: LD      TMR, #%43       ; beep to indicate error
+.15:    CALL    M_081B          ; get key press
         AND     %6D, #%DF
-        CP      %6D, #%42
-        JR      Z, M_158D
-        CP      %6D, #%43
-        JR      NZ, M_157A
-        JP      M_14C8
+        CP      %6D, #%42       ; b or B (break) pressed?
+        JR      Z, .break
+        CP      %6D, #%43       ; c or C (continue) pressed?
+        JR      NZ, .15
+        JP      .read
 
-M_158D: LD      R14, #%FF
-        JR      M_1569
+.break: LD      R14, #%FF
+        JR      .retEr
 
-M_1591: LD      R4, #%F7
+.ret:   LD      R4, #%F7
         LD      R5, #%A5
-        LDE     @RR4, R11
+        LDE     @RR4, R11       ; %F7A5 = r11
+        ; pop registers 0F-04
         SRP     #%60
         LD      R1, #%0F
         LD      R2, #%0C
-M_159D: POP     @%61
+.18:    POP     @%61
         DEC     %61
-        DJNZ    R2, M_159D
+        DJNZ    R2, .18
         POP     RP
         RET
 
         NOP
         NOP
 
+        ; close load/save
 M_15A8: PUSH    RP
         SRP     #%60
         LD      R2, #%F7
         LD      R3, #%A7
-        LDE     R4, @RR2
-        TM      %64, #2
-        JR      Z, M_15CA
+        LDE     R4, @RR2        ; r4 = %F7A7
+        TM      %64, #2         ; save?
+        JR      Z, .2           ; no -> .2
         LD      R3, #%A4
-        LDE     R4, @RR2
+        LDE     R4, @RR2        ; r4 = %F7A4
         CP      %64, #%80
-        JR      Z, M_15C5
+        JR      Z, .1
         LD      R0, #%FA
-        CALL    M_1400
-M_15C5: LD      R0, #%FE
-        CALL    M_1400
-M_15CA: CALL    M_0910          ; init timer/interrupts
+        CALL    M_1400          ; save block
+.1:     LD      R0, #%FE
+        CALL    M_1400          ; save block
+.2:     CALL    M_0910          ; init timer/interrupts
         POP     RP
         RCF
         RET
 
         NOP
 
+        ; open load/save tape
+        ; %15 == 1 ... load
+        ;        2 ... save
+        ; %F7A4 = buffer index: %00 (load), %80 (save)
+        ; %F7A6 = %FF
+        ; %F7A7 = R%15 (open mode)
 M_15D2: PUSH    RP
         DI
         SRP     #%F0
@@ -1448,48 +1495,59 @@ M_15D2: PUSH    RP
         LD      R2, #%F7
         LD      R3, #%A6
         LD      R4, #%FF
-        LDE     @RR2, R4
+        LDE     @RR2, R4        ; %F7A6 = %FF
         INC     R3
         LD      R4, %15
-        LDE     @RR2, R4
-        TM      %15, #2
-        JR      NZ, M_1602
-        LD      TMR, #3
+        LDE     @RR2, R4        ; %F7A7 = R%15
+        TM      %15, #2         ; save?
+        JR      NZ, .2          ; -> .2
+        ; open load
+        LD      TMR, #3         ; start and load T0
         LD      R4, #0
-M_15FA: LD      R3, #%A4
-        LDE     @RR2, R4
+        ; {
+.1:     LD      R3, #%A4
+        LDE     @RR2, R4        ; %F7A4 = %00 (load) or %80 (save)
         POP     RP
         RCF
         RET
-
-M_1602: LD      R0, #0
+        ; open save (5s pre tone)
+.2:     LD      R0, #0
         LD      R1, #0
-M_1606: LD      R5, #%18
-M_1608: DJNZ    R5, M_1608
-        DECW    %60
-        JR      NZ, M_1606
+        ;   { wait ~5.1s
+.3:     LD      R5, #%18
+.4:     DJNZ    R5, .4
+        DECW    %60             ; decw rr0
+        JR      NZ, .3
+        ;   }
         LD      R4, #%80
-        JR      M_15FA
+        JR      .1
+        ; }
 
         NOP
         NOP
 
+        ; write byte R%15
+        ; input:  %F7A4 current buffer index
+        ; output: %F7A4 next buffer index
+        ;         buffer(%F580-%F5FF)
+        ; destroys %60-%64
 M_1614: PUSH    RP
         SRP     #%60
         LD      R0, #%F7
         LD      R1, #%A4
-        LDE     R3, @RR0
+        LDE     R3, @RR0            ; r3 = %F7A4
         LD      R2, #%F5
         LD      R4, #%15
-        LDEI    @RR2, @R4
+        LDEI    @RR2, @R4           ; R%15 = %F5__
         OR      R3, R3
-        JR      NZ, M_1633
+        JR      NZ, .1
+        ; buffer full
         LD      R0, #%FC
-        CALL    M_1400
+        CALL    M_1400              ; save block
         LD      R3, #%80
         LD      R0, #%F7
         LD      R1, #%A4
-M_1633: LDE     @RR0, R3
+.1:     LDE     @RR0, R3            ; %F7A4 = r3
         RCF
         POP     RP
         RET
@@ -1503,14 +1561,14 @@ M_163A: POP     %70
         POP     %71
         PUSH    RP
         SRP     #%70
-M_1642: LD      R2, #%15
+.1:     LD      R2, #%15
         LDEI    @R2, @RR0
         OR      %15, %15
-        JR      Z, M_1650
+        JR      Z, .2
         CALL    M_0818      ; PTC
-        JR      M_1642
+        JR      .1
 
-M_1650: POP     RP
+.2:     POP     RP
         JP      @%70
 
         .repeat 4
@@ -1546,22 +1604,22 @@ M_166A: PUSH    %4E
         SUB     R9, R1
         LD      R8, R4
         SBC     R8, R0
-        JR      PL, M_169A
+        JR      PL, .1
         COM     R9
         COM     R8
         INCW    R8
-M_169A: LD      R11, R7
+.1:     LD      R11, R7
         SUB     R11, R3
         LD      R10, R6
         SBC     R10, R2
-        JR      PL, M_16AA
+        JR      PL, .2
         COM     R11
         COM     R10
         INCW    R10
-M_16AA: CP      R9, R11
+.2:     CP      R9, R11
         LD      R12, R8
         SBC     R12, R10
-        JR      NC, M_16C8
+        JR      NC, .3
         LD      %5E, #%16
         LD      %5F, #%61
         LD      R0, #0
@@ -1572,10 +1630,10 @@ M_16AA: CP      R9, R11
         LD      R5, %4D
         LD      R6, %4A
         LD      R7, %4B
-M_16C8: CP      R5, R1
+.3:     CP      R5, R1
         LD      R12, R4
         SBC     R12, R0
-        JR      C, M_16E8
+        JR      C, .4
         LD      R12, R1
         LD      R1, R5
         LD      R5, R12
@@ -1588,52 +1646,52 @@ M_16C8: CP      R5, R1
         LD      R12, R2
         LD      R2, R6
         LD      R6, R12
-M_16E8: SUB     R1, R5
+.4:     SUB     R1, R5
         SBC     R0, R4
         LD      R10, R0
         LD      R11, R1
         LD      R9, #0
         SUB     R3, R7
         SBC     R2, R6
-        JR      PL, M_1700
+        JR      PL, .5
         LD      R9, #%FF
         COM     R2
         COM     R3
         INCW    R2
-M_1700: LD      R12, #0
+.5:     LD      R12, #0
         LD      R13, #0
         LD      R14, #0
         LD      R15, #9
-M_1708: SUB     R3, R1
+.6:     SUB     R3, R1
         SBC     R2, R0
-        JR      NC, M_1713
+        JR      NC, .7
         ADD     R3, R1
         ADC     R2, R0
         SCF
-M_1713: CCF
+.7:     CCF
         RLC     R14
         RLC     R13
         RLC     R12
         RCF
         RLC     R3
         RLC     R2
-        DJNZ    R15, M_1708
+        DJNZ    R15, .6
         OR      R9, R9
-        JR      PL, M_1730
+        JR      PL, .8
         COM     R14
         COM     R13
         COM     R12
         INC     R14
-        JR      NZ, M_1730
+        JR      NZ, .8
         INCW    R12
-M_1730: LD      R8, #0
-M_1732: CALL    @%5E
+.8:     LD      R8, #0
+.9:     CALL    @%5E
         INCW    R4
         ADD     R8, R14
         ADC     R7, R13
         ADC     R6, R12
         DECW    R10
-        JR      PL, M_1732
+        JR      PL, .9
         POP     RP
         POP     %51
         POP     %4F
@@ -1642,83 +1700,100 @@ M_1732: CALL    @%5E
 
         NOP
 
+        ; readByte (tape)
+        ; input: %F7A4 buffer index (00=need to read)
+        ;        %F7A5 upper buffer index limit
+        ; output: %F7A4 next buffer index
+        ;         %13 read byte
 M_174A: PUSH    RP
         SRP     #%60
         LD      R0, #%F7
         LD      R1, #%A4
-        LDE     R3, @RR0
+        LDE     R3, @RR0        ; r3 = %F7A4
         OR      R3, R3
-        JR      NZ, M_1761
-        CALL    M_14AE
-        JR      C, M_1776
+        JR      NZ, .1
+        CALL    M_14AE          ; read buffer
+        JR      C, .3
         LD      R3, #%80
         LD      R0, #%F7
-M_1761: LD      R1, #%A5
+.1:     LD      R1, #%A5
         LD      R2, #%F5
         LD      R4, #%13
-        LDEI    @R4, @RR2
-        LDE     R4, @RR0
+        LDEI    @R4, @RR2       ; %13 = %F500 + r3
+        LDE     R4, @RR0        ; r4 = %F7A5
         LD      R1, #%A4
         CP      R3, R4
-        JR      NZ, M_1773
+        JR      NZ, .2
         LD      R3, #0
-M_1773: LDE     @RR0, R3
+.2:     LDE     @RR0, R3        ; %F7A4 = r3
         RCF
-M_1776: POP     RP
+.3:     POP     RP
         RET
 
         NOP
 
+        ; load
+        ; output: %24 = error (0=OK)
 M_177A: PUSH    RP
         SRP     #%20
         LD      %15, #1
-        CALL    %FFF0       ; M_15D2
-        JR      C, M_179E
+        CALL    %FFF0       ; M_15D2 open
+        JR      C, .3
         LD      R2, #0
         LD      R3, #0
-M_178A: CALL    %FFF6       ; M_174A
-        JR      C, M_1797
+.1:     CALL    %FFF6       ; M_174A readByte
+        JR      C, .2
         LD      R4, #%13
         LDEI    @RR0, @R4
         INCW    %22
-        JR      M_178A
+        JR      .1
 
-M_1797: LD      R4, #0
+.2:     LD      R4, #0
         CP      %13, #%88
-        JR      Z, M_17A0
-M_179E: LD      R4, %13
-M_17A0: CALL    %FFF3       ; M_15A8
+        JR      Z, .4
+.3:     LD      R4, %13
+.4:     CALL    %FFF3       ; M_15A8 close
         POP     RP
         RET
 
-        LD      %2, #%30
+M_17A6: LD      %2, #%30
         LD      P2M, #%0F
         PUSH    RP
         SRP     #%60
         LD      R0, #8
         LD      R1, %15
-M_17B4: LD      R2, #0
+        ; {
+.1:     LD      R2, #0
         RRC     %61
         RRC     %62
         OR      %62, #%30
         LD      R4, %62
         LD      %2, R2
+        ;   {
         LD      R3, #%18
-M_17C3: DJNZ    R3, M_17C3
+.2:     DJNZ    R3, .2
+        ;   }
         OR      %62, #%40
         LD      %2, R2
+        ;   {
         LD      R3, #%18
-M_17CC: DJNZ    R3, M_17CC
+.3:     DJNZ    R3, .3
+        ;   }
         LD      %2, R4
+        ;   {
         LD      R3, #%18
-M_17D2: DJNZ    R3, M_17D2
-        DJNZ    R0, M_17B4
-M_17D6: LD      R0, #8
+.4:     DJNZ    R3, .4
+        ;   }
+        DJNZ    R0, .1
+        ; }
+.5:     LD      R0, #8
         AND     %60, %3
-        JR      NZ, M_17D6
+        JR      NZ, .5
         LD      %2, #%10
+        ; {
         LD      R3, #%18
-M_17E2: DJNZ    R3, M_17E2
+.6:     DJNZ    R3, .6
+        ; }
         LD      %2, R4
         POP     RP
         RET
@@ -2333,26 +2408,34 @@ M_1C75: INCW    %60
         LD      R10, #0
         LDE     @RR14, R10
         JR      M_1C21
+
+        ; SAVE
+        ; input: %20/21=start address
+        ;        %22/22=length
+        ; output: %24=error (0=OK)
 M_1C86: PUSH    RP
         SRP     #%20
         LD      %15, #2
-        CALL    %FFF0                   ; M_15D2
-        JR      C, M_1CA2
-M_1C92: LD      R4, #%15
+        CALL    %FFF0                   ; M_15D2; open (wait ~5s)
+        JR      C, .2
+        ; {
+.1:     LD      R4, #%15
         LDEI    @R4, @RR0
-        CALL    %FFF9                   ; M_1614
-        JR      C, M_1CA2
+        CALL    %FFF9                   ; M_1614; write byte in %15
+        JR      C, .2
         DECW    %22
-        JR      NZ, M_1C92
+        JR      NZ, .1
+        ; }
         LD      R4, #0
-        .data %0d                         ; jp f = skip next 2 bytes
-M_1CA2: LD      R4, %13
-        CALL    %FFF3       ; M_15A8
-        JR      NC, M_1CAB
+        .data %0d                       ; jp f = skip next 2 bytes
+.2:     LD      R4, %13
+        CALL    %FFF3                   ; M_15A8 close
+        JR      NC, .3
         LD      R4, %13
-M_1CAB: POP     RP
+.3:     POP     RP
         RET
 
+        ; RND
 M_1CAE: PUSH    RP
         SRP     #%70
         LD      R0, #%F7
