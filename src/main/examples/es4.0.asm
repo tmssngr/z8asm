@@ -1193,7 +1193,7 @@ M_1400: PUSH    RP
         SRP     #%60
         LD      R1, #4
         LD      R2, #%0C
-.1:     PUSH    @%61
+.1:     PUSH    @r1
         INC     R1
         DJNZ    R2, .1
         ; }
@@ -1207,12 +1207,7 @@ M_1400: PUSH    RP
         LDE     R15, @RR4
         INC     R15
         LDE     @RR4, R15
-        ; { wait 39.427ms
-        LD      R4, #%1C        ; rr4 = 7168
-        LD      R5, #0
-.2:     DECW    %4
-        JR      NZ, .2
-        ; }
+
         LD      R4, #%F5
         LD      R5, #%FF
         CP      %0B, #%FA       ; CP r11, #%FA (1..127 bytes)
@@ -1228,13 +1223,9 @@ M_1400: PUSH    RP
         ADC     R6, R7
         INC     R5
         JR      NZ, .4
-        ADC     %6, #0          ; ADC r6, #0
+        ADC     r6, #0
         ; }
         LD      R5, #%7B
-        NOP
-        NOP
-        NOP
-        NOP
         LDE     @RR4, R15       ; %F57B = r15 (block number)
         INC     R5
         LDE     @RR4, R15       ; %F57C = r15 (block number)
@@ -1243,60 +1234,42 @@ M_1400: PUSH    RP
         INC     R5
         LDE     @RR4, R6        ; %F57E = r6 (checksum)
         LD      R5, #%7B
-        LD      TMR, #3         ; start, load T0
-        LD      R3, #%40        ; P36 = 1
-        CALL    delay486
-        LD      R10, #%40
-        LD      R3, #0          ; P36 = 0
         ; repeat (4) { delay 2002 cycles (500.5us)
         LD      R6, #4
 .5:     CALL    delay486
         DJNZ    R6, .5
         ; }
 .6:     LDE     R6, @RR4
-        ; { output 8 bits; 0-bit: 3.9kHz, 1-bit: 2kHz
-        LD      R7, #8
-.7:     RL      %6              ; RL r6
-        XOR     R3, R10         ; toggle P36
-        CALL    delay486
-        JR      NC, .8
-        CALL    delay486
-.8:     XOR     R3, R10         ; toggle P36
-        CALL    delay486
-        JR      NC, .9
-        CALL    delay486
-.9:     DJNZ    R7, .7
-        ; }
+        ld      SIO, r6
+.7:     tm      IRQ, #%10       ; wait until serial byte sent
+        jr      z, .7
+        and     IRQ, #%EF
         INC     R5
         JR      NZ, .6
-        XOR     R3, R10         ; toggle P36
-        CALL    delay486
-        LD      TMR, #%43       ; start/load T0
+.8:     CALL    delay486
+        djnz    r5, .8
         ; restore registers 04-0F
         SRP     #%60
         LD      R1, #%0F
         LD      R2, #%0C
-.10:    POP     @%61
-        DEC     %61
+.10:    POP     @r1
+        DEC     r1
         DJNZ    R2, .10
         POP     RP
         RET
 
-        NOP
-        NOP
-        NOP
-
         ; delay 486 cycles = 121.5us
         ; keeps C flag
         ;                       20 cycles (call)
-delay486: LD      %60, #%18   ; 10 cycles
-.1:       DEC     %60         ;    6 cycles
+delay486: LD      r0, #%18    ; 10 cycles
+.1:       DEC     r0          ;    6 cycles
           JR      NZ, .1      ;   12 cycles
                               ; 10 cycles
           RET                 ; 14 cycles
 
-        NOP
-        NOP
+        .repeat 49
+            NOP
+        .end
 
         ; readBuffer (tape)
         ; input: %F7A6 block number
@@ -1460,11 +1433,11 @@ M_15A8: PUSH    RP
         LD      R2, #%F7
         LD      R3, #%A7
         LDE     R4, @RR2        ; r4 = %F7A7
-        TM      %64, #2         ; save?
+        TM      r4, #2          ; save?
         JR      Z, .2           ; no -> .2
         LD      R3, #%A4
         LDE     R4, @RR2        ; r4 = %F7A4
-        CP      %64, #%80
+        CP      r4, #%80
         JR      Z, .1
         LD      R0, #%FA
         CALL    M_1400          ; save block
@@ -1485,12 +1458,11 @@ M_15A8: PUSH    RP
         ; %F7A7 = R%15 (open mode)
 M_15D2: PUSH    RP
         DI
-        SRP     #%F0
-        LD      R8, #%92
-        LD      R4, #%64
-        LD      R5, #5
-        LD      R1, #%43
-        LD      R7, #8
+        ld      PRE0, #%05
+        ld      T0, #%0d
+        ld      TMR, #%43
+        ld      P3M, #%48
+        clr     IRQ
         SRP     #%60
         LD      R2, #%F7
         LD      R3, #%A6
@@ -1502,7 +1474,6 @@ M_15D2: PUSH    RP
         TM      %15, #2         ; save?
         JR      NZ, .2          ; -> .2
         ; open load
-        LD      TMR, #3         ; start and load T0
         LD      R4, #0
         ; {
 .1:     LD      R3, #%A4
@@ -1510,21 +1481,13 @@ M_15D2: PUSH    RP
         POP     RP
         RCF
         RET
-        ; open save (5s pre tone)
-.2:     LD      R0, #0
-        LD      R1, #0
-        ;   { wait ~5.1s
-.3:     LD      R5, #%18
-.4:     DJNZ    R5, .4
-        DECW    %60             ; decw rr0
-        JR      NZ, .3
-        ;   }
-        LD      R4, #%80
+        ; open save
+.2:     LD      R4, #%80
         JR      .1
-        ; }
 
-        NOP
-        NOP
+        .repeat 15
+            NOP
+        .end
 
         ; write byte R%15
         ; input:  %F7A4 current buffer index
@@ -1538,7 +1501,7 @@ M_1614: PUSH    RP
         LDE     R3, @RR0            ; r3 = %F7A4
         LD      R2, #%F5
         LD      R4, #%15
-        LDEI    @RR2, @R4           ; R%15 = %F5__
+        LDEI    @RR2, @R4           ; R%15 = buffer[r3]
         OR      R3, R3
         JR      NZ, .1
         ; buffer full
@@ -2423,7 +2386,7 @@ M_1C86: PUSH    RP
         LDEI    @R4, @RR0
         CALL    %FFF9                   ; M_1614; write byte in %15
         JR      C, .2
-        DECW    %22
+        DECW    r2
         JR      NZ, .1
         ; }
         LD      R4, #0
