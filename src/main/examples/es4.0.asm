@@ -1278,10 +1278,10 @@ delay486: LD      r0, #%18    ; 10 cycles
         ;         c  ... error (error code in %13)
 M_14AE: PUSH    RP
         SRP     #%60
-        ; { push registers %04-%0F
+        ; { push registers %04-%0b
         LD      R1, #4
-        LD      R2, #%0C
-.1:     PUSH    @%61
+        LD      R2, #%08
+.1:     PUSH    @r1
         INC     R1
         DJNZ    R2, .1
         ; }
@@ -1296,66 +1296,28 @@ M_14AE: PUSH    RP
         LD      %5E, R6         ; remember block number in %5E
 .read:  LD      R4, #%F5
         LD      R5, #%7B
-        LD      R10, #%29
-        LD      R9, #%21
-        LD      R6, #1
-        AND     R6, R3          ; read P30
-        ; { wait until P30 changes
-.3:     LD      R13, #1
-        AND     R13, R3
-        CP      R13, R6         ; P30 changed?
-        JR      Z, .3
-        ; }
-.4:     LD      R6, #1
-        AND     R6, R3
-        LD      R7, #%41
-.5:     DEC     %7
-        JR      Z, .4
-        LD      R13, #1
-        AND     R13, R3
-        CP      R13, R6
-        JR      Z, .5
-        CP      R7, R9
-        JR      NC, .4
-        ; { reading buffer
-.6:     LD      R8, #8
-        ;   { reading byte
-.7:     LD      R7, #0
-        LD      R6, #1
-        AND     R6, R3
-.8:     INC     R7
-        LD      R13, #1
-        AND     R13, R3
-        CP      R13, R6
-        JR      Z, .8
-        LD      R6, #1
-        AND     R6, R3
-.9:     INC     R7
-        LD      R13, #1
-        AND     R13, R3
-        CP      R13, R6
-        JR      Z, .9
-        CP      R10, R7
-        RLC     %9
-        DJNZ    R8, .7
+        ld      r7, #0          ; checksum
+        ; {
+.6:     TM      IRQ, #8         ; IRQ3= serial byte received
+        JR      Z, .6
+        and     IRQ, #%F7
+        ld      r9, SIO
         ;   }
         LDE     @RR4, R9        ; save detected byte in buffer
-        INC     R5              ; inc buffer index
+
+        cp      r5, #%7f
+        jr      ult, .7
+        add     r7, r9
+        adc     r7, #0
+
+.7:     INC     R5              ; inc buffer index
         JR      NZ, .6
         ; }
         LD      R5, #%7D
-        LD      R7, #0          ; checksum
         LDE     R10, @RR4       ; r10 = %F57D (expected checksum, copy 1)
         INC     R5
         LDE     R9, @RR4        ; r9 = %F57E (expected checksum, copy 2)
         INC     R5
-        RCF
-        ; calculating checksum
-.10:    LDE     R6, @RR4        ; r6 = %F57F
-        ADC     R7, R6
-        INC     R5
-        JR      NZ, .10
-        ADC     %7, #0
         CP      R7, R9          ; verify checksum
         JR      NZ, .error
         CP      R7, R10
@@ -1387,45 +1349,28 @@ M_14AE: PUSH    RP
         CP      %7, #%FE        ; EOF?
         JR      NZ, .error
         ; EOF
-        LD      R14, #%88
+        LD      %13, #%88
+        jr      .retEr
+.error: LD      %13, #%FF
 .retEr: SCF
-.12:    LD      TMR, #3
-        LD      %13, R14
-        JR      .ret
-
-        NOP
-.retOK: NOP
-        NOP
-        RCF
-        JR      .12
-
-.error: LD      TMR, #%43       ; beep to indicate error
-.15:    CALL    M_081B          ; get key press
-        AND     %6D, #%DF
-        CP      %6D, #%42       ; b or B (break) pressed?
-        JR      Z, .break
-        CP      %6D, #%43       ; c or C (continue) pressed?
-        JR      NZ, .15
-        JP      .read
-
-.break: LD      R14, #%FF
-        JR      .retEr
-
+        jr      .ret
+.retOK: RCF
 .ret:   LD      R4, #%F7
         LD      R5, #%A5
         LDE     @RR4, R11       ; %F7A5 = r11
-        ; pop registers 0F-04
+        ; pop registers 0b-04
         SRP     #%60
-        LD      R1, #%0F
-        LD      R2, #%0C
-.18:    POP     @%61
-        DEC     %61
+        LD      R1, #%0b
+        LD      R2, #%08
+.18:    POP     @r1
+        DEC     r1
         DJNZ    R2, .18
         POP     RP
         RET
 
-        NOP
-        NOP
+        .repeat 97
+            nop
+        .end
 
         ; close load/save
 M_15A8: PUSH    RP
