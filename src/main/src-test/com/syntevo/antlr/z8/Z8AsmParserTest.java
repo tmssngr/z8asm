@@ -51,6 +51,11 @@ public class Z8AsmParserTest {
 	}
 
 	@Test
+	public void testOthello() throws IOException {
+		assembleFile("src/main/examples/othello.asm");
+	}
+
+	@Test
 	public void testAlgorithms() throws IOException {
 		final String name = "src/main/examples/algorithms.asm";
 		final CharStream charStream = CharStreams.fromFileName(name);
