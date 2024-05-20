@@ -51,6 +51,25 @@ public class Z8AsmParserTest {
 	}
 
 	@Test
+	public void testMissingLabel() {
+		try {
+			assemble("""
+					         jp missing""");
+			Assert.fail();
+		}
+		catch (Assembler.SyntaxException ignored) {
+		}
+
+		try {
+			assemble("""
+					         jp .1""");
+			Assert.fail();
+		}
+		catch (Assembler.SyntaxException ignored) {
+		}
+	}
+
+	@Test
 	public void testDuplicateLabels() {
 		try {
 			assemble("""

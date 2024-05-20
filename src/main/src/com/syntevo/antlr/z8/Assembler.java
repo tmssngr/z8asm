@@ -29,6 +29,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 
 	private Output output;
 	private int pc;
+	private boolean unknownLabel;
 
 	// Setup ==================================================================
 
@@ -41,6 +42,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 	public Object visitRoot(Z8AsmParser.RootContext ctx) {
 		output = new Output();
 		labelChanged = false;
+		unknownLabel = false;
 		prevGlobalLabel = null;
 		pass++;
 
@@ -684,6 +686,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 			final String text = label.getText();
 			final LabelAddress labelAddress = globalLabels.get(text);
 			if (labelAddress == null) {
+				unknownLabel = true;
 				if (pass > 1) {
 					throw new SyntaxException("Unknown label '" + text + "'", ctx);
 				}
@@ -749,7 +752,7 @@ public final class Assembler extends Z8AsmBaseVisitor<Object> {
 		do {
 			visit(root);
 		}
-		while (isLabelChanged());
+		while (unknownLabel || isLabelChanged());
 		reportUnusedLabels();
 	}
 
