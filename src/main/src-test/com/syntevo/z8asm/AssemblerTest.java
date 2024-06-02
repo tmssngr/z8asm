@@ -58,6 +58,11 @@ public class AssemblerTest {
 	}
 
 	@Test
+	public void testAlgorithms() throws IOException {
+		assembleFileBinary(Path.of("src/main/examples/algorithms.asm"));
+	}
+
+	@Test
 	public void testMissingLabel() {
 		try {
 			assembleAsString("""
