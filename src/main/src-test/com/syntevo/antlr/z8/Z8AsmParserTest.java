@@ -51,6 +51,17 @@ public class Z8AsmParserTest {
 	}
 
 	@Test
+	public void testAlgorithms() throws IOException {
+		final String name = "src/main/examples/algorithms.asm";
+		final CharStream charStream = CharStreams.fromFileName(name);
+		final Assembler assembler = assemble(charStream);
+
+		try (OutputStream os = Files.newOutputStream(Paths.get(name + ".expected"))) {
+			assembler.write(os);
+		}
+	}
+
+	@Test
 	public void testMissingLabel() {
 		try {
 			assemble("""
