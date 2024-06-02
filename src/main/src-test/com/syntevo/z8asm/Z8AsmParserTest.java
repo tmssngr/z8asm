@@ -60,6 +60,11 @@ public class Z8AsmParserTest {
 	}
 
 	@Test
+	public void testAlgorithms() throws IOException {
+		assembleFileBinary(Path.of("src/main/examples/algorithms.asm"));
+	}
+
+	@Test
 	public void testMissingLabel() {
 		try {
 			assembleAsString("""
@@ -292,6 +297,15 @@ public class Z8AsmParserTest {
 
 		try (Writer writer = Files.newBufferedWriter(getExpectedFile(file))) {
 			output.print(writer);
+		}
+	}
+
+	private static void assembleFileBinary(Path file) throws IOException {
+		final Output output = assemble(file);
+
+		final Path expectedFile = getExpectedFile(file);
+		try (OutputStream os = Files.newOutputStream(expectedFile)) {
+			output.write(os);
 		}
 	}
 
