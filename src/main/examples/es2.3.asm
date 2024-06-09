@@ -549,9 +549,10 @@ M_0D10: RET
 M_0D16: CALL    M_0CDC
         JR      C, M_0D10
         OR      R10, R10
-        JR      Z, %0D22                ;!!!
+        JR      Z, M_0D22
         LDE     @RR10, R13
-        JP      F, %F3BD
+        .data   %0d                 ; jp f
+M_0D22: LD      @R11, R13
         INCW    R10
         DJNZ    R0, M_0D16
         LD      R5, #%2C
