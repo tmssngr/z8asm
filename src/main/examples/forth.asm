@@ -1089,7 +1089,7 @@ M_E8A5: INC     R0
 
 M_E8B5: CALL    M_E208          ; popIntoRr4
         INC     R14
-        JR      Z, %E8EF                ;!!!
+        JR      Z, M_E8EF
         RET
 
 M_E8BC: LD      R3, R1
@@ -1524,7 +1524,7 @@ M_EC7D: CALL    M_E208
 M_EC80: LD      R6, #%5A
         LDCI    @R6, @RR2
         CALL    %0827
-        DJNZ    R5, %EC80
+        DJNZ    R5, M_EC80
         JP      M_E208
 
 M_EC8C: .data   %84
@@ -1880,7 +1880,7 @@ M_EF5D: .data   %83
         .data   "MIN"
         .data   M_EF44 %00
 M_EF64: CALL    M_E120
-        JR      MI, %EF6D
+        JR      MI, M_EF6D
 M_EF69: LD      R2, R4
         LD      R3, R5
 M_EF6D: RET
