@@ -132,6 +132,26 @@ public class LexerTest {
 		}.test();
 	}
 
+	@Test
+	public void testComments() {
+		new LexerTester("""
+				                // line
+				                ; comment
+				                foo /* bar
+				                bazz* / */ blupp""") {
+			@Override
+			protected void test() {
+				assertText(TokenType.COMMENT, "// line");
+				assertType(TokenType.LINE_BREAK);
+				assertText(TokenType.COMMENT, "; comment");
+				assertType(TokenType.LINE_BREAK);
+				assertIdentifier("foo");
+				assertText(TokenType.COMMENT, "/* bar\nbazz* / */");
+				assertIdentifier("blupp");
+			}
+		}.test();
+	}
+
 	private abstract static class LexerTester {
 		protected abstract void test();
 
