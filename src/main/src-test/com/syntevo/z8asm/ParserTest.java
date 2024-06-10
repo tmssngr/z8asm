@@ -48,7 +48,9 @@ public class ParserTest {
 		assertBinary(0x30, "sbc");
 		assertBinary(0x40, "or");
 		assertBinary(0x50, "and");
+		assertBinary(0x60, "tcm");
 		assertBinary(0x70, "tm");
+		assertBinary(0xA0, "cp");
 		assertBinary(0xB0, "xor");
 	}
 
@@ -56,6 +58,7 @@ public class ParserTest {
 	public void testLd() {
 		assertCommand(Command.content2(0x68, 0x5a), "LD R6, %5a");
 		assertCommand(Command.content2(0x18, 0xE2), "LD R1, R2");
+		assertCommand(Command.content2(0x79, 0x32), "LD %32, R7");
 		assertCommand(Command.content2(0xFC, 0x16), "LD R15, #%16");
 		assertCommand(Command.content2(0xE3, 0x26), "LD R2, @R6");
 		assertCommand(Command.content2(0xF3, 0x74), "LD @R7, R4");
