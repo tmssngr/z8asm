@@ -57,8 +57,23 @@ public final class Lexer {
 			return TokenType.LINE_BREAK;
 		}
 		if (chr == ';') {
-			text = detectComment();
+			text = detectLineComment("");
 			return TokenType.COMMENT;
+		}
+		if (chr == '/') {
+			consume();
+			if (chr == '/') {
+				text = detectLineComment("/");
+				return TokenType.COMMENT;
+			}
+
+			if (chr == '*') {
+				text = detectBlockComment();
+				return TokenType.COMMENT;
+			}
+
+			text = "/";
+			return TokenType.IDENTIFIER;
 		}
 
 		if (chr == ',') {
@@ -300,14 +315,35 @@ public final class Lexer {
 		return buffer.toString();
 	}
 
-	private String detectComment() {
+	private String detectLineComment(String start) {
 		final StringBuilder buffer = new StringBuilder();
+		buffer.append(start);
 		do {
 			append(buffer);
 			consume();
 		}
 		while (chr >= 0 && !isLineBreak());
 		return buffer.toString();
+	}
+
+	private String detectBlockComment() {
+		final StringBuilder buffer = new StringBuilder();
+		buffer.append("/*");
+		int prev = 0;
+		while (true) {
+			consume();
+			if (chr < 0) {
+				throw new InvalidTokenException("Block comment needs to be closed", location);
+			}
+
+			append(buffer);
+			if (prev == '*' && chr == '/') {
+				consume();
+				return buffer.toString();
+			}
+
+			prev = chr;
+		}
 	}
 
 	private String detectStringOrChar(boolean isLengthString, char endChar) {
@@ -323,38 +359,39 @@ public final class Lexer {
 
 			if (escapeStartLocation != null) {
 				switch (chr) {
-					case 't' -> consumeAppend('\t', buffer);
-					case 'n' -> consumeAppend('\n', buffer);
-					case 'r' -> consumeAppend('\r', buffer);
-					case '0' -> consumeAppend(0, buffer);
-					case 'x' -> {
-						consume();
-						boolean tooShort = true;
-						int hexValue = 0;
-						while (true) {
-							if (chr < 0) {
-								if (tooShort) {
-									throw new InvalidTokenException("Invalid char escape", escapeStartLocation);
-								}
-								break;
+				case 't' -> consumeAppend('\t', buffer);
+				case 'n' -> consumeAppend('\n', buffer);
+				case 'r' -> consumeAppend('\r', buffer);
+				case '0' -> consumeAppend(0, buffer);
+				case 'x' -> {
+					consume();
+					boolean tooShort = true;
+					int hexValue = 0;
+					while (true) {
+						if (chr < 0) {
+							if (tooShort) {
+								throw new InvalidTokenException("Invalid char escape", escapeStartLocation);
 							}
-
-							final int nibble = toHexNibble(chr);
-							if (nibble < 0) {
-								if (tooShort) {
-									throw new InvalidTokenException("Invalid char escape", escapeStartLocation);
-								}
-								break;
-							}
-
-							consume();
-							hexValue = (16 * hexValue + nibble) & 0xFFFF;
-							tooShort = false;
+							break;
 						}
-						append(hexValue, buffer);
+
+						final int nibble = toHexNibble(chr);
+						if (nibble < 0) {
+							if (tooShort) {
+								throw new InvalidTokenException("Invalid char escape", escapeStartLocation);
+							}
+							break;
+						}
+
+						consume();
+						hexValue = (16 * hexValue + nibble) & 0xFFFF;
+						tooShort = false;
 					}
-					default -> consumeAppend(chr, buffer);
-				};
+					append(hexValue, buffer);
+				}
+				default -> consumeAppend(chr, buffer);
+				}
+				;
 				escapeStartLocation = null;
 				continue;
 			}
