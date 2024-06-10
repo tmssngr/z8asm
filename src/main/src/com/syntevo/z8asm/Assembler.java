@@ -46,41 +46,34 @@ public class Assembler {
 		return output;
 	}
 
-	private final Map<String, Integer> globalLabels = new HashMap<>();
-	private final Map<String, Map<String, Integer>> localLabels = new HashMap<>();
 	private final List<Command> commands;
 
 	public Assembler(@NotNull List<Command> commands) {
 		this.commands = commands;
 	}
 
+	@NotNull
 	public List<Command> assemble() {
-		determineLabels();
-		return convertLazyToNormalCommands();
+		return assemble(System.out::println);
 	}
 
-	private void determineLabels() {
+	@NotNull
+	public List<Command> assemble(@NotNull WarningOut out) {
+		final Labels labels = determineLabels();
+		final List<Command> commands = resolveLazyCommands(labels, out);
+		labels.reportUnused(out);
+		return commands;
+	}
+
+	@NotNull
+	private Labels determineLabels() {
+		final Labels labels = new Labels();
 		boolean allowOrg = true;
 		int pc = 0;
-		String currentGlobalLabel = null;
 		for (Command command : commands) {
 			switch (command.type) {
 			case LABEL -> {
-				if (isLocalLabel(command.text)) {
-					if (currentGlobalLabel == null) {
-						throw new SyntaxException("A local label needs to be after a global label", command.location);
-					}
-					final Map<String, Integer> map = localLabels.computeIfAbsent(currentGlobalLabel, s -> new HashMap<>());
-					if (map.put(command.text, pc) != null) {
-						throw new SyntaxException("Duplicate local label " + command.text, command.location);
-					}
-				}
-				else {
-					if (globalLabels.put(command.text, pc) != null) {
-						throw new SyntaxException("Duplicate label " + command.text, command.location);
-					}
-					currentGlobalLabel = command.text;
-				}
+				labels.add(command.text, pc, command.location);
 				allowOrg = false;
 			}
 			case ORG -> {
@@ -97,20 +90,17 @@ public class Assembler {
 			default -> throw new IllegalStateException("Unsupported command " + command);
 			}
 		}
+		labels.finishedInitialization();
+		return labels;
 	}
 
 	@NotNull
-	private List<Command> convertLazyToNormalCommands() {
+	private List<Command> resolveLazyCommands(@NotNull Labels labels, @NotNull WarningOut out) {
 		int pc = 0;
-		String currentGlobalLabel = null;
 		final List<Command> newCommands = new ArrayList<>();
 		for (Command command : commands) {
 			switch (command.type) {
-			case LABEL -> {
-				if (!isLocalLabel(command.text)) {
-					currentGlobalLabel = command.text;
-				}
-			}
+			case LABEL -> labels.processing(command.text);
 			case ORG -> pc = command.first;
 			case CONTENT -> {
 				pc += command.size;
@@ -119,15 +109,8 @@ public class Assembler {
 			case LAZY_CONTENT -> {
 				pc += command.size;
 
-				final Map<String, Integer> labels = isLocalLabel(command.text)
-						? localLabels.get(currentGlobalLabel)
-						: globalLabels;
-				if (labels == null || !labels.containsKey(command.text)) {
-					throw new SyntaxException("No target '" + command.text + "' found", command.location);
-				}
-
-				final int address = labels.get(command.text);
-				newCommands.add(processLazyCommand(command, address, pc));
+				final int address = labels.resolve(command.text, command.location);
+				newCommands.add(resolve(command, address, pc, out));
 			}
 			default -> throw new IllegalStateException("Unsupported command " + command);
 			}
@@ -135,24 +118,26 @@ public class Assembler {
 		return newCommands;
 	}
 
-	private boolean isLocalLabel(String text) {
-		return text.startsWith(".");
-	}
-
-	private Command processLazyCommand(Command command, int address, int pc) {
+	@NotNull
+	private Command resolve(@NotNull Command command, int address, int pc, @NotNull WarningOut out) {
 		Utils.assertTrue(command.type == Command.Type.LAZY_CONTENT);
 
 		final int lowerNibble = command.first & 0x0F;
 		if (lowerNibble == 0x0A || lowerNibble == 0x0B) {
 			Utils.assertTrue(command.size == 2);
 			final int relative = address - pc;
-			if (relative < -128 || relative > 127) {
+			if (!isValidRelative(relative)) {
 				throw new SyntaxException("Target '" + command.text + "' too far away", command.location);
 			}
 			return Command.content2(command.first, relative);
 		}
 		if (lowerNibble == 0x0D) {
 			Utils.assertTrue(command.size == 3);
+
+			if (isValidRelative(address - pc)) {
+				out.print(command.location + ": jp could be jr");
+			}
+
 			return Command.content3(command.first, address >> 8, address);
 		}
 		if (command.first == 0xD6) {
@@ -164,5 +149,9 @@ public class Assembler {
 			return Command.content2(address >> 8, address);
 		}
 		throw new IllegalStateException("Unsupported command " + command);
+	}
+
+	private static boolean isValidRelative(int relative) {
+		return relative >= -128 && relative <= 127;
 	}
 }
