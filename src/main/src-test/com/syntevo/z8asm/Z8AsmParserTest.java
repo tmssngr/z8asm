@@ -6,8 +6,6 @@ import java.util.*;
 
 import org.junit.*;
 
-import com.syntevo.antlr.z8.*;
-
 /**
  * @author Thomas Singer
  */
@@ -161,7 +159,7 @@ public class Z8AsmParserTest {
 	private static String assemble(String input) {
 		final Lexer lexer = new Lexer(input);
 		final Parser parser = new Parser(lexer);
-		final List<Command> commands = parser.process();
+		final List<Command> commands = parser.parse();
 
 		final Output output = Assembler.assemble(commands);
 		final StringWriter writer = new StringWriter(1024);

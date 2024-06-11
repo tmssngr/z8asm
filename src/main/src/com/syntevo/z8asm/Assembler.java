@@ -1,28 +1,13 @@
 package com.syntevo.z8asm;
 
-import java.io.*;
-import java.nio.file.*;
 import java.util.*;
 
 import org.jetbrains.annotations.*;
-
-import com.syntevo.antlr.z8.*;
 
 /**
  * @author Thomas Singer
  */
 public class Assembler {
-
-	public static void main(String[] args) throws IOException {
-		final Path file = Paths.get(args[0]);
-		final List<Command> commands = Parser.parse(file);
-
-		final Output output = assemble(commands);
-
-		try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(args[0] + ".expected"))) {
-			output.print(writer);
-		}
-	}
 
 	@NotNull
 	public static Output assemble(List<Command> commands) {

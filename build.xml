@@ -1,4 +1,4 @@
-<project name="BLikeLang" default="rebuild">
+<project name="z8asm" default="rebuild">
 
 	<property name="app" value="asm"/>
 	<property name="build" value=".build"/>

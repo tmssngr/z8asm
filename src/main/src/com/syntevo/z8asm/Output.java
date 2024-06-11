@@ -1,4 +1,4 @@
-package com.syntevo.antlr.z8;
+package com.syntevo.z8asm;
 
 import java.io.IOException;
 import java.io.OutputStream;

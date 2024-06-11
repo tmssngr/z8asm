@@ -219,7 +219,7 @@ public class ParserTest {
 	@NotNull
 	private List<Command> assertCommands(List<Command> expected, String input) {
 		final Parser parser = new Parser(new Lexer(input));
-		final List<Command> commands = parser.process();
+		final List<Command> commands = parser.parse();
 		assertEquals(expected, commands);
 		return commands;
 	}

@@ -28,7 +28,7 @@ public final class Parser {
 				}
 			});
 			final Parser parser = new Parser(lexer);
-			commands = parser.process();
+			commands = parser.parse();
 		}
 		return commands;
 	}
@@ -42,15 +42,15 @@ public final class Parser {
 		this.lexer = lexer;
 	}
 
-	public List<Command> process() {
+	public List<Command> parse() {
 		consume();
 
 		final List<Command> commands = new ArrayList<>();
-		process(TokenType.EOF, commands);
+		parse(TokenType.EOF, commands);
 		return commands;
 	}
 
-	private void process(@NotNull TokenType allowedEndType, @NotNull List<Command> commands) {
+	private void parse(@NotNull TokenType allowedEndType, @NotNull List<Command> commands) {
 		while (token != allowedEndType) {
 			if (token == TokenType.LABEL) {
 				if (allowedEndType == TokenType.END) {
@@ -208,7 +208,7 @@ public final class Parser {
 
 		final int repeatStart = commands.size();
 
-		process(TokenType.END, commands);
+		parse(TokenType.END, commands);
 		consume(TokenType.END);
 
 		final List<Command> repeatingCommands = new ArrayList<>(commands.subList(repeatStart, commands.size()));
