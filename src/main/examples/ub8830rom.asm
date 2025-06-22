@@ -79,18 +79,24 @@ M_0079: LD      R2, R4
         RET
 
         ; +
+        ; in:  rr2, rr4
+        ; out: rr2
 M_007E: ADD     R3, R5
         ADC     R2, R4
         JR      OV, M_009A
         RET
 
         ; -
+        ; in:   rr2, rr4
+        ; out:  rr2
 M_0085: SUB     R3, R5
         SBC     R2, R4
         JR      OV, M_009A
         RET
 
         ; ABS
+        ; in:   rr4
+        ; out:  rr2
 M_008C: TM      R4, #%80    ; if bit7(r4) == 0
         JR      Z, M_0079   ;   ld r2w, r4w
 M_0091: CLR     R2          ; r2w = 0 - r4w
@@ -101,6 +107,13 @@ M_0097: OR      %F, #%80
 M_009A: OR      %E, #%80
         RET
 
+        ; prepare * or /
+        ; in:   rr2, rr4
+        ; out:  rr2 = 0
+        ;       rr4 = abs(rr4)
+        ;       rr6 = abs(rr2)
+        ;       r8[7] (xored sign bit)
+        ;       r9 = 0
 M_009E: LD      R8, R2
         XOR     R8, R4
         LD      R9, #2
@@ -117,6 +130,11 @@ M_00A4: LD      R6, R2
         RET
 
         ; *
+        ; in:   rr2, rr4
+        ; out:  rr2 = product
+        ;       (rr4 = abs(product))
+        ;       r11 = 0 (if successful)
+        ; kill: rr6, rr8, r11
 M_00BA: CALL    M_009E
         LD      R11, #%0F
 M_00BF: SRA     R6
