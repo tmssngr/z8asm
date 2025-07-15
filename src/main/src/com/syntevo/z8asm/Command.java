@@ -34,7 +34,11 @@ public final class Command {
 	}
 
 	public static Command lazyContent3(int first, @NotNull String text, @NotNull Location location) {
-		return new Command(Type.LAZY_CONTENT, first, 0, 0, 3, text, location);
+		return lazyContent3(first, 0, text, location);
+	}
+
+	public static Command lazyContent3(int first, int second, @NotNull String text, @NotNull Location location) {
+		return new Command(Type.LAZY_CONTENT, first, second, 0, 3, text, location);
 	}
 
 	public final Type type;

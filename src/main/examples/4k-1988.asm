@@ -907,8 +907,8 @@ M_200D: LD      R5, #7          ; PRE0
         CLR     %6D
         SRP     #%60
         LD      R12, #4
-        LD      %7C, #%0A
-        LD      %7D, #%DA
+        LD      %7C, #hi(M_0ADA)
+        LD      %7D, #lo(M_0ADA)
 M_201F: LD      %58, R12
         CALL    M_210A
         DJNZ    R12, M_201F

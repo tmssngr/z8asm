@@ -94,8 +94,8 @@ M_0830: OR      %3, #%80    ; P37 = 1, positive sync-pulse (2.5us) 10 cycles
         LD      %54, #%51   ; 81d
         LD      SPH, %56
         LD      SPL, %57
-        LD      %56, #8     ; set next ISR=M_08A9
-        LD      %57, #%A9
+        LD      %56, #M_08A9 ; set next ISR=M_08A9
+        LD      %57, #M_08A9
         AND     IRQ, #%EF
         IRET
 
@@ -107,7 +107,7 @@ M_08A9: OR      %3, #%80    ; positive sync pulse
         IRET
 
 M_08B4: LD      %54, #6
-        LD      %57, #%BB   ; set next ISR=M_08BB
+        LD      %57, #M_08BB   ; set next ISR=M_08BB
         IRET
 
         ; Video-ISR3
@@ -118,7 +118,7 @@ M_08BB: OR      %3, #%80    ; set P37=1
 
 M_08C3: AND     %3, #%7F    ; set P37=0
         LD      %54, #%20   ; 32d
-        LD      %57, #%30   ; set next ISR=M_0830
+        LD      %57, #M_0830 ; set next ISR=M_0830
         IRET
 
         ; calculate video RAM address from screen position in %5B

@@ -94,8 +94,7 @@ public class Assembler {
 			case LAZY_CONTENT -> {
 				pc += command.size;
 
-				final int address = labels.resolve(command.text, command.location);
-				newCommands.add(resolve(command, address, pc, out));
+				newCommands.add(resolve(command, pc, labels, out));
 			}
 			default -> throw new IllegalStateException("Unsupported command " + command);
 			}
@@ -104,36 +103,74 @@ public class Assembler {
 	}
 
 	@NotNull
-	private Command resolve(@NotNull Command command, int address, int pc, @NotNull WarningOut out) {
+	private Command resolve(@NotNull Command command, int pc, @NotNull Labels labels, @NotNull WarningOut out) {
 		Utils.assertTrue(command.type == Command.Type.LAZY_CONTENT);
 
 		final int lowerNibble = command.first & 0x0F;
 		if (lowerNibble == 0x0A || lowerNibble == 0x0B) {
 			Utils.assertTrue(command.size == 2);
+			final int address = labels.resolve(command.text, command.location);
 			final int relative = address - pc;
 			if (!isValidRelative(relative)) {
 				throw new SyntaxException("Target '" + command.text + "' too far away", command.location);
 			}
 			return Command.content2(command.first, relative);
 		}
+
+		if (lowerNibble == 0x0C) {
+			Utils.assertTrue(command.size == 2);
+			final boolean defaultHigh = (command.first & 0x10) == 0;
+			final int value = resolveLabelHighOrLow(defaultHigh, command.text, command.location, labels);
+			return Command.content2(command.first, value);
+		}
+
 		if (lowerNibble == 0x0D) {
 			Utils.assertTrue(command.size == 3);
 
+			final int address = labels.resolve(command.text, command.location);
 			if (isValidRelative(address - pc)) {
 				out.print(command.location + ": jp could be jr");
 			}
 
 			return Command.content3(command.first, address >> 8, address);
 		}
+
 		if (command.first == 0xD6) {
 			Utils.assertTrue(command.size == 3);
+			final int address = labels.resolve(command.text, command.location);
 			return Command.content3(command.first, address >> 8, address);
 		}
+
+		if (command.first == 0xE6) {
+			Utils.assertTrue(command.size == 3);
+			final boolean defaultHigh = (command.second & 1) == 0;
+			final int value = resolveLabelHighOrLow(defaultHigh, command.text, command.location, labels);
+			return Command.content3(command.first, command.second, value);
+		}
+
 		if (command.first == 0) {
 			Utils.assertTrue(command.size == 2);
+			final int address = labels.resolve(command.text, command.location);
 			return Command.content2(address >> 8, address);
 		}
+
 		throw new IllegalStateException("Unsupported command " + command);
+	}
+
+	private int resolveLabelHighOrLow(boolean high, @NotNull String text, @NotNull Location location, @NotNull Labels labels) {
+		final String textLower = text.toLowerCase(Locale.ROOT);
+		if (textLower.length() == text.length() && textLower.endsWith(")")) {
+			if (textLower.startsWith("lo(")) {
+				text = text.substring(3, text.length() - 1);
+				high = false;
+			}
+			else if (textLower.startsWith("hi(")) {
+				text = text.substring(3, text.length() - 1);
+				high = true;
+			}
+		}
+		final int address = labels.resolve(text, location);
+		return high ? address >> 8 : address;
 	}
 
 	private static boolean isValidRelative(int relative) {

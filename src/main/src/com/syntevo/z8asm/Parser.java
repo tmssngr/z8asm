@@ -380,11 +380,7 @@ public final class Parser {
 
 		consumeComma();
 		if (consumeIfHash()) {
-			final int immediate = consumeIntLiteral();
-			if (isWorkReg(dst)) {
-				return content2(command(dst, 0xC), immediate);
-			}
-			return content3(0xE6, dst, immediate);
+			return createLdImmediate(dst);
 		}
 
 		if (consumeIfAt()) {
@@ -409,6 +405,37 @@ public final class Parser {
 			return content2(command(src, 9), dst);
 		}
 		return content3(0xE4, src, dst);
+	}
+
+	@NotNull
+	private Command createLdImmediate(int dst) {
+		final int immediate;
+		if (token == TokenType.INT_LITERAL) {
+			immediate = consumeIntValue();
+		}
+		else {
+			final Location location = getLocation();
+			String identifier = consumeIdentifier();
+			if (consumeIf(TokenType.L_PAREN)) {
+				identifier += "(" + consumeIdentifier() + ")";
+				consume(TokenType.R_PAREN);
+			}
+			final Integer value = constToValue.get(identifier);
+			if (value != null) {
+				immediate = value;
+			}
+			else {
+				if (isWorkReg(dst)) {
+					return lazyContent2(command(dst, 0xC), identifier, location);
+				}
+				return lazyContent3(0xE6, dst, identifier, location);
+			}
+		}
+
+		if (isWorkReg(dst)) {
+			return content2(command(dst, 0xC), immediate);
+		}
+		return content3(0xE6, dst, immediate);
 	}
 
 	private Command createLdX(int highNibble) {

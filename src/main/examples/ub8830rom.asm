@@ -1068,8 +1068,8 @@ M_0789: LDC     R3, @RR0
         CP      R3, #%3E
         JR      Z, M_0795
         AND     %0F, #%FE
-M_0795: LD      R6, #7
-        LD      R7, #%C8
+M_0795: LD      R6, #hi(M_07C8)
+        LD      R7, #lo(M_07C8)
         CLR     R2
 M_079B: LDC     R8, @RR6
         CP      R8, R3
