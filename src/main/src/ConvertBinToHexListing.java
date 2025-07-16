@@ -5,7 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
-import com.syntevo.antlr.z8.Output;
+import com.syntevo.z8asm.Output;
 
 /**
  * @author Thomas Singer
