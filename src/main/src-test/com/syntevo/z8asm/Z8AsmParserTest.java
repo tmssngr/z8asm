@@ -49,6 +49,11 @@ public class Z8AsmParserTest {
 	}
 
 	@Test
+	public void testAsDis() throws IOException {
+		assembleFile("src/main/examples/asdis.asm");
+	}
+
+	@Test
 	public void testMissingLabel() {
 		try {
 			assemble("""
