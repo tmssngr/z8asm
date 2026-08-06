@@ -445,7 +445,7 @@ M_0BD0: CALL    M_0CDC      ; getHexByteFromRR14
         LD      R10, R13
 M_0BD7: LD      R11, @R10
         LD      R5, #'!'
-        CALL    M_0C9B      ; printCharWord
+        CALL    M_0C9B      ; printCharWordSpace
         INC     R10
         CALL    M_0C91
         JR      Z, M_0BD7
@@ -551,7 +551,7 @@ M_0C91: CALL    M_0C8D      ; println
 
         NOP
 
-        ; printCharWord
+        ; printCharWordSpace
         ; in: %15: char
         ;     rr10: word
 M_0C9B: CALL    M_0818      ; PTC
@@ -627,7 +627,7 @@ M_0CEB: POP     R0
         ; e.g. H8000 (list 8 memory bytes from address 0x8000)
 M_0CF2: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
 M_0CF5: LD      R5, #','
-        CALL    M_0C9B      ; printCharWord
+        CALL    M_0C9B      ; printCharWordSpace
         LD      R0, #8
 M_0CFC: LDE     R9, @RR10
         INCW    R10
@@ -650,14 +650,14 @@ M_0D15: CALL    M_0CDC      ; getHexByteFromRR14
         INCW    R10
         DJNZ    R0, M_0D15
         LD      R5, #','
-M_0D23: JP      M_0C9B      ; printCharWord
+M_0D23: JP      M_0C9B      ; printCharWordSpace
 
         ; Mon, A
         ; A<word address>
         ; e.g. A8000 (print 16 characters starting from address %8000)
 M_0D26: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
 M_0D29: LD      R5, #';'
-        CALL    M_0C9B      ; printCharWord
+        CALL    M_0C9B      ; printCharWordSpace
         LD      R0, #%10
 M_0D30: LDE     R5, @RR10
         OR      %55, #0b1000_0000
@@ -755,7 +755,7 @@ M_0DC6: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         LD      R5, #%20
         SUB     R11, R13
         SBC     R10, R12
-        CALL    M_0C9B      ; printCharWord
+        CALL    M_0C9B      ; printCharWordSpace
         JR      M_0DB2
 
 M_0DE4: RET
@@ -765,7 +765,7 @@ M_0DE5: CALL    M_0A52
         LD      R10, %14
         LD      R11, %15
         LD      R5, #'%'
-        CALL    M_0C9B      ; printCharWord
+        CALL    M_0C9B      ; printCharWordSpace
         JP      M_0C8D      ; println
 
         .repeat 6
@@ -2285,53 +2285,62 @@ M_1B8C: CALL    M_1AF0
 
         NOP
 
+        ; Wait for keypress
 M_1B94: PUSH    RP
         SRP     #%60
+        ; push value from F7A0 (color-mask for char)
         LD      R0, #%F7    ; lde r2, %F7A0
         LD      R1, #%A0
         LDE     R2, @RR0
         PUSH    %62
+        ; store value from F7A1 (color-mask for cursor) in F7A0
         INC     R1
         LDE     R2, @RR0
         DEC     %61
         LDE     @RR0, R2
+        ;
         CLR     %5E
         LD      %5F, #1
         CALL    M_18D8
+        ; restore initial value from F7A0
         POP     %62
         LD      R0, #%F7
         LD      R1, #%A0
         LDE     @RR0, R2
         JR      M_1BBC
 
-M_1BB9: AND     %6C, #%7F   ; 0xxx_xxxx
+M_1BB9: AND     %6C, #%7F   ; 0xxx_xxxx; unset auto-repeat flag
 M_1BBC: LD      %5F, R13
-        CALL    M_081B      ; get key
+        CALL    M_081B      ; get key in %6D
         LD      %13, R13
         OR      R13, R13
         JR      Z, M_1BB9   ; no key?
+        ; got key press
         LD      R0, #%1F
-        AND     R0, R12
+        AND     R0, R12     ; auto-repeat rate
+        ; wait 96 * (6 + 12) * 0.25us + 6 = 438us
         LD      R15, %60
 M_1BCD: OR      R15, R15    ; wait until %5F is cleared
         JR      NZ, M_1BCD
+        ;
         CP      %5F, %6D
-        JR      Z, M_1BDB
-        AND     %6C, #%7F
+        JR      Z, M_1BDB	; same char?
+        AND     %6C, #%7F	; different char -> unset auto-repeat flag
         JR      M_1BF4
-
+        ; same key
 M_1BDB: OR      R12, R12
-        JR      MI, M_1BF4
+        JR      MI, M_1BF4	; auto-repeat active?
         LD      R15, #%80
 M_1BE1: CALL    M_081B
         OR      R13, R13
-        JR      Z, M_1BB9
+        JR      Z, M_1BB9	; no key?
         CP      %5F, %6D
-        JR      NZ, M_1BB9
+        JR      NZ, M_1BB9	; different key?
         OR      R15, R15
         JR      NZ, M_1BE1
+        ; set auto-repeat
         OR      %6C, #%80
-M_1BF4: TM      %6C, #%40   ; %6C == x1xx_xxxx -> beep after keypress
+M_1BF4: TM      %6C, #%40   ; %6C == x1xx_xxxx -> beep after keypress?
         JR      Z, M_1BFC
         CALL    M_1AF0      ; beep
 M_1BFC: CLR     %5E
