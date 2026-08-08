@@ -16,7 +16,7 @@ public final class Lexer {
 	private int chr;
 	private int intValue;
 	private int size;
-	private String text;
+	private String text = "";
 	private Location location;
 
 	public Lexer(@NotNull String text) {
@@ -39,7 +39,7 @@ public final class Lexer {
 	}
 
 	public TokenType next() {
-		text = null;
+		text = "";
 		intValue = 0;
 		size = 0;
 		location = new Location(line, column);
