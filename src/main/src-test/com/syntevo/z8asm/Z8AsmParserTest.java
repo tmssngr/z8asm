@@ -4,6 +4,7 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 
+import org.jetbrains.annotations.*;
 import org.junit.*;
 
 /**
@@ -15,48 +16,48 @@ public class Z8AsmParserTest {
 
 	@Test
 	public void testUB8830Rom() throws IOException {
-		assembleFile("src/main/examples/ub8830rom.asm");
+		assembleFileBinaryAscii(Path.of("src/main/examples/ub8830rom.asm"));
 	}
 
 	@Test
 	public void test2k() throws IOException {
-		assembleFile("src/main/examples/2k-1988.asm");
+		assembleFileBinaryAscii(Path.of("src/main/examples/2k-1988.asm"));
 	}
 
 	@Test
 	public void test4k() throws IOException {
-		assembleFile("src/main/examples/4k-1988.asm");
+		assembleFileBinaryAscii(Path.of("src/main/examples/4k-1988.asm"));
 	}
 
 	@Test
 	public void testES23() throws IOException {
-		assembleFile("src/main/examples/es2.3.asm");
+		assembleFileBinaryAscii(Path.of("src/main/examples/es2.3.asm"));
 	}
 
 	@Test
 	public void testES40() throws IOException {
-		assembleFile("src/main/examples/es4.0.asm");
+		assembleFileBinaryAscii(Path.of("src/main/examples/es4.0.asm"));
 	}
 
 	@Test
 	public void testVideo() throws IOException {
-		assembleFile("src/main/examples/video.asm");
+		assembleFileBinaryAscii(Path.of("src/main/examples/video.asm"));
 	}
 
 	@Test
 	public void testForth() throws IOException {
-		assembleFile("src/main/examples/forth.asm");
+		assembleFileBinaryAscii(Path.of("src/main/examples/forth.asm"));
 	}
 
 	@Test
 	public void testAsDis() throws IOException {
-		assembleFile("src/main/examples/asdis.asm");
+		assembleFileBinaryAscii(Path.of("src/main/examples/asdis.asm"));
 	}
 
 	@Test
 	public void testMissingLabel() {
 		try {
-			assemble("""
+			assembleAsString("""
 					         jp missing""");
 			Assert.fail();
 		}
@@ -64,7 +65,7 @@ public class Z8AsmParserTest {
 		}
 
 		try {
-			assemble("""
+			assembleAsString("""
 					         jp .1""");
 			Assert.fail();
 		}
@@ -75,7 +76,7 @@ public class Z8AsmParserTest {
 	@Test
 	public void testDuplicateLabels() {
 		try {
-			assemble("""
+			assembleAsString("""
 					         main:
 					           ld r0, #10
 					         main:
@@ -92,7 +93,7 @@ public class Z8AsmParserTest {
 	public void testDotLabels() {
 		final String expected = "0000  0c 0a d6 00 08 0a fb af  1c 0a ff 1a fd af\n";
 		Assert.assertEquals(expected,
-		                    assemble("""
+		                    assembleAsString("""
 				                             main:
 				                               ld r0, #10
 				                             main1:
@@ -108,7 +109,7 @@ public class Z8AsmParserTest {
 				                               ret
 				                             """));
 		Assert.assertEquals(expected,
-		                    assemble("""
+		                    assembleAsString("""
 				                             main:
 				                               ld r0, #10
 				                             .1:
@@ -125,7 +126,7 @@ public class Z8AsmParserTest {
 				                             """));
 
 		try {
-			assemble("""
+			assembleAsString("""
 					         .1:
 					           ld r0, #10
 					           call %1000
@@ -138,7 +139,7 @@ public class Z8AsmParserTest {
 		}
 
 		try {
-			assemble("""
+			assembleAsString("""
 					         main:
 					           ld r0, #10
 					         .1:
@@ -152,16 +153,26 @@ public class Z8AsmParserTest {
 		}
 	}
 
-	private static void assembleFile(String fileName) throws IOException {
-		List<Command> commands = Parser.parse(Path.of(fileName));
-		final Output output = Assembler.assemble(commands);
+	private static void assembleFileBinaryAscii(Path file) throws IOException {
+		final Output output = assemble(file);
 
-		try (Writer writer = Files.newBufferedWriter(Paths.get(fileName + ".expected"))) {
+		try (Writer writer = Files.newBufferedWriter(getExpectedFile(file))) {
 			output.print(writer);
 		}
 	}
 
-	private static String assemble(String input) {
+	@NotNull
+	private static Output assemble(Path file) throws IOException {
+		List<Command> commands = Parser.parse(file);
+		return Assembler.assemble(commands);
+	}
+
+	@NotNull
+	private static Path getExpectedFile(Path file) {
+		return file.resolveSibling(file.getFileName() + ".expected");
+	}
+
+	private static String assembleAsString(String input) {
 		final Lexer lexer = new Lexer(input);
 		final Parser parser = new Parser(lexer);
 		final List<Command> commands = parser.parse();
