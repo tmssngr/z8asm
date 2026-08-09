@@ -153,6 +153,32 @@ public class Z8AsmParserTest {
 		}
 	}
 
+	@Test
+	public void testLoHiImmediateLabels() {
+		Assert.assertEquals("0000  0c 80 1c 09 2c 80 3c 09  af\n",
+		                    assembleAsString("""
+				                               .org %8000
+				                             main:
+				                               ld r0, #hi(data)
+				                               ld r1, #lo(data)
+				                               ld r2, #data
+				                               ld r3, #data
+				                               ret
+				                             data:
+				                             """));
+		Assert.assertEquals("0000  e6 40 80 e6 41 0d e6 42  80 e6 43 0d af\n",
+		                    assembleAsString("""
+				                               .org %8000
+				                             main:
+				                               ld %40, #hi(data)
+				                               ld %41, #lo(data)
+				                               ld %42, #data
+				                               ld %43, #data
+				                               ret
+				                             data:
+				                             """));
+	}
+
 	private static void assembleFileBinaryAscii(Path file) throws IOException {
 		final Output output = assemble(file);
 

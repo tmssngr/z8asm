@@ -409,33 +409,26 @@ public final class Parser {
 
 	@NotNull
 	private Command createLdImmediate(int dst) {
-		final int immediate;
-		if (token == TokenType.INT_LITERAL) {
-			immediate = consumeIntValue();
-		}
-		else {
-			final Location location = getLocation();
-			String identifier = consumeIdentifier();
-			if (consumeIf(TokenType.L_PAREN)) {
-				identifier += "(" + consumeIdentifier() + ")";
-				consume(TokenType.R_PAREN);
+		final ImmediateCommandProvider provider = new ImmediateCommandProvider() {
+			@NotNull
+			@Override
+			public Command create(int immediate) {
+				if (isWorkReg(dst)) {
+					return content2(command(dst, 0xC), immediate);
+				}
+				return content3(0xE6, dst, immediate);
 			}
-			final Integer value = constToValue.get(identifier);
-			if (value != null) {
-				immediate = value;
-			}
-			else {
+
+			@NotNull
+			@Override
+			public Command createLazy(String identifier, Location location) {
 				if (isWorkReg(dst)) {
 					return lazyContent2(command(dst, 0xC), identifier, location);
 				}
 				return lazyContent3(0xE6, dst, identifier, location);
 			}
-		}
-
-		if (isWorkReg(dst)) {
-			return content2(command(dst, 0xC), immediate);
-		}
-		return content3(0xE6, dst, immediate);
+		};
+		return provider.run();
 	}
 
 	private Command createLdX(int highNibble) {
@@ -654,5 +647,34 @@ public final class Parser {
 
 	private static int command(int highNibble, int lowNibble) {
 		return ((highNibble & 0xF) << 4) + (lowNibble & 0xF);
+	}
+
+	private abstract class ImmediateCommandProvider {
+		@NotNull
+		protected abstract Command create(int immediate);
+
+		@NotNull
+		protected abstract Command createLazy(String identifier, Location location);
+
+		@NotNull
+		public final Command run() {
+			if (token == TokenType.INT_LITERAL) {
+				final int immediate = consumeIntValue();
+				return create(immediate);
+			}
+
+			final Location location = getLocation();
+			String identifier = consumeIdentifier();
+			if (consumeIf(TokenType.L_PAREN)) {
+				identifier += "(" + consumeIdentifier() + ")";
+				consume(TokenType.R_PAREN);
+			}
+			final Integer value = constToValue.get(identifier);
+			if (value != null) {
+				return create(value);
+			}
+
+			return createLazy(identifier, location);
+		}
 	}
 }
