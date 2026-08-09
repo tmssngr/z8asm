@@ -66,6 +66,7 @@ public final class Parser {
 				consume();
 				continue;
 			}
+			case ALIGN -> commands.add(handleAlign());
 			case CONST -> handleConst();
 			case DATA -> {
 				appendData(commands);
@@ -131,6 +132,18 @@ public final class Parser {
 
 			consume(TokenType.LINE_BREAK);
 		}
+	}
+
+	private Command handleAlign() {
+		consume();
+		final int alignment = consumeIntLiteral();
+		if (alignment < 2 || !isPowerOf2(alignment)) {
+			throw new SyntaxException("Expected a number the power of 2 (2, 4, 8, ...", getLocation());
+		}
+
+		consumeComma();
+		final int fillByte = consumeIntLiteral();
+		return Command.align(alignment, fillByte);
 	}
 
 	private void handleConst() {
@@ -656,6 +669,10 @@ public final class Parser {
 			bytes[i] = (byte)text.charAt(i);
 		}
 		commands.add(Command.content(bytes));
+	}
+
+	private static boolean isPowerOf2(int alignment) {
+		return (alignment & (alignment - 1)) == 0;
 	}
 
 	private static int command(int highNibble, int lowNibble) {

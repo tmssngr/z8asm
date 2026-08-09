@@ -68,11 +68,24 @@ public class Assembler {
 				allowOrg = false;
 				pc += command.size;
 			}
+			case ALIGN -> {
+				final int offset = getAlignmentOffset(command, pc);
+				pc += offset;
+			}
 			default -> throw new IllegalStateException("Unsupported command " + command);
 			}
 		}
 		labels.finishedInitialization();
 		return labels;
+	}
+
+	private int getAlignmentOffset(Command command, int pc) {
+		Utils.assertTrue(command.type == Command.Type.ALIGN);
+		final int alignment = (command.get(0) << 8) + command.get(1);
+		Utils.assertTrue(alignment > 0);
+		final int maxPc = pc + alignment - 1;
+		final int remainder = maxPc % alignment;
+		return maxPc - remainder - pc;
 	}
 
 	@NotNull
@@ -86,6 +99,15 @@ public class Assembler {
 			case CONTENT -> {
 				pc += command.size;
 				newCommands.add(command);
+			}
+			case ALIGN -> {
+				final int offset = getAlignmentOffset(command, pc);
+				if (offset > 0) {
+					final byte[] bytes = new byte[offset];
+					Arrays.fill(bytes, (byte)command.get(2));
+					newCommands.add(Command.content(bytes));
+					pc += offset;
+				}
 			}
 			case LAZY_CONTENT -> {
 				pc += command.size;

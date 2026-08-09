@@ -154,6 +154,15 @@ public class Z8AsmParserTest {
 	}
 
 	@Test
+	public void testAlign() {
+		Assert.assertEquals("0000  41 42 43 e7 e7 e7 e7 e7\n",
+		                    assembleAsString("""
+				                                     .data "ABC"
+				                                     .align 8, %e7
+				                                     """));
+	}
+
+	@Test
 	public void testLoHiImmediateLabels() {
 		Assert.assertEquals("0000  0c 80 1c 09 2c 80 3c 09  af\n",
 		                    assembleAsString("""

@@ -46,6 +46,10 @@ public final class Command {
 		return new Command(Type.LAZY_CONTENT, new byte[] {(byte)first, (byte)second, 0}, 3, text, location);
 	}
 
+	public static Command align(int alignment, int fillByte) {
+		return new Command(Type.ALIGN, new byte[] {(byte)(alignment >> 8), (byte)alignment, (byte)fillByte}, 0, "", Location.DUMMY);
+	}
+
 	public final Type type;
 	@Nullable private final byte[] values;
 	public final int size;
@@ -119,6 +123,6 @@ public final class Command {
 	}
 
 	public enum Type {
-		LABEL, ORG, CONTENT, LAZY_CONTENT
+		LABEL, ORG, CONTENT, ALIGN, LAZY_CONTENT
 	}
 }

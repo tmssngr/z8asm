@@ -150,6 +150,7 @@ public final class Lexer {
 		}
 
 		return switch (text.toLowerCase()) {
+			case ".align" -> TokenType.ALIGN;
 			case ".const" -> TokenType.CONST;
 			case ".data" -> TokenType.DATA;
 			case ".end" -> TokenType.END;
