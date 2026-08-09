@@ -177,6 +177,28 @@ public class Z8AsmParserTest {
 				                               ret
 				                             data:
 				                             """));
+		Assert.assertEquals("0000  06 e1 0d 16 e0 80 06 23  0d 16 22 80 af\n",
+		                    assembleAsString("""
+				                               .org %8000
+				                             main:
+				                               add r1, #lo(data)
+				                               adc r0, #hi(data)
+				                               add %23, #data
+				                               adc %22, #data
+				                               ret
+				                             data:
+				                             """));
+		Assert.assertEquals("0000  27 e1 0d 37 e0 80 27 13  0d 37 12 80 af\n",
+		                    assembleAsString("""
+				                               .org %8000
+				                             main:
+				                               sub @r1, #lo(data)
+				                               sbc @r0, #hi(data)
+				                               sub @%13, #data
+				                               sbc @%12, #data
+				                               ret
+				                             data:
+				                             """));
 	}
 
 	private static void assembleFileBinaryAscii(Path file) throws IOException {

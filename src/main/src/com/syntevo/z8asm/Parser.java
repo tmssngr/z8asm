@@ -223,8 +223,7 @@ public final class Parser {
 			final int dst = consumeRegister();
 			consumeComma();
 			if (consumeIfHash()) {
-				final int value = consumeIntLiteral();
-				return content3(command(highNibble, 7), dst, value);
+				return createBinaryImmediate(command(highNibble, 7), dst);
 			}
 			final int src = consumeRegister();
 			return content3(command(highNibble, 5), src, dst);
@@ -233,8 +232,7 @@ public final class Parser {
 		final int dst = consumeRegister();
 		consumeComma();
 		if (consumeIfHash()) {
-			final int value = consumeIntLiteral();
-			return content3(command(highNibble, 6), dst, value);
+			return createBinaryImmediate(command(highNibble, 6), dst);
 		}
 		if (isWorkReg(dst) && consumeIfAt()) {
 			final int src = consumeWorkRegister();
@@ -245,6 +243,24 @@ public final class Parser {
 			return content2(command(highNibble, 2), command(dst, src));
 		}
 		return content3(command(highNibble, 4), src, dst);
+	}
+
+	@NotNull
+	private Command createBinaryImmediate(int opCode, int dst) {
+		final ImmediateCommandProvider provider = new ImmediateCommandProvider() {
+			@NotNull
+			@Override
+			public Command create(int immediate) {
+				return content3(opCode, dst, immediate);
+			}
+
+			@NotNull
+			@Override
+			public Command createLazy(String identifier, Location location) {
+				return lazyContent3(opCode, dst, identifier, location);
+			}
+		};
+		return provider.run();
 	}
 
 	private Command createCall() {

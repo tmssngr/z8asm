@@ -135,6 +135,15 @@ public class Assembler {
 			return Command.content3(command.first, address >> 8, address);
 		}
 
+		final int higherNibble = command.first & 0xF0;
+		if (higherNibble <= 0x70) {
+			if (lowerNibble == 0x06 || lowerNibble == 0x07) {
+				final boolean defaultHigh = (command.second & 1) == 0;
+				final int value = resolveLabelHighOrLow(defaultHigh, command.text, command.location, labels);
+				return Command.content3(command.first, command.second, value);
+			}
+		}
+
 		if (command.first == 0xD6) {
 			Utils.assertTrue(command.size == 3);
 			final int address = labels.resolve(command.text, command.location);
