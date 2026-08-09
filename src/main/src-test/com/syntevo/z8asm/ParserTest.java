@@ -124,8 +124,7 @@ public class ParserTest {
 				Command.content1(0x40),
 				Command.content1(0x50),
 				Command.content1(0x60),
-				Command.content1(0x20),
-				Command.content1(0x00),
+				Command.content(new byte[] {0x20, 0}),
 				Command.lazyContent2(0, "FOO", new Location(1, 16))
 		), """
 				               .data %46 %16 %40 %50

@@ -177,7 +177,11 @@ public final class Parser {
 				commands.add(Command.lazyContent2(0, text, location));
 			}
 			else if (token == TokenType.STRING) {
+				final Location location = getLocation();
 				final String text = consumeText();
+				if (text.isEmpty()) {
+					throw new SyntaxException("Strings must not be empty.", location);
+				}
 				appendString(text, commands);
 			}
 			else if (token == TokenType.LENGTH_STRING) {
@@ -645,20 +649,13 @@ public final class Parser {
 	}
 
 	private void appendString(@NotNull String text, @NotNull List<Command> commands) {
-		int start = 0;
 		final int length = text.length();
+		Utils.assertTrue(length > 0);
+		final byte[] bytes = new byte[length];
 		for (int i = 0; i < length; i++) {
-			if (i - start == 2) {
-				commands.add(Command.content3(text.charAt(i - 2),
-				                              text.charAt(i - 1),
-				                              text.charAt(i)));
-				start = i + 1;
-			}
+			bytes[i] = (byte)text.charAt(i);
 		}
-		while (start < length) {
-			commands.add(Command.content1(text.charAt(start)));
-			start++;
-		}
+		commands.add(Command.content(bytes));
 	}
 
 	private static int command(int highNibble, int lowNibble) {

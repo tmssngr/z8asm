@@ -29,6 +29,11 @@ public final class Command {
 		return new Command(Type.CONTENT, new byte[] {(byte)first, (byte)second, (byte)third}, 3, "", Location.DUMMY);
 	}
 
+	public static Command content(byte[] bytes) {
+		Utils.assertTrue(bytes.length > 0);
+		return new Command(Type.CONTENT, Arrays.copyOf(bytes, bytes.length), bytes.length, "", Location.DUMMY);
+	}
+
 	public static Command lazyContent2(int first, @NotNull String text, @NotNull Location location) {
 		return new Command(Type.LAZY_CONTENT, new byte[]{(byte)first, 0}, 2, text, location);
 	}
