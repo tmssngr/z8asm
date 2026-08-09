@@ -1,15 +1,15 @@
         .ORG %C100
+
         .data "D" %95 %95 %95 %04 %F8 %38 %11
         CALL    %0CA9   ; getHexWordFromRR14_forgetCallerIfError
         JP      M_C352
-        NOP
-        NOP
+        .align 8, %ff
+
         .data "." %95 %95 %95 %08 %e8 %07 %51
         CALL    %0CA9   ; getHexWordFromRR14_forgetCallerIfError
         JP      M_C9B4
-        .repeat 226
-          NOP
-        .end
+        .align %100, %ff
+
 M_C200: .data     %F7 %F6 %F4 %F2 %E2 %D5 %C6 %C5 %C4 %97 %96 %95 %94 %87 %86 %85 %84 %7F %6F %5F %4F %3F %2F %1F %0F
         NOP
 
@@ -76,9 +76,8 @@ M_C21A: .data "LD"   %A0 ; ' ' 0
         .data "P"    %CC ; 'L' %3c
         .data "N"    %DA ; 'Z' %3d
         .data "N"    %C3 ; 'C' %3E
-        .repeat 13
-          NOP
-        .end
+        .align %10, %ff
+
 printHashPercentHex8:
         LD      R5, #'#'
 printCharPercentHex8:
@@ -564,9 +563,7 @@ M_C66B: LDE     R9, @RR10
         CALL    printAtReg
         JR      M_C668
 
-        .repeat 14
-          NOP
-        .end
+        .align %10, %ff
 
 M_C680: LD      R8, #%C2
         LD      R9, #%1A
@@ -637,8 +634,8 @@ M_C6DB: INC     R15
 M_C6EC: SCF
         RET
 
-        NOP
-        NOP
+        .align %10, %ff
+
 M_C6F0: LD      R3, R15
 M_C6F2: CP      @%13, #'R'
         JR      Z, M_C6F9

@@ -1048,7 +1048,7 @@ M_1000: LD      R0, #%40
         LD      R3, #1
         RET
 
-        NOP
+        .align %8, %FF
 
         ; char bitmap data
         .data %00 %18 %30 %7E %30 %18 %00 %00     ; 0x01
