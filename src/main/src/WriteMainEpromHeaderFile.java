@@ -8,7 +8,7 @@ import java.util.*;
 import com.syntevo.z8asm.*;
 
 import static com.syntevo.z8asm.Output.NL;
-import static com.syntevo.z8asm.Output.toHex;
+import static com.syntevo.z8asm.Utils.toHex;
 
 /**
  * @author Thomas Singer

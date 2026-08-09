@@ -20,12 +20,8 @@ public class Assembler {
 				throw new IllegalStateException(command.toString());
 			}
 
-			output.write(command.first);
-			if (command.size > 1) {
-				output.write(command.second);
-				if (command.size > 2) {
-					output.write(command.third);
-				}
+			for (int i = 0; i < command.size; i++) {
+				output.write(command.get(i));
 			}
 		}
 		return output;
@@ -65,7 +61,7 @@ public class Assembler {
 				if (!allowOrg) {
 					throw new SyntaxException(".org is only allowed before any content or label", command.location);
 				}
-				pc = command.first;
+				pc = getPc(command);
 			}
 			case CONTENT,
 			     LAZY_CONTENT -> {
@@ -86,7 +82,7 @@ public class Assembler {
 		for (Command command : commands) {
 			switch (command.type) {
 			case LABEL -> labels.processing(command.text);
-			case ORG -> pc = command.first;
+			case ORG -> pc = getPc(command);
 			case CONTENT -> {
 				pc += command.size;
 				newCommands.add(command);
@@ -102,11 +98,16 @@ public class Assembler {
 		return newCommands;
 	}
 
+	private int getPc(Command command) {
+		return (command.get(0) << 8) + command.get(1);
+	}
+
 	@NotNull
 	private Command resolve(@NotNull Command command, int pc, @NotNull Labels labels, @NotNull WarningOut out) {
 		Utils.assertTrue(command.type == Command.Type.LAZY_CONTENT);
 
-		final int lowerNibble = command.first & 0x0F;
+		final int opCode = command.get(0);
+		final int lowerNibble = opCode & 0x0F;
 		if (lowerNibble == 0x0A || lowerNibble == 0x0B) {
 			Utils.assertTrue(command.size == 2);
 			final int address = labels.resolve(command.text, command.location);
@@ -114,14 +115,14 @@ public class Assembler {
 			if (!isValidRelative(relative)) {
 				throw new SyntaxException("Target '" + command.text + "' too far away", command.location);
 			}
-			return Command.content2(command.first, relative);
+			return Command.content2(opCode, relative);
 		}
 
 		if (lowerNibble == 0x0C) {
 			Utils.assertTrue(command.size == 2);
-			final boolean defaultHigh = (command.first & 0x10) == 0;
+			final boolean defaultHigh = (opCode & 0x10) == 0;
 			final int value = resolveLabelHighOrLow(defaultHigh, command.text, command.location, labels);
-			return Command.content2(command.first, value);
+			return Command.content2(opCode, value);
 		}
 
 		if (lowerNibble == 0x0D) {
@@ -132,32 +133,34 @@ public class Assembler {
 				out.print(command.location + ": jp could be jr");
 			}
 
-			return Command.content3(command.first, address >> 8, address);
+			return Command.content3(opCode, address >> 8, address);
 		}
 
-		final int higherNibble = command.first & 0xF0;
+		final int higherNibble = opCode & 0xF0;
 		if (higherNibble <= 0x70) {
 			if (lowerNibble == 0x06 || lowerNibble == 0x07) {
-				final boolean defaultHigh = (command.second & 1) == 0;
+				final int register = command.get(1);
+				final boolean defaultHigh = (register & 1) == 0;
 				final int value = resolveLabelHighOrLow(defaultHigh, command.text, command.location, labels);
-				return Command.content3(command.first, command.second, value);
+				return Command.content3(opCode, register, value);
 			}
 		}
 
-		if (command.first == 0xD6) {
+		if (opCode == 0xD6) {
 			Utils.assertTrue(command.size == 3);
 			final int address = labels.resolve(command.text, command.location);
-			return Command.content3(command.first, address >> 8, address);
+			return Command.content3(opCode, address >> 8, address);
 		}
 
-		if (command.first == 0xE6) {
+		if (opCode == 0xE6) {
 			Utils.assertTrue(command.size == 3);
-			final boolean defaultHigh = (command.second & 1) == 0;
+			final int register = command.get(1);
+			final boolean defaultHigh = (register & 1) == 0;
 			final int value = resolveLabelHighOrLow(defaultHigh, command.text, command.location, labels);
-			return Command.content3(command.first, command.second, value);
+			return Command.content3(opCode, register, value);
 		}
 
-		if (command.first == 0) {
+		if (opCode == 0) {
 			Utils.assertTrue(command.size == 2);
 			final int address = labels.resolve(command.text, command.location);
 			return Command.content2(address >> 8, address);

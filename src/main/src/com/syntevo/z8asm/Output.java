@@ -9,39 +9,16 @@ import java.io.Writer;
  */
 public final class Output {
 
-	// Constants ==============================================================
-
 	public static final String NL = System.getProperty("line.separator", "\n");
-
-	// Static =================================================================
-
-	public static String toHex(int value, int digits) {
-		final StringBuilder builder = new StringBuilder(digits);
-		while (digits-- > 0) {
-			final int nibble = value & 0xF;
-			value >>= 4;
-			final int chr = nibble > 9
-					? 'a' + nibble - 10
-					: '0' + nibble;
-			builder.insert(0, (char) chr);
-		}
-		return builder.toString();
-	}
-
-	// Fields =================================================================
 
 	private final byte[] buffer;
 
 	private int offset;
 	private int pc;
 
-	// Setup ==================================================================
-
 	public Output() {
 		buffer = new byte[2 << 16];
 	}
-
-	// Accessing ==============================================================
 
 	public int getPc() {
 		return pc + offset;
@@ -75,13 +52,13 @@ public final class Output {
 				if (newline) {
 					writer.write(newLine);
 				}
-				writer.write(toHex(i, 4));
+				writer.write(Utils.toHex(i, 4));
 			}
 			if (i % 8 == 0) {
 				writer.write(" ");
 			}
 			writer.write(" ");
-			writer.write(byteToHex(i));
+			writer.write(Utils.toHex8(buffer[i]));
 			newline = true;
 		}
 
@@ -97,7 +74,7 @@ public final class Output {
 			}
 
 			writer.write("0x");
-			writer.write(byteToHex(i));
+			writer.write(Utils.toHex8(buffer[i]));
 
 			final boolean isLast = i + 1 == pc;
 			if (isLast) {
@@ -108,7 +85,7 @@ public final class Output {
 			}
 			if (isLast || i % 16 == 15) {
 				writer.write("// ");
-				writer.write(toHex((i - 1) & ~15, 4));
+				writer.write(Utils.toHex((i - 1) & ~15, 4));
 				writer.write(NL);
 			}
 		}
@@ -118,9 +95,9 @@ public final class Output {
 	public void printVerilog(Writer writer) throws IOException {
 		for (int i = 0; i < pc; i++) {
 			writer.write("memory[16'h");
-			writer.write(toHex(offset + i, 4));
+			writer.write(Utils.toHex(offset + i, 4));
 			writer.write("] = 8'h");
-			writer.write(byteToHex(i));
+			writer.write(Utils.toHex8(buffer[i]));
 			writer.write(";");
 			writer.write(NL);
 		}
@@ -134,17 +111,12 @@ public final class Output {
 		}
 
 		System.out.print("  ");
-		System.out.print(toHex(pc, 4));
+		System.out.print(Utils.toHex(pc, 4));
 		System.out.print(" ");
 		while (count-- > 0) {
 			System.out.print(" ");
-			System.out.print(byteToHex(pc++));
+			final int i = pc++;
+			System.out.print(Utils.toHex8(buffer[i]));
 		}
-	}
-
-	// Utils ==================================================================
-
-	private String byteToHex(int i) {
-		return toHex(buffer[i], 2);
 	}
 }

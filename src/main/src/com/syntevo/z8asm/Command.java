@@ -10,27 +10,27 @@ import org.jetbrains.annotations.*;
 public final class Command {
 
 	public static Command label(@NotNull String name, @NotNull Location location) {
-		return new Command(Type.LABEL, 0, 0, 0, 0, name, location);
+		return new Command(Type.LABEL, null, 0, name, location);
 	}
 
 	public static Command org(int value, @NotNull Location location) {
-		return new Command(Type.ORG, value, 0, 0, 0, "", location);
+		return new Command(Type.ORG, new byte[] {(byte)(value / 0x100), (byte)value}, 0, "", location);
 	}
 
 	public static Command content1(int first) {
-		return new Command(Type.CONTENT, first, 0, 0, 1, "", Location.DUMMY);
+		return new Command(Type.CONTENT, new byte[] {(byte)first}, 1, "", Location.DUMMY);
 	}
 
 	public static Command content2(int first, int second) {
-		return new Command(Type.CONTENT, first, second, 0, 2, "", Location.DUMMY);
+		return new Command(Type.CONTENT, new byte[] {(byte)first, (byte)second}, 2, "", Location.DUMMY);
 	}
 
 	public static Command content3(int first, int second, int third) {
-		return new Command(Type.CONTENT, first, second, third & 0xFF, 3, "", Location.DUMMY);
+		return new Command(Type.CONTENT, new byte[] {(byte)first, (byte)second, (byte)third}, 3, "", Location.DUMMY);
 	}
 
 	public static Command lazyContent2(int first, @NotNull String text, @NotNull Location location) {
-		return new Command(Type.LAZY_CONTENT, first, 0, 0, 2, text, location);
+		return new Command(Type.LAZY_CONTENT, new byte[]{(byte)first, 0}, 2, text, location);
 	}
 
 	public static Command lazyContent3(int first, @NotNull String text, @NotNull Location location) {
@@ -38,55 +38,79 @@ public final class Command {
 	}
 
 	public static Command lazyContent3(int first, int second, @NotNull String text, @NotNull Location location) {
-		return new Command(Type.LAZY_CONTENT, first, second, 0, 3, text, location);
+		return new Command(Type.LAZY_CONTENT, new byte[] {(byte)first, (byte)second, 0}, 3, text, location);
 	}
 
 	public final Type type;
-	public final int first;
-	public final int second;
-	public final int third;
+	@Nullable private final byte[] values;
 	public final int size;
 	public final String text;
 	public final Location location;
 
-	private Command(@NotNull Type type, int first, int second, int third, int size, @NotNull String text, Location location) {
+	private Command(@NotNull Type type, @Nullable byte[] values, int size, @NotNull String text, Location location) {
 		this.type = type;
-		this.first = first;
-		this.second = second;
-		this.third = third;
+		this.values = values;
 		this.size = size;
 		this.text = text;
 		this.location = location;
 	}
 
 	@Override
-	public String toString() {
-		return "Command{" +
-		       "type=" + type +
-		       ", first=" + first +
-		       ", second=" + second +
-		       ", third=" + third +
-		       ", size=" + size +
-		       ", text='" + text + '\'' +
-		       ", location=" + location +
-		       "}";
-	}
-
-	@Override
 	public boolean equals(Object o) {
-		if (this == o) {
-			return true;
-		}
 		if (o == null || getClass() != o.getClass()) {
 			return false;
 		}
 		final Command command = (Command)o;
-		return first == command.first && second == command.second && third == command.third && size == command.size && type == command.type && Objects.equals(text, command.text) && Objects.equals(location, command.location);
+		return size == command.size
+		       && type == command.type
+		       && Objects.equals(text, command.text)
+		       && Objects.deepEquals(values, command.values)
+		       && Objects.equals(location, command.location);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(type, first, second, third, size, text, location);
+		return Objects.hash(type, Arrays.hashCode(values), size, text, location);
+	}
+
+	@NotNull
+	@Override
+	public String toString() {
+		final StringBuilder buffer = new StringBuilder();
+		buffer.append("Command{");
+		buffer.append("type=");
+		buffer.append(type);
+		buffer.append(", values=");
+		if (values != null) {
+			buffer.append("[");
+			for (int i = 0; i < values.length; i++) {
+				byte value = values[i];
+				if (i > 0) {
+					buffer.append(", ");
+				}
+				buffer.append(Utils.toHex8(value));
+			}
+			buffer.append("]");
+		}
+		else {
+			buffer.append("null");
+		}
+		buffer.append(", size=");
+		buffer.append(size);
+		buffer.append(", text='");
+		buffer.append(text);
+		buffer.append('\'');
+		buffer.append(", location=");
+		buffer.append(location);
+		buffer.append('}');
+		return buffer.toString();
+	}
+
+	public int get(int index) {
+		if (values == null) {
+			throw new IllegalArgumentException();
+		}
+		return (int)values[index] & 0xFF;
 	}
 
 	public enum Type {
