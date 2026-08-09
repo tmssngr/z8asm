@@ -60,6 +60,11 @@ public class Z8AsmParserTest {
 	}
 
 	@Test
+	public void testOthello() throws IOException {
+		assembleFileBinaryAscii(Path.of("src/main/examples/othello.asm"));
+	}
+
+	@Test
 	public void testAlgorithms() throws IOException {
 		assembleFileBinary(Path.of("src/main/examples/algorithms.asm"));
 	}
