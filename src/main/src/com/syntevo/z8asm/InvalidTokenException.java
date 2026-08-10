@@ -11,4 +11,9 @@ public final class InvalidTokenException extends RuntimeException {
 		super(message);
 		this.location = location;
 	}
+
+	@Override
+	public String toString() {
+		return location + " " + getMessage();
+	}
 }
