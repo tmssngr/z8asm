@@ -63,6 +63,11 @@ public class AssemblerTest {
 	}
 
 	@Test
+	public void testMines() throws IOException {
+		assembleFileBinaryAscii(Path.of("src/main/examples/mines.asm"));
+	}
+
+	@Test
 	public void testAlgorithms() throws IOException {
 		assembleFileBinary(Path.of("src/main/examples/algorithms.asm"));
 	}
