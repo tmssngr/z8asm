@@ -69,6 +69,9 @@ public class ParserTest {
 		assertCommand(Command.content3(0xE7, 0x5A, 0x3d), "LD @%5A, #%3D");
 		assertCommand(Command.content3(0xC7, 0x26, 0x9E), "LD R2, %9E(R6)");
 		assertCommand(Command.content3(0xD7, 0xA0, 0xF0), "LD %F0(R0), R10");
+
+		assertCommand(Command.lazyContent2(0x2c, "foo", new Location(0, 8)), "LD R2, #foo");
+		assertCommand(Command.lazyContent3(0xe6, 0x20, "foo", new Location(0, 9)), "LD %20, #foo");
 	}
 
 	@Test
@@ -209,6 +212,15 @@ public class ParserTest {
 		assertCommand(Command.content3(opCode + 6, 0x65, 0x0d), ".const NEWLINE = %0d\n"
 		                                                        + mnemonic + " %65, #NEWLINE");
 		assertCommand(Command.content3(opCode + 7, 0xEB, 0x0F), mnemonic + " @R11, #%0F");
+		assertCommand(Command.content3(opCode + 7, 0x65, 0x0d), ".const NEWLINE = %0d\n"
+		                                                        + mnemonic + " @%65, #NEWLINE");
+
+		assertCommand(Command.lazyContent3(opCode + 6, 0x50, "foo",
+		                                   new Location(0, mnemonic.length() + 7)),
+		              mnemonic + " %50, #foo");
+		assertCommand(Command.lazyContent3(opCode + 7, 0x51, "foo",
+		                                   new Location(0, mnemonic.length() + 8)),
+		              mnemonic + " @%51, #foo");
 	}
 
 	private void assertCommand(Command expected, String input) {
