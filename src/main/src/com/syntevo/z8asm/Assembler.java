@@ -51,7 +51,7 @@ public class Assembler {
 				pc += command.size;
 			}
 			case ALIGN -> {
-				final int offset = getAlignmentOffset(command, pc);
+				final int offset = getAlignmentOffset(command.get16bitValue(), pc);
 				pc += offset;
 			}
 			default -> throw new IllegalStateException("Unsupported command " + command);
@@ -61,9 +61,7 @@ public class Assembler {
 		return labels;
 	}
 
-	private int getAlignmentOffset(Command command, int pc) {
-		Utils.assertTrue(command.type == Command.Type.ALIGN);
-		final int alignment = command.get16bitValue();
+	private int getAlignmentOffset(int alignment, int pc) {
 		Utils.assertTrue(alignment > 0);
 		final int maxPc = pc + alignment - 1;
 		final int remainder = maxPc % alignment;
@@ -85,7 +83,7 @@ public class Assembler {
 			}
 			case CONTENT -> pc += command.size;
 			case ALIGN -> {
-				final int offset = getAlignmentOffset(command, pc);
+				final int offset = getAlignmentOffset(command.get16bitValue(), pc);
 				if (offset > 0) {
 					final byte[] bytes = new byte[offset];
 					Arrays.fill(bytes, (byte)command.get(2));
