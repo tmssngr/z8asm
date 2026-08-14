@@ -43,7 +43,7 @@ public class Assembler {
 				if (!allowOrg) {
 					throw new SyntaxException(".org is only allowed before any content or label", command.location);
 				}
-				pc = getPc(command);
+				pc = command.get16bitValue();
 			}
 			case CONTENT,
 			     LAZY_CONTENT -> {
@@ -63,7 +63,7 @@ public class Assembler {
 
 	private int getAlignmentOffset(Command command, int pc) {
 		Utils.assertTrue(command.type == Command.Type.ALIGN);
-		final int alignment = (command.get(0) << 8) + command.get(1);
+		final int alignment = command.get16bitValue();
 		Utils.assertTrue(alignment > 0);
 		final int maxPc = pc + alignment - 1;
 		final int remainder = maxPc % alignment;
@@ -80,7 +80,7 @@ public class Assembler {
 				commands.set(i, null);
 			}
 			case ORG -> {
-				pc = getPc(command);
+				pc = command.get16bitValue();
 				commands.set(i, null);
 			}
 			case CONTENT -> pc += command.size;
@@ -105,10 +105,6 @@ public class Assembler {
 			default -> throw new IllegalStateException("Unsupported command " + command);
 			}
 		}
-	}
-
-	private int getPc(Command command) {
-		return (command.get(0) << 8) + command.get(1);
 	}
 
 	@NotNull

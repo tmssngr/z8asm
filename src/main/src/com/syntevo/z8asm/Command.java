@@ -122,6 +122,10 @@ public final class Command {
 		return (int)values[index] & 0xFF;
 	}
 
+	public int get16bitValue() {
+		return (get(0) << 8) + get(1);
+	}
+
 	public enum Type {
 		LABEL, ORG, CONTENT, ALIGN, LAZY_CONTENT
 	}
