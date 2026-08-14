@@ -1,8 +1,9 @@
 package com.syntevo.z8asm;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.Writer;
+import java.io.*;
+import java.util.*;
+
+import org.jetbrains.annotations.*;
 
 /**
  * @author Thomas Singer
@@ -10,6 +11,22 @@ import java.io.Writer;
 public final class Output {
 
 	public static final String NL = System.getProperty("line.separator", "\n");
+
+	@NotNull
+	public static Output create(@NotNull List<Command> commands) {
+		final Output output = new Output();
+
+		for (Command command : commands) {
+			if (command.type != Command.Type.CONTENT) {
+				throw new IllegalStateException(command.toString());
+			}
+
+			for (int i = 0; i < command.size; i++) {
+				output.write(command.get(i));
+			}
+		}
+		return output;
+	}
 
 	private final byte[] buffer;
 

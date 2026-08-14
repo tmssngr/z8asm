@@ -14,17 +14,7 @@ public class Assembler {
 		final Assembler assembler = new Assembler(commands);
 		final List<Command> newCommands = assembler.assemble();
 
-		final Output output = new Output();
-		for (Command command : newCommands) {
-			if (command.type != Command.Type.CONTENT) {
-				throw new IllegalStateException(command.toString());
-			}
-
-			for (int i = 0; i < command.size; i++) {
-				output.write(command.get(i));
-			}
-		}
-		return output;
+		return Output.create(newCommands);
 	}
 
 	private final List<Command> commands;
