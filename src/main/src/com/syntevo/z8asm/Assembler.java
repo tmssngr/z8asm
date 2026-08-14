@@ -116,7 +116,7 @@ public class Assembler {
 			final int address = labels.resolve(command.text, command.location);
 			final int relative = address - pc;
 			if (!isValidRelative(relative)) {
-				throw new SyntaxException("Target '" + command.text + "' too far away", command.location);
+				throw new SyntaxException("Target '" + command.text + "' too far away (" + relative + ")", command.location);
 			}
 			return Command.content2(opCode, relative);
 		}
