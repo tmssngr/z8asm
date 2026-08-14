@@ -22,8 +22,9 @@ public class Assembler {
 	public List<Command> assemble(List<Command> commands, @NotNull WarningOut out) {
 		commands = new ArrayList<>(commands);
 		final Labels labels = determineLabels(commands);
-		commands = resolveLazyCommands(commands, labels, out);
+		resolveLazyCommands(commands, labels, out);
 		labels.reportUnused(out);
+		commands.removeIf(Objects::isNull);
 		return commands;
 	}
 
@@ -69,36 +70,41 @@ public class Assembler {
 		return maxPc - remainder - pc;
 	}
 
-	@NotNull
-	private List<Command> resolveLazyCommands(@NotNull List<Command> commands, @NotNull Labels labels, @NotNull WarningOut out) {
+	private void resolveLazyCommands(@NotNull List<Command> commands, @NotNull Labels labels, @NotNull WarningOut out) {
 		int pc = 0;
-		final List<Command> newCommands = new ArrayList<>();
-		for (Command command : commands) {
+		for (int i = 0; i < commands.size(); i++) {
+			final Command command = commands.get(i);
 			switch (command.type) {
-			case LABEL -> labels.processing(command.text);
-			case ORG -> pc = getPc(command);
-			case CONTENT -> {
-				pc += command.size;
-				newCommands.add(command);
+			case LABEL -> {
+				labels.processing(command.text);
+				commands.set(i, null);
 			}
+			case ORG -> {
+				pc = getPc(command);
+				commands.set(i, null);
+			}
+			case CONTENT -> pc += command.size;
 			case ALIGN -> {
 				final int offset = getAlignmentOffset(command, pc);
 				if (offset > 0) {
 					final byte[] bytes = new byte[offset];
 					Arrays.fill(bytes, (byte)command.get(2));
-					newCommands.add(Command.content(bytes));
+					commands.set(i, Command.content(bytes));
 					pc += offset;
+				}
+				else {
+					commands.set(i, null);
 				}
 			}
 			case LAZY_CONTENT -> {
 				pc += command.size;
 
-				newCommands.add(resolve(command, pc, labels, out));
+				final Command resolvedCommand = resolve(command, pc, labels, out);
+				commands.set(i, resolvedCommand);
 			}
 			default -> throw new IllegalStateException("Unsupported command " + command);
 			}
 		}
-		return newCommands;
 	}
 
 	private int getPc(Command command) {
