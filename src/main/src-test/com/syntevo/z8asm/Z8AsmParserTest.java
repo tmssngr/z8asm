@@ -221,7 +221,8 @@ public class Z8AsmParserTest {
 	@NotNull
 	private static Output assemble(Path file) throws IOException {
 		List<Command> commands = Parser.parse(file);
-		return Assembler.assemble(commands);
+		final List<Command> newCommands = Assembler.assemble(commands);
+		return Output.create(newCommands);
 	}
 
 	@NotNull
@@ -234,7 +235,8 @@ public class Z8AsmParserTest {
 		final Parser parser = new Parser(lexer);
 		final List<Command> commands = parser.parse();
 
-		final Output output = Assembler.assemble(commands);
+		final List<Command> newCommands = Assembler.assemble(commands);
+		final Output output = Output.create(newCommands);
 		final StringWriter writer = new StringWriter(1024);
 		try {
 			output.print(writer, "\n");

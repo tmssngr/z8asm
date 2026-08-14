@@ -17,7 +17,8 @@ public class Main {
 
 		final Path asmFile = Paths.get(args[0]);
 		final List<Command> commands = Parser.parse(asmFile);
-		final Output output = Assembler.assemble(commands);
+		final List<Command> newCommands = Assembler.assemble(commands);
+		final Output output = Output.create(newCommands);
 		try (OutputStream stream = Files.newOutputStream(Paths.get("output.bin"))) {
 			output.write(stream);
 		}

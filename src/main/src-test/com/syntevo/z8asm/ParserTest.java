@@ -177,8 +177,7 @@ public class ParserTest {
 				                                              M_0812: jp M_0812
 				                                              """);
 
-		final Assembler assembler = new Assembler(commands);
-		final List<Command> newCommands = assembler.assemble();
+		final List<Command> newCommands = Assembler.assemble(commands);
 		assertEquals(List.of(
 				Command.content3(0x8d, 0xe0, 0),
 				Command.content3(0x8d, 0xe0, 3),

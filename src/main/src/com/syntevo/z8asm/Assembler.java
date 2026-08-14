@@ -10,34 +10,25 @@ import org.jetbrains.annotations.*;
 public class Assembler {
 
 	@NotNull
-	public static Output assemble(List<Command> commands) {
-		final Assembler assembler = new Assembler(commands);
-		final List<Command> newCommands = assembler.assemble();
-
-		return Output.create(newCommands);
+	public static List<Command> assemble(List<Command> commands) {
+		final Assembler assembler = new Assembler();
+		return assembler.assemble(commands, System.out::println);
 	}
 
-	private final List<Command> commands;
-
-	public Assembler(@NotNull List<Command> commands) {
-		this.commands = commands;
+	public Assembler() {
 	}
 
 	@NotNull
-	public List<Command> assemble() {
-		return assemble(System.out::println);
-	}
-
-	@NotNull
-	public List<Command> assemble(@NotNull WarningOut out) {
-		final Labels labels = determineLabels();
-		final List<Command> commands = resolveLazyCommands(labels, out);
+	public List<Command> assemble(List<Command> commands, @NotNull WarningOut out) {
+		commands = new ArrayList<>(commands);
+		final Labels labels = determineLabels(commands);
+		commands = resolveLazyCommands(commands, labels, out);
 		labels.reportUnused(out);
 		return commands;
 	}
 
 	@NotNull
-	private Labels determineLabels() {
+	private Labels determineLabels(List<Command> commands) {
 		final Labels labels = new Labels();
 		boolean allowOrg = true;
 		int pc = 0;
@@ -79,7 +70,7 @@ public class Assembler {
 	}
 
 	@NotNull
-	private List<Command> resolveLazyCommands(@NotNull Labels labels, @NotNull WarningOut out) {
+	private List<Command> resolveLazyCommands(@NotNull List<Command> commands, @NotNull Labels labels, @NotNull WarningOut out) {
 		int pc = 0;
 		final List<Command> newCommands = new ArrayList<>();
 		for (Command command : commands) {

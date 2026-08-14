@@ -27,6 +27,7 @@ public class WriteVerilogFile {
 
 	private static Output buildAst(Path asmFile) throws IOException {
 		final List<Command> commands = Parser.parse(asmFile);
-		return Assembler.assemble(commands);
+		final List<Command> newCommands = Assembler.assemble(commands);
+		return Output.create(newCommands);
 	}
 }
