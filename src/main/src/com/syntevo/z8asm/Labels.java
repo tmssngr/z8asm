@@ -46,9 +46,7 @@ public final class Labels {
 		}
 
 		currentGlobalLabel = globalLabels.get(text);
-		if (currentGlobalLabel == null) {
-			throw new IllegalStateException();
-		}
+		Utils.assertTrue(currentGlobalLabel != null);
 	}
 
 	public int resolve(@NotNull String text, @NotNull Location location) {
