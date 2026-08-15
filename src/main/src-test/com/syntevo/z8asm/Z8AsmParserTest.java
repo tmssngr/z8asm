@@ -40,6 +40,11 @@ public class Z8AsmParserTest {
 	}
 
 	@Test
+	public void testES45() throws IOException {
+		assembleFileBinaryAscii(Path.of("src/main/examples/es4.5.asm"));
+	}
+
+	@Test
 	public void testVideo() throws IOException {
 		assembleFileBinaryAscii(Path.of("src/main/examples/video.asm"));
 	}
