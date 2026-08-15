@@ -104,6 +104,9 @@ public final class Lexer {
 		if (chr == '\'') {
 			consume();
 			final String text = detectStringOrChar(false, '\'');
+			if (text.length() != 1) {
+				throw new InvalidTokenException("Invalid char literal", location);
+			}
 			intValue = text.charAt(0);
 			size = 1;
 			return TokenType.INT_LITERAL;

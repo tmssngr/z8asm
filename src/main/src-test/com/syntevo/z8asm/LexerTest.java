@@ -130,6 +130,34 @@ public class LexerTest {
 				assertEof();
 			}
 		}.test();
+
+		new LexerTester("''") {
+			@Override
+			protected void test() {
+				assertInvalidTokenException("An empty string can only be done with L\"\"", 0, 0);
+			}
+		}.test();
+
+		new LexerTester(" 'ab'") {
+			@Override
+			protected void test() {
+				assertInvalidTokenException("Invalid char literal", 0, 1);
+			}
+		}.test();
+
+		new LexerTester(" '") {
+			@Override
+			protected void test() {
+				assertInvalidTokenException("A char must end with a quote", 0, 1);
+			}
+		}.test();
+
+		new LexerTester(" \"") {
+			@Override
+			protected void test() {
+				assertInvalidTokenException("String must end with a double-quote", 0, 2);
+			}
+		}.test();
 	}
 
 	@Test
