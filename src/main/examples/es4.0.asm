@@ -84,10 +84,10 @@ M_083A: PUSH    RP
         LD      R2, #0
         LD      R4, #%60
         LD      R5, #0b1110_1111
-        LD      P01M, #%B2
-M_0850: TM      %3, #4      ; while P32(BUSY)==0 {}
-        JR      NZ, M_0850  ; -"-
-M_0855: LDE     @RR4, R5
+        LD      P01M, #%B2  ; extended memory timing, P04-P07 = A12-A15, P10-P17 = AD0-AD7, P00-P03 = A8-A11
+.1:     TM      %3, #4      ; while P32(BUSY)==0 {}
+        JR      NZ, .1      ; -"-
+.2:     LDE     @RR4, R5
         LD      R8, #%31
         RRC     R10
         RLC     R8
@@ -96,7 +96,7 @@ M_0855: LDE     @RR4, R5
         OR      R9, @R8    ; read R2(%62) or R3(%63), depending on Bit0(R10)
         LDE     @RR0, R9
         RL      R5
-        JR      C, M_0855
+        JR      C, .2
         LD      P01M, #%92
         POP     RP
         RET
@@ -115,8 +115,8 @@ M_0870: SRP     #%F0
         SRP     #%50
         LD      R4, #0
         LD      R5, #%57
-        LD      R6, #%1C            ; M_1C0E
-        LD      R7, #%0E
+        LD      R6, #M_1C0E
+        LD      R7, #M_1C0E
         CALL    M_0910              ; init timer/interrupts
         SRP     #%60
         LD      R7, #%10            ; default char bitmap address starting at #1000
@@ -132,11 +132,11 @@ M_0870: SRP     #%F0
         LD      R1, #%E0
         LD      R2, #%FF
         LD      R3, #%E0
-M_08A0: LDE     R4, @RR0
+.1:     LDE     R4, @RR0
         LDE     @RR2, R4
         INC     R1
         INC     R3
-        JR      NZ, M_08A0          ; }
+        JR      NZ, .1              ; }
         CLR     %8
         CLR     %7
         LD      %6, #%E0
@@ -148,31 +148,33 @@ M_08A0: LDE     R4, @RR0
         JP      M_0949
 
         ; in: %53
-        ;     %5B
-        ;     %5C
+        ;     %5B cursor column
+        ;     %5C cursor row
         ; out: %4F
         ;      %51
 M_08E0: PUSH    RP
         SRP     #%50
         OR      R3, R3
         JR      NZ, M_08EF
-M_08E8: LD      %51, R12
+        LD      %51, R12
         LD      %4F, R11
 M_08EC: POP     RP
         RET
 
 M_08EF: DJNZ    R3, M_0901
-        CP      %51, #%18       ; %53 was 1
-        JR      NC, M_08EC      ; >= 24
-        CP      %4F, #%28
-        JR      NC, M_08EC      ; >= 40
+        ; %53 was 1
+        CP      %51, #ROWS
+        JR      UGE, M_08EC
+        CP      %4F, #COLUMNS
+        JR      UGE, M_08EC
         LD      R12, %51
         LD      R11, %4F
         JR      M_08EC
 
 M_0901: DJNZ    R3, M_08EC
-        PUSH    %5B             ; %53 was 2
-        PUSH    %5C
+        ; %53 was 2
+        PUSH    %5B             ; cursor column
+        PUSH    %5C             ; cursor row
         LD      R12, %51
         LD      R11, %4F
         SRP     #%60
@@ -395,7 +397,7 @@ M_0ABE: INCW    R0
 M_0ACA: CALL    M_0818      ; PTC
         CP      R5, #%0D
         JR      NZ, M_0ABE
-        CALL    M_081E
+        CALL    M_081E          ;WKEY
         CP      R3, #' '
         JR      NZ, M_0AAA
         INCW    R0
@@ -413,10 +415,10 @@ M_0AE0: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         CALL    M_0CDC      ; getHexByteFromRR14
         JR      C, M_0AFF   ; no hex digit -> ret
-M_0AEF: LDE     @RR8, R13
+.1:     LDE     @RR8, R13
         INCW    R8
-M_0AF3: DECW    R10
-        JR      NZ, M_0AEF
+        DECW    R10
+        JR      NZ, .1
 M_0AF7: CALL    M_082D      ; print
         .data "Mon\r\0"
 M_0AFF: ret
@@ -479,12 +481,11 @@ M_0C0D: LD      %58, #%FF
         CALL    M_0815      ; GTC
         LD      R15, #0
         LD      R14, #%F7
-;M_0C1A:
         LDE     R0, @RR14   ; read first char in line
         INC     R15
-        LD      R12, #%0C   ; read data from 0c39 into r1
-        LD      R13, #%39
-M_0C21: LD      R1, #%10
+        LD      R12, #M_0C39   ; read data from 0c39 into r1
+        LD      R13, #M_0C39
+        LD      R1, #%10
 M_0C23: LDE     R2, @RR12
         INC     R13
         CP      R2, R0
@@ -545,8 +546,8 @@ M_0C8A: JP      M_0818      ; PTC
 M_0C8D: LD      R5, #%0D
         JR      M_0C8A
 
-M_0C91: CALL    M_0C8D      ; println
-        CALL    M_081E
+M_0C91: CALL    M_0C8D          ; println
+        CALL    M_081E          ;WKEY
         JP      M_0DFA
 
         NOP
@@ -690,7 +691,7 @@ M_0D56: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         LD      %23, R11
         LD      %60, R14
         LD      %61, R15
-        CALL    M_0821
+        CALL    M_0821          ;SAVE
         JR      M_0DAD
 
         NOP
@@ -723,7 +724,7 @@ M_0D93: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         LD      %21, R11
         LD      %60, R14
         LD      %61, R15
-        CALL    M_0824
+        CALL    M_0824          ;LOAD
         LD      R8, %22
         LD      R9, %23
         CALL    M_0C69      ; printHexWord
@@ -778,6 +779,7 @@ M_0DFA: CP      %13, #' '
         CALL    M_1905
         OR      R3, R3
 M_0E06: RET
+
         NOP
         NOP
 M_0E09: CP      R6, #%3A
@@ -816,6 +818,7 @@ M_0E48: INCW    R0
         JR      NZ, M_0E48
         INCW    R0
         JR      M_0E2E
+
 M_0E55: LD      R6, R0
         LD      R7, R1
         INCW    R6
@@ -835,6 +838,7 @@ M_0E6A: LDE     R10, @RR6
 M_0E76: INCW    R6
         INCW    R8
         JR      M_0E6A
+
 M_0E7C: LD      R2, R8
         LD      R3, R9
 M_0E80: DEC     R15
@@ -921,7 +925,7 @@ M_0F0A: PUSH    RP
         CLR     %53
         LD      R4, #%60
         LD      R5, #%EF
-        LD      P01M, #%B2
+        LD      P01M, #%B2  ; extended memory timing, P04-P07 = A12-A15, P10-P17 = AD0-AD7, P00-P03 = A8-A11
 M_0F1A: TM      %3, #0b0000_0100        ; wait until P32(BUSY) == 0
         JR      NZ, M_0F1A
 M_0F1F: LDE     @RR4, R5
@@ -933,44 +937,48 @@ M_0F1F: LDE     @RR4, R5
 M_0F29: RRC     %53
         RL      R5
         JR      C, M_0F1F
-        LD      P01M, #%92
+        LD      P01M, #%92          ; P01M: P04-P07 = A12-A15
+                                    ;       normal external memory timing
+                                    ;       P10-P17 = AD0-AD7
+                                    ;       external Stack
+                                    ;       P00-P03 = A8-A11
         SWAP    %53
         POP     RP
 M_0F36: RET
 
 M_0F37: LD      R12, #%80
         LD      R13, #0
-M_0F3B: LDE     R2, @RR12
+.1:     LDE     R2, @RR12
         CP      R2, R0
-        JR      Z, M_0F4E
-M_0F41: AND     R13, #%F0
+        JR      Z, .3
+.2:     AND     R13, #%F0
         ADD     R13, #%10
         ADC     R12, #0
-        JR      Z, M_0F7A
-        JR      M_0F3B
-M_0F4E: INC     R13
+        JR      Z, .7
+        JR      .1
+.3:     INC     R13
         LD      R1, #3
-M_0F51: LDE     R2, @RR12
+.4:     LDE     R2, @RR12
         CP      R2, #%95
-        JR      NZ, M_0F41
+        JR      NZ, .2
         INC     R13
-        DJNZ    R1, M_0F51
+        DJNZ    R1, .4
         LD      R1, #4
         LD      R2, #%18
-M_0F5F: LDEI    @R2, @RR12
-        DJNZ    R1, M_0F5F
+.5:     LDEI    @R2, @RR12
+        DJNZ    R1, .5
         LD      R2, R12
         LD      R3, R13
-M_0F67: LDE     R1, @RR2
+.6:     LDE     R1, @RR2
         ADD     R11, R1
         ADC     R10, #0
         INCW    R2
         DECW    R8
-        JR      NZ, M_0F67
+        JR      NZ, .6
         OR      R10, R11
-        JR      NZ, M_0F41
+        JR      NZ, .2
         CALL    @%1C
-M_0F7A: JP      M_0C0D
+.7:     JP      M_0C0D
 
         ; M
 M_0F7D: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
@@ -1009,14 +1017,14 @@ M_0FB8: JP      M_0AF7
         ; out: %50/%51
         ;      %53
         ; expects RP==%50
-M_0FBB: CP      %51, #%C0   ; >= 192
-        JR      NC, M_1000
+M_0FBB: CP      %51, #192
+        JR      UGE, M_1000
         OR      %4E, %4E    ; == 0
         JR      Z, M_0FCA
-        CP      %4F, #%40   ; >= 64/'@'
-        JR      NC, M_1000
+        CP      %4F, #%40   ; >= 64
+        JR      UGE, M_1000
 M_0FCA: LD      R11, %51    ; { ld r0, 0B00+%51
-        LD      R10, #%0B
+        LD      R10, #M_0B00
         LDC     R0, @RR10   ; }
         LD      R3, #0b1110_0000
         AND     R3, R0
@@ -1818,7 +1826,7 @@ M_1800: .data %40 %41 %42 %44 %45 %46 %48 %49  %4a %4c %4d %4e %50 %51 %52 %54  
         ; out rr4 = video start address for char at [row, column]
         ; destroys rr0
         ; expects: RP=%60
-M_1830: LD      R0, #%18
+M_1830: LD      R0, #M_1800
         LD      R1, %5C
         LDC     R4, @RR0
         ADD     R1, #ROWS
@@ -1888,7 +1896,7 @@ M_1887: RCF                 ; r2 * 8 -> char bitmap memory address
         LD      R8, #%F7    ; #F7A0
         LD      R9, #%A0
         LDE     R9, @RR8
-M_189C: LD      R8, #%60
+        LD      R8, #%60
         LD      P01M, #%B2  ; extended memory timing, P04-P07 = A12-A15, P10-P17 = AD0-AD7, P00-P03 = A8-A11
 M_18A1: LDE     @RR8, R9    ; #60xx color?
         LDE     R1, @RR2    ; rr2=char map
@@ -2204,10 +2212,10 @@ M_1AF0: PUSH    RP
         PUSH    R1
         PUSH    R0
         LD      R1, #%10
-M_1AFA: XOR     %3, #%40    ; toggle P36
+.1:     XOR     %3, #%40    ; toggle P36
         LD      R0, #%60
-M_1AFF: DJNZ    R0, M_1AFF  ; wait ~1.152ms
-        DJNZ    R1, M_1AFA  ; toggle P35 16x
+.2:     DJNZ    R0, .2      ; wait ~1.152ms
+        DJNZ    R1, .1      ; toggle P35 16x
         POP     R0
         POP     R1
         POP     RP
@@ -2222,33 +2230,33 @@ M_1B0A: PUSH    RP
         LD      R0, #0
         LD      R2, #0
         LD      R5, #%0F
-M_1B1B: LD      R4, #%7F    ; read keyboard matrix from 7f00
+.1:     LD      R4, #%7F    ; read keyboard matrix from 7f00
         LDC     R3, @RR4
         PUSH    R5
         LD      R1, #4      ; line numbers
-M_1B23: RLC     R3
-        JR      NC, M_1B37
-        LD      R4, #%1D    ; key pressed
+.2:     RLC     R3
+        JR      NC, .4
+        LD      R4, #M_1D00 ; key pressed
         LDE     R8, @RR4    ; get keycode from table
         CP      R8, #%B0
-        JR      NC, M_1B35  ; >=
+        JR      UGE, .3
         LD      R2, #%80
         OR      R2, R5
         .data %0d         ; jp f = skip next 2 bytes
-M_1B35: LD      R0, R8
-M_1B37: ADD     R5, #%10
-        DJNZ    R1, M_1B23
+.3:     LD      R0, R8
+.4:     ADD     R5, #%10
+        DJNZ    R1, .2
         NOP
         POP     R5
         DEC     R5
-        JR      PL, M_1B1B  ; >= 0? next column
+        JR      PL, .1
         XOR     R2, #%80
-        JR      PL, M_1B4D
-M_1B48: LD      R13, #0
-M_1B4A: POP     RP
+        JR      PL, .7
+.5:     LD      R13, #0
+.ret:   POP     RP
         RET
 
-M_1B4D: LD      R1, #0
+.7:     LD      R1, #0
         RRC     R0
         RRC     R1
         RRC     R0
@@ -2258,19 +2266,19 @@ M_1B4D: LD      R1, #0
         OR      R1, R2
         LDE     R3, @RR0    ; get keycode from table
         OR      R3, R3
-        JR      MI, M_1B7B
+        JR      MI, .9
         TM      R12, #%20   ; %6C == xx1x_xxxx -> automatic to uppercase
-        JR      Z, M_1B77
+        JR      Z, .8
         ; to uppercase
-        CP      R3, #%61
-        JR      C, M_1B77
-        CP      R3, #%7B
-        JR      NC, M_1B77
+        CP      R3, #'a'
+        JR      ULT, .8
+        CP      R3, #'{'    ; the next after 'z'
+        JR      UGE, .8
         SUB     R3, #%20
-M_1B77: OR      R13, R3
-        JR      M_1B4A
+.8:     OR      R13, R3
+        JR      .ret
 
-M_1B7B: RCF
+.9:     RCF
         RLC     R3
         RCF
         RLC     R3
@@ -2279,9 +2287,9 @@ M_1B7B: RCF
         CALL    @%62
         SRP     #%60
         LD      R0, #%30
-M_1B8C: CALL    M_1AF0
-        DJNZ    R0, M_1B8C
-        JR      M_1B48
+.10:    CALL    M_1AF0
+        DJNZ    R0, .10
+        JR      .5
 
         NOP
 
@@ -2366,15 +2374,15 @@ M_1C15: IRET
 M_1C19: PUSH    RP
         SRP     #%50
         OR      R8, R8
-        JR      MI, M_1C3D
-M_1C21: DEC     %58
-        JR      PL, M_1C2C
+        JR      MI, .4
+.1:     DEC     %58
+        JR      PL, .3
         LD      R10, #%0D
-M_1C27: LD      %13, R10
+.2:     LD      %13, R10
         POP     RP
         RET
 
-M_1C2C: LD      R14, #%F7   ; { ld r10, %F7A2
+.3:     LD      R14, #%F7   ; { ld r10, %F7A2
         LD      R15, #%A2
         LDE     R10, @RR14  ; }
         PUSH    %5A
@@ -2382,41 +2390,41 @@ M_1C2C: LD      R14, #%F7   ; { ld r10, %F7A2
         LDE     @RR14, R10
         POP     %5F
         LDE     R10, @RR14
-        JR      M_1C27
+        JR      .2
 
-M_1C3D: CALL    M_081E
+.4:     CALL    M_081E          ;WKEY
         LD      R10, %13
         CALL    M_1905
         TM      %55, #%80
-        JR      NZ, M_1C3D
+        JR      NZ, .4
         CP      %13, #%0D
-        JR      NZ, M_1C3D
+        JR      NZ, .4
         SRP     #%60
         CALL    M_1856              ; getScreenCharAddress
         LD      R2, #%28
         TM      %55, #%40
-        JR      Z, M_1C5D
+        JR      Z, .5
         LD      R2, #%50
-M_1C5D: SUB     R1, R2
+.5:     SUB     R1, R2
         SBC     R0, #0
         LD      R4, #%F7
         LD      R5, #0
         CLR     %58
-M_1C68: LDE     R3, @RR0
+.6:     LDE     R3, @RR0
         LDE     @RR4, R3
         CP      R3, #%20
-        JR      Z, M_1C75
+        JR      Z, .7
         LD      %58, R5
         INC     %58
-M_1C75: INCW    %60
+.7:     INCW    %60
         INC     R5
-        DJNZ    R2, M_1C68
+        DJNZ    R2, .6
         SRP     #%50
         LD      R14, #%F7
         LD      R15, #%A2
         LD      R10, #0
         LDE     @RR14, R10
-        JR      M_1C21
+        JR      .1
 
         ; SAVE
         ; input: %20/21=start address
@@ -2633,7 +2641,7 @@ M_1F37: LD      R10, %64
         LD      R11, %65
         LD      R5, #%76
         LD      R4, #3
-        LD      P01M, #%B2
+        LD      P01M, #%B2  ; extended memory timing, P04-P07 = A12-A15, P10-P17 = AD0-AD7, P00-P03 = A8-A11
 M_1F42: TM      %3, #4
         JR      NZ, M_1F42
 M_1F47: LDE     R9, @RR10
@@ -2671,7 +2679,7 @@ M_1F6D: PUSH    RP
         LD      R4, %60
         LD      R5, %61
 M_1F88: LD      R8, #3
-        LD      P01M, #%B2
+        LD      P01M, #%B2  ; extended memory timing, P04-P07 = A12-A15, P10-P17 = AD0-AD7, P00-P03 = A8-A11
 M_1F8D: TM      %3, #4
         JR      NZ, M_1F8D
 M_1F92: LDE     R6, @RR2
