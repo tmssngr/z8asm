@@ -115,19 +115,19 @@ M_0870: SRP     #%F0
         SRP     #%50
         LD      R4, #0
         LD      R5, #%57
-        LD      R6, #M_1C0E
-        LD      R7, #M_1C0E
+        LD      R6, #TIMER_IRQ      ; init timer interrupt address
+        LD      R7, #TIMER_IRQ
         CALL    M_0910              ; init timer/interrupts
         SRP     #%60
         LD      R7, #%10            ; default char bitmap address starting at #1000
         LD      R12, #%68
-        LD      R0, #%F7
+        LD      R0, #%F7            ; F7A0 = COLOR_TEXT
         LD      R1, #%A0
-        LD      R2, #%2D
-        LD      R3, #%C3
-        LDE     @RR0, R2            ; store 2dc3 at f7a0
+        LD      R2, #0b0010_1101    ; yellow/blue
+        LD      R3, #0b1100_0011    ; brown/light-blue
+        LDE     @RR0, R2            ; %2d -> COLOR_TEXT
         INC     R1
-        LDE     @RR0, R3
+        LDE     @RR0, R3            ; %c3 -> COLOR_CURSOR
         LD      R0, #%1F            ; { copy 1fe0-1fff to ffe0-ffff
         LD      R1, #%E0
         LD      R2, #%FF
@@ -235,9 +235,9 @@ M_0951: OR      %55, #0b0100_0000
 
 M_0989: CP      R6, #'C'
         JR      NZ, M_0998
-        TM      %0F, #8
+        TM      %0F, #0b0000_1000
         JR      Z, M_09CE
-        AND     %0F, #%F7
+        AND     %0F, #0b1111_0111
         JR      M_09B4
 
 M_0998: LD      %0F, #4
@@ -1436,7 +1436,7 @@ M_14AE: PUSH    RP
 
 .error: LD      TMR, #%43       ; beep to indicate error
 .15:    CALL    M_081B          ; get key press
-        AND     %6D, #%DF
+        AND     %6D, #%DF       ; cheap toUpperCase
         CP      %6D, #%42       ; b or B (break) pressed?
         JR      Z, .break
         CP      %6D, #%43       ; c or C (continue) pressed?
@@ -1893,7 +1893,7 @@ M_1887: RCF                 ; r2 * 8 -> char bitmap memory address
         CALL    M_1830      ; get video-ram address in rr4
         NOP                 ; ?
         LD      R0, #8      ; 8 bytes to video ram
-        LD      R8, #%F7    ; #F7A0
+        LD      R8, #%F7    ; F7A0 = COLOR_TEXT
         LD      R9, #%A0
         LDE     R9, @RR8
         LD      R8, #%60
@@ -2297,7 +2297,7 @@ M_1B0A: PUSH    RP
 M_1B94: PUSH    RP
         SRP     #%60
         ; push value from F7A0 (color-mask for char)
-        LD      R0, #%F7    ; lde r2, %F7A0
+        LD      R0, #%F7    ; F7A0 = COLOR_TEXT
         LD      R1, #%A0
         LDE     R2, @RR0
         PUSH    %62
@@ -2312,7 +2312,7 @@ M_1B94: PUSH    RP
         CALL    M_18D8
         ; restore initial value from F7A0
         POP     %62
-        LD      R0, #%F7
+        LD      R0, #%F7    ; F7A0 = COLOR_TEXT
         LD      R1, #%A0
         LDE     @RR0, R2
         JR      M_1BBC
@@ -2362,10 +2362,11 @@ M_1BFC: CLR     %5E
         .end
 
         ; interrupt
-M_1C0E: OR      %6F, %6F
-        JR      Z, M_1C15
+TIMER_IRQ: ; 1C0E
+        OR      %6F, %6F
+        JR      Z, .1
         DEC     %6F
-M_1C15: IRET
+.1:     IRET
 
         .repeat 3
             NOP
@@ -2609,6 +2610,7 @@ M_1EE0: RLC     %1B
         NOP
         NOP
 
+        ; SHOWPLAYER
 M_1F00: PUSH    RP
         SRP     #%60
         CALL    M_0FBB
@@ -2665,6 +2667,7 @@ M_1F54: LDE     @RR10, R9
 
         NOP
 
+        ; HIDEPLAYER
 M_1F6D: PUSH    RP
         SRP     #%60
         CALL    M_0FBB

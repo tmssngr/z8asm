@@ -110,18 +110,18 @@ M_0870: SRP     #%F0
         SRP     #%50
         LD      R4, #0
         LD      R5, #%57
-        LD      R6, #M_1F51
-        LD      R7, #M_1F51
+        LD      R6, #TIMER_IRQ      ; init timer interrupt address
+        LD      R7, #TIMER_IRQ
         NOP
         NOP
         NOP
         SRP     #%60
         LD      R7, #%10            ; default char bitmap address starting at #1000
         LD      R12, #%68
-        LD      R0, #%F7
+        LD      R0, #%F7            ; F7A0 = COLOR_TEXT
         LD      R1, #%A0
-        LD      R2, #%2D
-        LDE     @RR0, R2            ; %2d -> %f7a0
+        LD      R2, #0b0010_1101    ; yellow/blue
+        LDE     @RR0, R2            ; %2d -> COLOR_TEXT
         LD      R1, #%AC            ; { fill f7ac-f7af with 00 00 00 08
         LD      R2, #0
         LD      R3, #3
@@ -250,9 +250,9 @@ M_0951: OR      %55, #0b0100_0000
 
 M_0989: CP      R6, #'C'
         JR      NZ, M_0998
-        TM      %0F, #8
+        TM      %0F, #0b0000_1000
         JR      Z, M_09CE
-        AND     %0F, #%F7
+        AND     %0F, #0b1111_0111
         JR      M_09B4
 
 M_0998: LD      %0F, #4
@@ -1541,7 +1541,7 @@ M_14AE: PUSH    RP
 
 .error: LD      TMR, #%43       ; beep to indicate error
 .15:    CALL    M_081B          ;KEY
-        AND     %6D, #%DF
+        AND     %6D, #%DF       ; cheap toUpperCase
         CP      %6D, #%42       ; b or B (break) pressed?
         JR      Z, .break
         CP      %6D, #%43       ; c or C (continue) pressed?
@@ -1795,7 +1795,7 @@ M_172C: PUSH    RP
         LD      R0, #%F7
         LD      R1, #%D2
         LD      R2, #0
-        AND     %55, #%FE
+        AND     %55, #0b1111_1110
         LDE     @RR0, R2
         LD      R14, #%B0
         OR      %55, #1
@@ -2004,7 +2004,7 @@ M_1887: RLC     R3
         ADD     R2, R7
         CALL    M_1800
         LD      R0, #8      ; 8 bytes to video ram
-        LD      R8, #%F7    ; #F7A0
+        LD      R8, #%F7    ; F7A0 = COLOR_TEXT
         LD      R9, #%A0
         LDE     R9, @RR8
         LD      R8, #%60
@@ -2706,15 +2706,16 @@ M_1F3C: LDE     @RR10, R9
 M_1F4E: POP     RP
         RET
 
-M_1F51: PUSH    RP
+TIMER_IRQ: ; 1F51
+        PUSH    RP
         SRP     #%60
         OR      R15, R15
-        JR      Z, M_1F5B
+        JR      Z, .1
         DEC     R15
-M_1F5B: CP      R14, #%D0
-        CCF
+.1:     CP      R14, #%D0    ; ?
+        CCF                  ; ?
         TM      %55, #1
-        JR      ULE, M_1FA6
+        JR      ULE, .ret
         PUSH    R0
         PUSH    R1
         PUSH    R2
@@ -2725,21 +2726,22 @@ M_1F5B: CP      R14, #%D0
         LD      R0, #%F7
         LD      R1, #%D0
         LD      R2, #%63
-        LDEI    @R2, @RR0
-        LDEI    @R2, @RR0
-        LDEI    @R2, @RR0
+        LDEI    @R2, @RR0    ; F7D0 -> %63
+        LDEI    @R2, @RR0    ; F7D1 -> %64
+        LDEI    @R2, @RR0    ; F7D2 -> %65
         CP      R5, #1
-        JR      C, M_1FC6
-        JR      Z, M_1FBB
+        JR      ULT, .5
+        JR      EQ, .4
         CALL    M_081B          ;KEY
         CP      R13, R4
-        JR      Z, M_1FAC
-        LD      R5, #0
-M_1F8E: LD      R1, #%D0
+        JR      EQ, .3
+        LD      R5, #0       ; #0 -> F7D2
+.retstore:
+        LD      R1, #%D0
         LD      R2, #%63
-        LDEI    @RR0, @R2
-        LDEI    @RR0, @R2
-        LDEI    @RR0, @R2
+        LDEI    @RR0, @R2    ; %63 -> F7D0
+        LDEI    @RR0, @R2    ; %64 -> F7D1
+        LDEI    @RR0, @R2    ; %65 -> F7D2
         POP     %6D
         POP     R5
         POP     R4
@@ -2747,37 +2749,37 @@ M_1F8E: LD      R1, #%D0
         POP     R2
         POP     R1
         POP     R0
-M_1FA6: POP     RP
+.ret:   POP     RP
         AND     IRQ, #%EF
         IRET
 
-M_1FAC: DEC     R3
-        JR      NZ, M_1F8E
+.3:     DEC     R3           ; F7D0--
+        JR      NZ, .retstore
         LD      R1, R14
-        LDE     @RR0, R4
+        LDE     @RR0, R4     ; %64 -> F7D3
         INC     R14
-        LD      R3, #%1F
+        LD      R3, #%1F     ; F7D0 = %1f & autorepeat-delay
         AND     R3, R12
-        JR      M_1F8E
+        JR      .retstore
 
-M_1FBB: DEC     R3
-        JR      NZ, M_1F8E
-        LD      R3, #%80
+.4:     DEC     R3           ; F7D0--
+        JR      NZ, .retstore
+        LD      R3, #%80     ; F7D0 = 0x80
         LD      R5, #2
-        JR      M_1F8E
+        JR      .retstore
 
         NOP
 
-M_1FC6: CALL    M_081B          ;KEY
+.5:     CALL    M_081B          ;KEY
         LD      R4, R13
         OR      R4, R4
-        JR      Z, M_1F8E
+        JR      Z, .retstore
         LD      R1, R14
         LDE     @RR0, R4
         INC     R14
         LD      R3, #8
         LD      R5, #1
-        JR      M_1F8E
+        JR      .retstore
 
         NOP
         NOP
