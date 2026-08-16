@@ -22,6 +22,7 @@ public class Assembler {
 	public List<Command> assemble(List<Command> commands, @NotNull WarningOut out) {
 		commands = new ArrayList<>(commands);
 		final Labels labels = determineLabels(commands);
+		resolveAutoJumps(commands, labels);
 		resolveLazyCommands(commands, labels, out);
 		labels.reportUnused(out);
 		commands.removeIf(Objects::isNull);
@@ -50,6 +51,10 @@ public class Assembler {
 				allowOrg = false;
 				pc += command.size;
 			}
+			case AUTO_JUMP -> {
+				Utils.assertTrue(command.size == 1 || command.size == 3);
+				pc += 2;
+			}
 			case ALIGN -> {
 				final int offset = getAlignmentOffset(command.get16bitValue(), pc);
 				pc += offset;
@@ -59,6 +64,75 @@ public class Assembler {
 		}
 		labels.finishedInitialization();
 		return labels;
+	}
+
+	private void resolveAutoJumps(List<Command> commands, Labels labels) {
+		while (true) {
+			if (!resolveAutoJumps(commands, labels, false)) {
+				break;
+			}
+		}
+
+		resolveAutoJumps(commands, labels, true);
+	}
+
+	private boolean resolveAutoJumps(List<Command> commands, Labels labels, boolean finalize) {
+		int pc = 0;
+		boolean changed = false;
+		for (int i = 0; i < commands.size(); i++) {
+			final Command command = commands.get(i);
+			switch (command.type) {
+			case LABEL -> {
+				if (labels.update(command.text, pc)) {
+					changed = true;
+				}
+			}
+			case ORG -> pc = command.get16bitValue();
+			case CONTENT,
+			     LAZY_CONTENT -> pc += command.size;
+			case AUTO_JUMP -> {
+				final int opCode = command.get(0);
+				final int higherNibble = opCode & 0xF0;
+				pc += 2;
+				if (command.size == 1) {
+					// jump to text target
+					final int address = labels.resolve(command.text, command.location);
+					final int relative = address - pc;
+					if (!isValidRelative(relative)) {
+						commands.set(i, Command.lazyContent3(higherNibble + 0x0D, command.text, command.location));
+						pc++;
+						changed = true;
+					}
+					else if (finalize) {
+						commands.set(i, Command.lazyContent2(higherNibble + 0x0B, command.text, command.location));
+					}
+				}
+				else {
+					// jump to absolute target
+					Utils.assertTrue(command.size == 3);
+					final int addrHi = command.get(1);
+					final int addrLo = command.get(2);
+					final int address = (addrHi << 8) + addrLo;
+					final int relative = address - pc;
+					if (!isValidRelative(relative)) {
+						commands.set(i, Command.content3(higherNibble + 0x0D, addrHi, addrLo));
+						pc++;
+						changed = true;
+					}
+					else if (finalize) {
+						commands.set(i, Command.content2(higherNibble + 0x0B, relative));
+					}
+				}
+			}
+			case ALIGN -> {
+				final int offset = getAlignmentOffset(command.get16bitValue(), pc);
+				pc += offset;
+			}
+			default -> throw new IllegalStateException("Unsupported command " + command);
+			}
+		}
+		labels.finishedInitialization();
+		return changed;
 	}
 
 	private int getAlignmentOffset(int alignment, int pc) {
@@ -95,9 +169,8 @@ public class Assembler {
 				}
 			}
 			case LAZY_CONTENT -> {
-				pc += command.size;
-
-				final Command resolvedCommand = resolve(command, pc, labels, out);
+				final Command resolvedCommand = resolveLazyCommand(command, pc + command.size, labels, out);
+				pc += resolvedCommand.size;
 				commands.set(i, resolvedCommand);
 			}
 			default -> throw new IllegalStateException("Unsupported command " + command);
@@ -106,7 +179,7 @@ public class Assembler {
 	}
 
 	@NotNull
-	private Command resolve(@NotNull Command command, int pc, @NotNull Labels labels, @NotNull WarningOut out) {
+	private Command resolveLazyCommand(@NotNull Command command, int pc, @NotNull Labels labels, @NotNull WarningOut out) {
 		Utils.assertTrue(command.type == Command.Type.LAZY_CONTENT);
 
 		final int opCode = command.get(0);
@@ -116,6 +189,7 @@ public class Assembler {
 			final int address = labels.resolve(command.text, command.location);
 			final int relative = address - pc;
 			if (!isValidRelative(relative)) {
+				Utils.assertTrue(lowerNibble == 0x0A); // can't happen for JR, because it already should have been turned into a JP
 				throw new SyntaxException("Target '" + command.text + "' too far away (" + relative + ")", command.location);
 			}
 			return Command.content2(opCode, relative);

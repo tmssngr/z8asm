@@ -96,8 +96,10 @@ public class ParserTest {
 		assertCommand(Command.content3(0xED, 0x08, 0x12), "jp nz, %0812");
 		assertCommand(Command.lazyContent3(0x7D, "M_0812", new Location(0, 6)), "jp c, M_0812");
 
-		assertCommand(Command.lazyContent2(0x8B, "M_0812", new Location(0, 3)), "jr M_0812");
-		assertCommand(Command.lazyContent2(0x7B, "M_0812", new Location(0, 6)), "jr c, M_0812");
+		assertCommand(Command.autoJump(0x8B, 0x0812), "jr %0812");
+		assertCommand(Command.autoJump(0x7B, 0x0812), "jr c, %0812");
+		assertCommand(Command.autoJump(0x8B, "M_0812", new Location(0, 3)), "jr M_0812");
+		assertCommand(Command.autoJump(0x7B, "M_0812", new Location(0, 6)), "jr c, M_0812");
 
 		assertCommand(Command.lazyContent2(0x1A, "FOO", new Location(0, 9)), "djnz r1, FOO");
 

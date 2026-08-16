@@ -36,6 +36,26 @@ public final class Labels {
 		}
 	}
 
+	public boolean update(@NotNull String text, int address) {
+		final Label prevLabel;
+		if (isLocalLabel(text)) {
+			Utils.assertTrue(currentGlobalLabel != null);
+
+			final Map<String, Label> localLabels = currentGlobalLabel.localLabels;
+			prevLabel = localLabels.get(text);
+		}
+		else {
+			currentGlobalLabel = globalLabels.get(text);
+			prevLabel = currentGlobalLabel;
+		}
+
+		if (prevLabel.address == address) {
+			return false;
+		}
+		prevLabel.address = address;
+		return true;
+	}
+
 	public void finishedInitialization() {
 		currentGlobalLabel = null;
 	}
@@ -88,9 +108,9 @@ public final class Labels {
 	}
 
 	private static class Label {
-		public final int address;
 		public final Location location;
 
+		public int address;
 		public boolean used;
 
 		public Label(int address, Location location) {

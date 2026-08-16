@@ -46,6 +46,14 @@ public final class Command {
 		return new Command(Type.LAZY_CONTENT, new byte[] {(byte)first, (byte)second, 0}, 3, text, location);
 	}
 
+	public static Command autoJump(int jrOpCode, @NotNull String target, @NotNull Location location) {
+		return new Command(Type.AUTO_JUMP, new byte[] {(byte)jrOpCode}, 1, target, location);
+	}
+
+	public static Command autoJump(int jrOpCode, int address) {
+		return new Command(Type.AUTO_JUMP, new byte[] {(byte)jrOpCode, (byte)(address >> 8), (byte)address}, 3, "", Location.DUMMY);
+	}
+
 	public static Command align(int alignment, int fillByte) {
 		return new Command(Type.ALIGN, new byte[] {(byte)(alignment >> 8), (byte)alignment, (byte)fillByte}, 0, "", Location.DUMMY);
 	}
@@ -127,6 +135,6 @@ public final class Command {
 	}
 
 	public enum Type {
-		LABEL, ORG, CONTENT, ALIGN, LAZY_CONTENT
+		LABEL, ORG, CONTENT, ALIGN, LAZY_CONTENT, AUTO_JUMP
 	}
 }

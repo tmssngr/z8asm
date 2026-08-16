@@ -168,6 +168,78 @@ public class Z8AsmParserTest {
 	}
 
 	@Test
+	public void testAutoJump() {
+		Assert.assertEquals("""
+				                    0000  7b fe 6d 80 00 8b f9 8d  80 00
+				                    """,
+		                    assembleAsString("""
+				                                     jr c, %0
+				                                     jr z, %8000
+				                                     jr %0
+				                                     jr %8000"""));
+		Assert.assertEquals("""
+				                    0000  6b 7f 7b fc ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0010  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0020  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0030  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0040  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0050  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0060  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0070  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0080  ff af
+				                    """,
+		                    assembleAsString("""
+				                                     start:
+				                                       jr z, foo      ; long
+				                                       jr c, start    ; short
+				                                       .align %80, %ff
+				                                       nop
+				                                     foo:
+				                                       ret"""));
+		Assert.assertEquals("""
+				                    0000  6d 00 82 7b fb ff ff ff  ff ff ff ff ff ff ff ff
+				                    0010  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0020  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0030  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0040  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0050  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0060  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0070  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0080  ff ff af
+				                    """,
+		                    assembleAsString("""
+				                                     start:
+				                                       jr z, foo      ; short
+				                                       jr c, start    ; short
+				                                       .align %80, %ff
+				                                       nop
+				                                       nop
+				                                     foo:
+				                                       ret"""));
+		Assert.assertEquals("""
+				                    0000  6d 00 83 7d 00 86 ff ff  ff ff ff ff ff ff ff ff
+				                    0010  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0020  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0030  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0040  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0050  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0060  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0070  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff
+				                    0080  ff ff ff d6 80 00 af
+				                    """,
+		                    assembleAsString("""
+				                                       jr z, foo     ; long because next jump makes the distance too large
+				                                       jr c, bar     ; long
+				                                       .repeat %7d
+				                                          nop
+				                                       .end
+				                                     foo:
+				                                       call %8000
+				                                     bar:
+				                                       ret"""));
+	}
+
+	@Test
 	public void testLoHiImmediateLabels() {
 		Assert.assertEquals("0000  0c 80 1c 09 2c 80 3c 09  af\n",
 		                    assembleAsString("""

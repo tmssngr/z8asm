@@ -334,12 +334,21 @@ public final class Parser {
 	private Command createJr() {
 		consume();
 		Location location = getLocation();
+		if (token == TokenType.INT_LITERAL) {
+			final int address = consumeIntValue();
+			return autoJump(0x8b, address);
+		}
+
 		final String jcOrTarget = consumeIdentifier();
 		final String target;
 		int jc = getJumpCondition(jcOrTarget);
 		if (jc >= 0) {
 			consumeComma();
 			location = getLocation();
+			if (token == TokenType.INT_LITERAL) {
+				final int address = consumeIntValue();
+				return autoJump(jc + 0x0b, address);
+			}
 			target = consumeIdentifier();
 		}
 		else {
@@ -347,7 +356,7 @@ public final class Parser {
 			target = jcOrTarget;
 		}
 
-		return lazyContent2(jc + 0x0b, target, location);
+		return autoJump(jc + 0x0b, target, location);
 	}
 
 	private Command createDjnz() {
