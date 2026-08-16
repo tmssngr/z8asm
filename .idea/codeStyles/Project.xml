@@ -18,6 +18,7 @@
       <option name="PREFER_LONGER_NAMES" value="false" />
       <option name="GENERATE_FINAL_LOCALS" value="true" />
       <option name="ALIGN_MULTILINE_ANNOTATION_PARAMETERS" value="true" />
+      <option name="STRIP_WHITESPACE_FROM_BLANK_LINES_IN_TEXT_BLOCKS" value="true" />
       <option name="CLASS_COUNT_TO_USE_IMPORT_ON_DEMAND" value="1" />
       <option name="NAMES_COUNT_TO_USE_IMPORT_ON_DEMAND" value="2" />
       <option name="PACKAGES_TO_USE_IMPORT_ON_DEMAND">
