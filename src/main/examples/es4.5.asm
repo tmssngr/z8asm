@@ -154,7 +154,7 @@ M_0870: SRP     #%F0
         NOP
         NOP
         NOP
-        JP      M_0922
+        JP      M_0922          ; could be JR
 
         ; in: %53
         ;     %5B cursor column
@@ -285,10 +285,10 @@ M_09D0: CALL    M_0818          ;CHAROUT
         SWAP    %13
 M_09DA: CLR     %12
         CALL    M_0EE0
-        JP      M_0949
+        JR      M_0949
 
 M_09E2: CP      R6, #'E'
-        JP      Z, M_0A79
+        JR      Z, M_0A79
         CP      R6, #'S'
         JR      NZ, M_0A0C
         ; S
@@ -304,7 +304,7 @@ M_09E2: CP      R6, #'E'
         LD      %61, #1
         CALL    M_0821
 M_0A07: LD      R3, %24
-        JP      M_09DA
+        JP      M_09DA         ; could be JR
 
 M_0A0C: CP      R6, #'L'
         JR      NZ, M_0A20
@@ -316,10 +316,10 @@ M_0A0C: CP      R6, #'L'
         JR      M_0A07
 
 M_0A20: CP      R6, #'M'
-        JP      NZ, M_0E09
+        JR      NZ, M_0E09
         CALL    M_082A
         OR      %55, #%40
-        JP      M_0949
+        JR      M_0949
 
         NOP
 
@@ -395,7 +395,7 @@ M_0A9D: INCW    R0
         INCW    R0
         JR      M_0A83
 
-M_0AAA: JP      M_0951
+M_0AAA: JR      M_0951
 
 M_0AAD: LDE     R2, @RR0
         TM      R2, #0b1000_0000
@@ -471,7 +471,7 @@ M_0B00: LD      R12, #%80
         OR      R10, R11
         JR      NZ, .2
         CALL    @%1C
-.7:     JP      M_0C0D
+.7:     JR      M_0C0D
 
         ; M = move/copy
 M_0B46: CALL    M_0CA9
@@ -503,7 +503,7 @@ M_0B46: CALL    M_0CA9
         INCW    R10
         DECW    R12
         JR      NZ, .3
-.4:     JP      M_0AF7
+.4:     JR      M_0AF7
 
         ; % (convert 4-digit-hex to decimal)
 M_0B84: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
@@ -525,7 +525,7 @@ M_0B94: RLC     %1B
         ADD     R5, R12
         CALL    M_0818      ; PTC
         CALL    M_0C69      ; printHexWord
-        JP      M_0C8D      ; println
+        JR      M_0C8D      ; println
 
         NOP
         NOP
@@ -570,8 +570,8 @@ M_0BE5: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         LD      R5, #'!'
         CALL    M_0818          ;CHAROUT
         LD      R9, R10
-        JP      M_0C72      ; printHexByte
-M_0BF5: JP      M_0B00
+        JP      M_0C72      ; printHexByte, could be JR
+M_0BF5: JR      M_0B00
 
         ; Mon
 M_0BF8: CALL    M_0AF7      ; printMon
@@ -646,7 +646,7 @@ M_0C7B: LD      R5, #%0F
         CP      R5, #%3A
         JR      C, M_0C8A
         ADD     R5, #7
-M_0C8A: JP      M_0818
+M_0C8A: JR      M_0818
 
         ; println
 M_0C8D: LD      R5, #%0D
@@ -654,7 +654,7 @@ M_0C8D: LD      R5, #%0D
 
 M_0C91: CALL    M_0C8D          ; println
         CALL    M_081E          ;WKEY
-        JP      M_0DFA
+        JR      M_0DFA
 
         NOP
 
@@ -727,7 +727,7 @@ M_0CEA: RET
         ; Mon, Q(uit)
 M_0CEB: POP     R0
         POP     R0
-        JP      M_0DB5
+        JR      M_0DB5
 
         ; Mon, H(ex)
         ; H<word address>
@@ -757,7 +757,7 @@ M_0D15: CALL    M_0CDC      ; getHexByteFromRR14
         INCW    R10
         DJNZ    R0, M_0D15
         LD      R5, #','
-M_0D23: JP      M_0C9B      ; printCharWordSpace
+M_0D23: JR      M_0C9B      ; printCharWordSpace
 
         ; Mon, A
         ; A<word address>
@@ -785,7 +785,7 @@ M_0D42: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         LD      %17, RP
         SRP     #%10
         LD      R6, FLAGS
-        JP      M_0AF7
+        JR      M_0AF7
 
         ; Mon, S(ave)
         ; S<word address> <word amount>
@@ -838,7 +838,7 @@ M_0D93: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         CALL    M_0818          ;CHAROUT
 M_0DAD: LD      R9, %24
         CALL    M_0C72      ; printHexByte
-M_0DB2: JP      M_0AF7
+M_0DB2: JR      M_0AF7
 
 M_0DB5: SRP     #%60
         LD      R0, #%F7
@@ -873,7 +873,7 @@ M_0DE5: CALL    M_0A52
         LD      R11, %15
         LD      R5, #'%'
         CALL    M_0C9B      ; printCharWordSpace
-        JP      M_0C8D      ; println
+        JR      M_0C8D      ; println
 
         .repeat 6
             NOP
@@ -889,7 +889,7 @@ M_0E06: RET
         NOP
         NOP
 M_0E09: CP      R6, #%3A
-M_0E0C: JP      NC, M_0951
+M_0E0C: JR      NC, M_0951
         CP      R6, #'0'
         CCF
         JR      NC, M_0E0C
@@ -950,7 +950,7 @@ M_0E7C: LD      R2, R8
 M_0E80: DEC     R15
         LD      R14, %58
         CP      R14, R15
-        JP      LE, M_0951
+        JR      LE, M_0951
         LD      R7, %61
         ADD     R7, R14
         LD      R6, #0
@@ -981,7 +981,7 @@ M_0EB3: LDE     R10, @RR2
         JR      NZ, M_0EB3
         LD      R10, #%0D
         LDE     @RR0, R10
-        JP      M_0951
+        JR      M_0951
 
 M_0EC5: LD      R2, R0
         LD      R3, R1
@@ -1546,7 +1546,7 @@ M_14AE: PUSH    RP
         JR      Z, .break
         CP      %6D, #%43       ; c or C (continue) pressed?
         JR      NZ, .15
-        JP      .read
+        JR      .read
 
 .break: LD      R14, #%FF
         JR      .retEr
@@ -2077,7 +2077,7 @@ M_190D: AND     %55, #0b0111_1111
         JR      C, M_191F
         INC     R12
         LD      R11, #0
-        JP      M_1A9D
+        JR      M_1A9D
 
 M_191F: POP     RP
         RET
@@ -2278,7 +2278,7 @@ M_1A8C: DJNZ    R10, M_1AE5
 M_1A9D: CP      %5C, #ROWS
         JR      C, M_1A8A
         TM      %55, #%10
-        JP      Z, M_1956
+        JR      Z, M_1956
         SRP     #%60
         LD      R0, #%FC
         LD      R1, #0

@@ -2,12 +2,12 @@
 
         .data "D" %95 %95 %95 %04 %F8 %38 %11
         CALL    %0CA9   ; getHexWordFromRR14_forgetCallerIfError
-        JP      M_C352
+        JR      M_C352
         .align 8, %ff
 
         .data "." %95 %95 %95 %08 %e8 %07 %51
         CALL    %0CA9   ; getHexWordFromRR14_forgetCallerIfError
-        JP      M_C9B4
+        JR      M_C9B4
         .align %100, %ff
 
 M_C200: .data     %F7 %F6 %F4 %F2 %E2 %D5 %C6 %C5 %C4 %97 %96 %95 %94 %87 %86 %85 %84 %7F %6F %5F %4F %3F %2F %1F %0F
@@ -85,7 +85,7 @@ printCharPercentHex8:
 printPercentHex8:
         LD      R5, #'%'
         CALL    %0818              ;CHAROUT
-        JP      %0C72
+        JR       %0C72
 
 printAtReg:
         LD      R5, #'@'
@@ -99,7 +99,7 @@ printRHex4HiNibble:
 printRHex4:
         LD      R5, #'R'
         CALL    %0818              ;CHAROUT
-        JP      %0C7B ; printHex4LoNibble
+        JR       %0C7B ; printHex4LoNibble
 
 printAtRRHex4:
         LD      R5, #'@'
@@ -110,7 +110,7 @@ printAtRRHex4:
 
 printComma:
         LD      R5, #','
-        JP      %0818
+        JR       %0818
 
         NOP
 
@@ -319,7 +319,7 @@ M_C495: JR      M_C472
         ; SRP #%aa
 cmd_31: LD      R0, #%1E
         CALL    printNthString
-        JP      M_C3E8
+        JR      M_C3E8
 
         ; normal x0/x1 commands
 cmd_x0_x1:
@@ -557,7 +557,7 @@ M_C64C: DJNZ    R12, M_C661
 M_C661: DJNZ    R12, M_C66B
         LDE     R9, @RR10
         CALL    printPercentHex8
-M_C668: JP      M_C3E5
+M_C668: JR      M_C3E5
 
 M_C66B: LDE     R9, @RR10
         CALL    printAtReg
@@ -849,7 +849,7 @@ M_C84F: CP      R0, #%0D
         JR      C, M_C86F
 M_C868: SWAP    R1
         OR      R13, R1
-        JP      M_C7AA
+        JR      M_C7AA
 
 M_C86F: INC     R0
         CALL    M_C708
@@ -940,7 +940,7 @@ M_C8F7: CALL    getPercentHex8_v2
         INC     R12
 M_C909: OR      R12, R12
         JR      NZ, M_C8CA
-        JP      M_C7AA
+        JR      M_C7AA
 
 M_C910: CP      R0, #1
         JR      C, M_C924
@@ -961,7 +961,7 @@ M_C924: CALL    M_C6F0
         JR      C, M_C93A
         LD      R0, #%0C
 M_C935: OR      R0, R1
-M_C937: JP      M_C7AA
+M_C937: JR      M_C7AA
 
 M_C93A: CALL    getPercentHex8
         LD      R12, R13
@@ -977,7 +977,7 @@ M_C93A: CALL    getPercentHex8
 
 M_C951: SWAP    R1
         LD      R0, #%E2
-        JP      M_C86F
+        JR      M_C86F
 
 M_C958: CALL    M_C708
         JR      C, M_C96E
@@ -999,7 +999,7 @@ M_C96E: CALL    getPercentHex8
         CALL    M_C6F0
         JR      NC, M_C980
         LD      R0, #%E4
-        JP      M_C880
+        JR      M_C880
 
 M_C980: SWAP    R13
         LD      R0, R13
@@ -1027,9 +1027,9 @@ M_C99F: CALL    getAtPercentHex8
         INC     R15
         LD      R0, #%E7
         CALL    getPercentHex8
-        JP      C, M_C896
+        JR      C, M_C896
         LD      R0, #%F5
-M_C9B1: JP      M_C885
+M_C9B1: JR      M_C885
 
         ; assembler
 M_C9B4: LD      R0, #%30

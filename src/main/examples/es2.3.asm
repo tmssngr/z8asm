@@ -269,7 +269,7 @@ M_09D4: CALL    M_0818
         CLR     %12
         JR      M_097F
 M_09E2: CP      R6, #%45
-        JP      Z, M_0A80
+        JR      Z, M_0A80
         CP      R6, #%50
         JR      NZ, M_09F4
         CALL    M_0815
@@ -315,10 +315,10 @@ M_09F4: NOP
         LD      %22, R2
         LD      %23, R3
         CALL    M_0821
-M_0A29: JP      M_094E
+M_0A29: JR      M_094E
 
 M_0A2C: CP      R6, #%4C
-        JP      NZ, M_0A45
+        JP      NZ, M_0A45     ; could be JR
         LD      %20, R0
         LD      %21, R1
         CALL    M_0824
@@ -330,9 +330,9 @@ M_0A3B: LD      %6C, #0
         RET
 
 M_0A45: CP      R6, #%4D
-        JP      NZ, M_0E09
+        JR      NZ, M_0E09
         CALL    M_082A
-        JP      M_094E
+        JR      M_094E
 
         NOP
 
@@ -385,7 +385,7 @@ M_0AA4: INCW    R0
         INCW    R0
         JR      M_0A8A
 
-M_0AB1: JP      M_094E
+M_0AB1: JR      M_094E
 
 M_0AB4: LDE     R2, @RR0
         TM      R2, #%80
@@ -482,7 +482,7 @@ M_0C7B: LD      R5, #%0F
         CP      R5, #%3A
         JR      C, M_0C8A
         ADD     R5, #7
-M_0C8A: JP      M_0818
+M_0C8A: JR      M_0818
 M_0C8D: LD      R5, #%0D
         JR      M_0C8A
 M_0C91: CALL    M_0C8D
@@ -529,7 +529,7 @@ M_0CDC: CALL    M_0CB8
 M_0CEA: RET
         POP     R0
         POP     R0
-        JP      M_0DB5
+        JR      M_0DB5
         CALL    M_0CA9
 M_0CF5: LD      R5, #%2C
         CALL    M_0C9B
@@ -556,7 +556,7 @@ M_0D22: LD      @R11, R13
         INCW    R10
         DJNZ    R0, M_0D16
         LD      R5, #%2C
-M_0D2A: JP      M_0C9B
+M_0D2A: JR      M_0C9B
         LDE     R5, @RR14
         LD      %5D, R5
         RET
@@ -615,7 +615,7 @@ M_0D79: LDE     R2, @RR14
         CALL    M_0CA9
         LD      %22, R10
         LD      %23, R11
-        JP      M_0821
+        JR      M_0821
         CALL    M_0CA9
         LD      %20, R10
         LD      %21, R11
@@ -627,7 +627,7 @@ M_0D79: LDE     R2, @RR14
         CALL    M_0818
         LD      R9, %24
         CALL    M_0C72
-M_0DB2: JP      M_0C8D
+M_0DB2: JR      M_0C8D
 
 M_0DB5: SRP     #%60
         LD      R0, #%F7
@@ -662,15 +662,15 @@ M_0DBF: LDEI    @R2, @RR0
 
 M_0DEA: RET
         CALL    M_0CA9
-        JP      %C100
+        JR      %C100
 
         CALL    M_0CA9
-        JP      %C103
+        JR      %C103
 
         LDE     R3, @RR14
         INC     R15
         CALL    M_0CA9
-        JP      %C106
+        JR      %C106
 
         NOP
         NOP
@@ -683,7 +683,7 @@ M_0DEA: RET
         NOP
 
 M_0E09: CP      R6, #%3A
-M_0E0C: JP      NC, M_094E
+M_0E0C: JR      NC, M_094E
         CP      R6, #%30
         CCF
         JR      NC, M_0E0C
@@ -748,7 +748,7 @@ M_0E7C: LD      R2, R8
 M_0E80: LD      R15, #4
         LD      R14, %58
         CP      R14, R15
-        JP      ULE, M_094E
+        JR      ULE, M_094E
         LD      R7, #%FF
         ADD     R7, R14
         LD      R6, #0
@@ -779,7 +779,7 @@ M_0EB3: LDE     R10, @RR2
         JR      NZ, M_0EB3
         LD      R10, #%0D
         LDE     @RR0, R10
-        JP      M_094E
+        JR      M_094E
 
 M_0EC5: LD      R2, R0
         LD      R3, R1
@@ -1061,7 +1061,7 @@ M_12E2: DJNZ    R10, M_12F0
 M_12F0: DJNZ    R10, M_12F9
         COM     %5C         ; 0d
         AND     R11, R12
-        JP      M_1276
+        JR      M_1276
 M_12F9: POP     RP
         RET
 
@@ -1523,7 +1523,7 @@ M_161E: CALL    M_081B
 M_162D: DJNZ    R5, M_162D
         DJNZ    R4, M_162D
         LD      TMR, #3
-        JP      M_1584
+        JR      M_1584
 M_1637: LD      R14, #%FF
         JR      M_160D
         NOP
@@ -1597,11 +1597,11 @@ M_16B3: POP     RP
         NOP
         LD      %51, R7
         LD      %4F, R6
-        JP      M_1684
+        JP      M_1684         ; could be JR
         NOP
         LD      %51, R6
         LD      %4F, R7
-        JP      M_1684
+        JP      M_1684         ; could be JR
         NOP
 M_16C8: PUSH    RP
         SRP     #%70

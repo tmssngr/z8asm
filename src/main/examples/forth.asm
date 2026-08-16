@@ -26,7 +26,7 @@ M_E000:
         .data   %8b %08     ; JR      %E00A
         .data   "C%E00A\r" %00
 M_E00A:
-        JP      M_E0C7
+        JR      M_E0C7
 
 M_E00D:
         CALL    M_E208          ; popIntoRr4
@@ -184,16 +184,16 @@ M_E12C: CALL    M_E208          ; popIntoRr4  (rr2 = b, rr4 = a)
         LD      R10, R4         ; rr10 = a
         LD      R11, R5
         CALL    M_E208          ; popIntoRr4  (rr2 = c, rr4 = b)
-        JP      M_E208          ; popIntoRr4  (rr2 = d, rr4 = c)
+        JR      M_E208          ; popIntoRr4  (rr2 = d, rr4 = c)
 
 M_E13D: CALL    M_E5EA
         CALL    M_E603
         LD      R12, R2
         LD      R13, R3
-        JP      M_E208          ; popIntoRr4
+        JR      M_E208          ; popIntoRr4
 
 M_E14A: CALL    M_E9FD
-        JP      M_E5F4
+        JR      M_E5F4
 
         ; negate ( x -- -x )
 M_E150: COM     R2
@@ -218,21 +218,21 @@ M_E16B: CALL    M_E9FD
         LD      R4, R2
         OR      R4, R3
         LD      R6, #%44
-        JP      Z, M_E0B2
+        JR      Z, M_E0B2
         JP      M_E198
 
 M_E17D: CLR     %6D
         CALL    %0C56
         JR      NZ, M_E17D
         CLR     %6D
-        JP      M_E099          ; pushRr4
+        JR      M_E099          ; pushRr4
 
 M_E189: CALL    M_EC7D
-        JP      M_EC3E
+        JR      M_EC3E
 
 M_E18F: LD      %5A, #%22
         CALL    %0827
-        JP      M_EC3E
+        JR      M_EC3E
 
 M_E198: CALL    M_E208          ; popIntoRr4
         JP      M_E208          ; popIntoRr4
@@ -258,7 +258,7 @@ M_E208: LD      R4, R2
 M_E211: INC     R15
         LD      R6, #%31
         CP      R15, #%51       ; if empty, show #MSG 1
-        JP      NC, M_E0B2
+        JR      NC, M_E0B2
         RET
 
 M_E21B: .data   %82
@@ -294,7 +294,7 @@ M_E243: CALL    %0824
         CALL    M_E115          ; [rr4] = 0
 M_E253: LD      R6, #%30
         OR      R5, R5
-        JP      Z, M_E0B2
+        JR      Z, M_E0B2
         DEC     R5
         LDE     R6, @RR4
         CP      R6, #%5C        ; '\'
@@ -320,7 +320,7 @@ M_E281: CALL    M_E208          ; popIntoRr4
         LDC     @RR4, R2
         INCW    R4
         LDC     @RR4, R3
-        JP      M_E208          ; popIntoRr4
+        JR      M_E208          ; popIntoRr4
 
 M_E28D: .data   %83
         .data   "VAR"
@@ -417,7 +417,7 @@ M_E331: LD      R4, R2
 M_E338: .data   %83
         .data   "CLS"
         .data   M_E329 %00
-M_E33F: JP  %08DD
+M_E33F: JR  %08DD
 
 M_E342: .data   %84
         .data   "OVER"          ; ( x y -- x y x )
@@ -426,7 +426,7 @@ M_E34A: LD      R5, @R15
         INC     R15
         LD      R4, @R15
         DEC     R15
-        JP      M_E099          ; pushRr4
+        JR      M_E099          ; pushRr4
 
 M_E354: .data   %82
         .data   ">R"            ; ( x -- ) push x to return stack
@@ -469,7 +469,7 @@ M_E395: .data   %81
 M_E39A: ADD R3, @R15
         INC     R15
         ADC     R2, @R15
-        JP      M_E211          ; prepareForDropCheckEmpty
+        JR      M_E211          ; prepareForDropCheckEmpty
 
 M_E3A2: .data   %81
         .data   "-"
@@ -484,19 +484,19 @@ M_E3B1: .data   %81
         .data   "*"
         .data   M_E3A2 %00
 M_E3B6: CALL    M_E208          ; popIntoRr4
-        JP      %00BA
+        JR      %00BA
 
 M_E3BC: .data   %81
         .data   "/"
         .data   M_E3B1 %00
 M_E3C1: CALL    M_E208          ; popIntoRr4
-        JP      %00E0
+        JR      %00E0
 
 M_E3C7: .data   %83
         .data   "MOD"
         .data   M_E3BC %00
 M_E3CE: CALL    %E208
-        JP      %011F
+        JR      %011F
 
 M_E3D4: .data   %82
         .data   "1+"
@@ -585,7 +585,7 @@ M_E475: .data   %82
         .data   M_E45E %00
 M_E47B: CALL    M_E467
         CALL    M_E306
-        JP      M_E208          ; popIntoRr4
+        JR      M_E208          ; popIntoRr4
 
 M_E484: .data   %85
         .data   "M/MOD"
@@ -599,7 +599,7 @@ M_E48D: CALL    M_E208
         LD      @R15, R6
         DEC     R15
         LD      @R15, R7
-        JP      M_E099          ; pushRr4
+        JR      M_E099          ; pushRr4
 
 M_E4A5: .data   %82
         .data   "DO"
@@ -661,7 +661,7 @@ M_E50F: CALL    M_E099
 M_E518: .data   %81
         .data   "I"
         .data   M_E507 %00
-M_E51D: JP      M_E384
+M_E51D: JR      M_E384
 
 M_E520: .data   %85
         .data   "LEAVE"
@@ -723,19 +723,19 @@ M_E593: .data   %83
 M_E59A: CALL    %0C1D
         LD      R4, #0
         LD      R5, %5A
-        JP      M_E099          ; pushRr4
+        JR      M_E099          ; pushRr4
 
 M_E5A4: .data   %82
         .data   "CR"
         .data   M_E593 %00
-M_E5AA: JP      %0ACE
+M_E5AA: JR      %0ACE
 
 M_E5AD: .data   %84
         .data   "EMIT"
         .data   M_E5A4 %00
 M_E5B5: CALL    M_E208
         LD      %5A, R5
-        JP      %0827
+        JR      %0827
 
 M_E5BD: .data   %84
         .data   "KEY?"
@@ -744,10 +744,10 @@ M_E5C5: CLR     %6D
         CALL    %0C56
         LD      R4, #0
         LD      R5, %6D
-        JP      M_E099          ; pushRr4
+        JR      M_E099          ; pushRr4
 
 M_E5D1: LD      R5, %6D
-        JP      M_E099          ; pushRr4
+        JR      M_E099          ; pushRr4
 
 M_E5D6: .data   %82
         .data   "DP"
@@ -867,7 +867,7 @@ M_E6B1: CALL    %0824
 M_E6C1: LD      R6, #0
         DECW    R2
         LDC     @RR2, R6
-        JP      M_E208          ; popIntoRr4
+        JR      M_E208          ; popIntoRr4
 
 M_E6CA: .data   %89
         .data   "INTERPRET"
@@ -943,7 +943,7 @@ M_E768: TM      R14, #1
         POP     R4
         POP     R5
         CALL    @RR4
-        JP      M_E6DA
+        JR      M_E6DA
 
 M_E77D: CALL    M_E7F6
         LD      R6, #%14
@@ -1002,7 +1002,7 @@ M_E7EA: TM      R14, #%80
         JR      Z, M_E7F3
         PUSH    R13
         PUSH    R12
-M_E7F3: JP      M_E6ED
+M_E7F3: JR      M_E6ED
 
 M_E7F6: LD      R6, #%D6
         LDC     @RR12, R6
@@ -1109,7 +1109,7 @@ M_E8C3: LD      R6, #%5A
 M_E8D9: LD      %5A, #%3F
         CALL    %0827
         LD      R6, #%30
-        JP      M_E0B2
+        JR      M_E0B2
 
 M_E8E4: .data   %87
         .data   "DNEGATE"
@@ -1122,7 +1122,7 @@ M_E8EF: CALL    M_E208
         INCW    R2
         JR      NZ, M_E900
 M_E8FE: INCW    R4
-M_E900: JP      M_E099          ; pushRr4
+M_E900: JR      M_E099          ; pushRr4
 
 M_E903: .data   %84
         .data   "DABS"
@@ -1143,7 +1143,7 @@ M_E917: CALL    M_E306
         CALL    M_E2E5
         CALL    M_E3FD
         CALL    M_E2E5
-        JP      M_E39A
+        JR      M_E39A
 
 M_E932: .data   %84
         .data   "?CSP"
@@ -1163,8 +1163,8 @@ M_E954: CALL    M_E208          ; popIntoRr4
 M_E959: SUB     R3, R5
         SBC     R2, R4
         OR      R2, R3
-        JP      NZ, M_E0B2
-        JP      M_E208          ; popIntoRr4
+        JR      NZ, M_E0B2
+        JR      M_E208          ; popIntoRr4
 
 M_E965: .data   %83
         .data   "DPL"
@@ -1179,7 +1179,7 @@ M_E972: .data   %84
         .data   M_E965 %00
 M_E97A: CALL    M_E998
         CALL    M_E9AA
-        JP      M_E281
+        JR      M_E281
 
 M_E983: .data   %84
         .data   "BASE"
@@ -1196,7 +1196,7 @@ M_E998: LD      R5, SPL
         LD      R4, SPH
         INCW    R4
         INCW    R4
-        JP      M_E099          ; pushRr4
+        JR      M_E099          ; pushRr4
 
 M_E9A3: .data   %83
         .data   "CSP"
@@ -1216,7 +1216,7 @@ M_E9C0: LDC     R8, @RR2
         LDC     R9, @RR2
         LD      R4, R8
         OR      R4, R9
-        JP      Z, M_E208           ; popIntoRr4
+        JR      Z, M_E208           ; popIntoRr4
         LDC     R7, @RR8
         INCW    R8
         AND     R7, #%7F
@@ -1232,7 +1232,7 @@ M_E9D4: LD      R6, #%5A
         CALL    %0824
         CP      %5A, #%0D
         JR      Z, M_E9BE
-        JP      M_E208          ; popIntoRr4
+        JR      M_E208          ; popIntoRr4
 
 M_E9F4: .data   %85
         .data   "STATE"
@@ -1299,7 +1299,7 @@ M_EA6A: PUSH    R6
         CALL    M_E9FD
         CALL    M_E281
         POP     R6
-        JP      M_E0B2
+        JR      M_E0B2
 
 M_EA96: .data   %88
         .data   "VARIABLE"
@@ -1325,7 +1325,7 @@ M_EAB0: LD      R4, R12
         LD      R5, #0
         CALL    M_E099          ; pushRr4
         CALL    M_E9FD
-        JP      M_E281
+        JR      M_E281
 
 M_EADA: CALL    M_E7F6
         LD      R6, #%18
@@ -1357,7 +1357,7 @@ M_EB0A: CALL    M_E998
         SBC     R2, R4
         OR      R2, R3
         LD      R6, #%49
-        JP      NZ, M_EA6A
+        JR      NZ, M_EA6A
         CALL    M_E16B
         LD      R6, #%AF
         LDC     @RR12, R6
@@ -1371,7 +1371,7 @@ M_EB32: CALL    M_EA0C
         POP     R4
         POP     R5
         CALL    M_E97A
-        JP      M_E760
+        JR      M_E760
 
 M_EB3F: NOP
         NOP
@@ -1388,11 +1388,11 @@ M_EB4F: CALL    M_E277
         CALL    M_E613
         LD      R6, #%44
         OR      R0, R0
-        JP      Z, M_E0B2
+        JR      Z, M_E0B2
         CALL    M_E656
         LD      R6, R2
         OR      R6, R3
-        JP      Z, M_E8BC
+        JR      Z, M_E8BC
         CALL    M_EB8E
         CALL    M_E31F
         CALL    M_EBB3
@@ -1402,7 +1402,7 @@ M_EB4F: CALL    M_E277
 M_EB7B: CALL    M_E5DC
         CALL    M_E281
         CALL    M_E277          ; TIB
-        JP      M_E281
+        JR      M_E281
 
 M_EB87: .data   %83
         .data   "NFA"
@@ -1446,7 +1446,7 @@ M_EBC5: CALL    M_E208          ; popIntoRr4
         LDC     @RR4, R7
         DECW    R4
         LDC     @RR4, R6
-        JP      M_E208          ; popIntoRr4
+        JR      M_E208          ; popIntoRr4
 
 M_EBDB: .data   %84
         .data   "CODE"
@@ -1463,7 +1463,7 @@ M_EBE3: CALL    M_EA0C
         LD      R4, #0
         LDE     @RR2, R4
         CALL    M_E208          ; popIntoRr4
-        JP      M_EAB0
+        JR      M_EAB0
 
 M_EC03: .data   %83
         .data   "CFA"
@@ -1486,13 +1486,13 @@ M_EC26: LD      R4, #%5A
         CALL    %0827
         DJNZ    R5, M_EC26
         CALL    M_EC3E
-        JP      M_E208          ; popIntoRr4
+        JR      M_E208          ; popIntoRr4
 
 M_EC35: .data   %85
         .data   "SPACE"
         .data   M_EC18 %00
 M_EC3E: LD      %5A, #%20
-        JP      %0827
+        JR      %0827
 
 M_EC44: .data   %86
         .data   "SPACES"
@@ -1515,7 +1515,7 @@ M_EC5F: CALL    M_E208
         LD      R4, #0
         COM     R5
         INC     R5
-        JP      M_E099          ; pushRr4
+        JR      M_E099          ; pushRr4
 
 M_EC75: .data   %84
         .data   "TYPE"
@@ -1525,7 +1525,7 @@ M_EC80: LD      R6, #%5A
         LDCI    @R6, @RR2
         CALL    %0827
         DJNZ    R5, M_EC80
-        JP      M_E208
+        JR      M_E208
 
 M_EC8C: .data   %84
         .data   "HOLD"
@@ -1537,14 +1537,14 @@ M_EC94: CALL    M_ECED
         LDC     @RR4, R3
         CALL    M_E110
         CALL    M_ECED
-        JP      M_E281
+        JR      M_E281
 
 M_ECAA: .data   %84
         .data   "SIGN"
         .data   M_EC8C %00
 M_ECB2: CALL    M_E2E5
         OR      R2, R2
-        JP      PL, M_E208          ; popIntoRr4
+        JR      PL, M_E208          ; popIntoRr4
         LD      R3, #%2D
         JR      M_EC94
 
@@ -1556,7 +1556,7 @@ M_ECC6: LD      R4, #%FF
         OR      R2, R2
         JR      MI, M_ECD0
         INCW    R4
-M_ECD0: JP      M_E099          ; pushRr4
+M_ECD0: JR      M_E099          ; pushRr4
 
 M_ECD3: .data   %82
         .data   "<#"
@@ -1565,7 +1565,7 @@ M_ECD9: LD      R4, #%E2
         LD      R5, #0
         CALL    M_E099          ; pushRr4
         CALL    M_ECED
-        JP      M_E281
+        JR      M_E281
 
 M_ECE6: .data   %83
         .data   "HLD"
@@ -1589,7 +1589,7 @@ M_ED10: ADD     R7, #%30
         LD      R5, R7
         LD      R4, #0
         CALL    M_E099          ; pushRr4
-        JP      M_EC94
+        JR      M_EC94
 
 M_ED1D: .data   %82
         .data   "#S"
@@ -1612,7 +1612,7 @@ M_ED3D: CALL    M_E2B8          ; push 0
         CALL    M_ECD9
         CALL    M_ED23
         CALL    M_EC5F
-        JP      M_E189
+        JR      M_E189
 
         RET
 
@@ -1647,11 +1647,11 @@ M_ED85: CALL    M_E277
         CALL    M_E613
         LD      R6, #%44
         OR      R0, R0
-        JP      Z, M_E0B2
+        JR      Z, M_E0B2
         CALL    M_E656
         LD      R6, R2
         OR      R6, R3
-        JP      Z, M_E8BC
+        JR      Z, M_E8BC
         LD      R12, R2
         LD      R13, R3
         CALL    M_E208          ; popIntoRr4
@@ -1696,7 +1696,7 @@ M_EDF8: CALL    M_EC1F
         JR      NZ, M_EE08
 M_EE00: CP      R0, #%8D
         JR      NZ, M_EDAC
-M_EE05: JP      M_E0FD
+M_EE05: JR      M_E0FD
 
 M_EE08: TM      R14, #8
         JR      NZ, M_EE14
@@ -1740,7 +1740,7 @@ M_EE55: .data   %83
         .data   M_ED7D %00
 M_EE5C: LD      R5, R15
         LD      R4, #0
-        JP      M_E099          ; pushRr4
+        JR      M_E099          ; pushRr4
 
 M_EE63: .data   %83
         .data   "SP!"
@@ -1874,7 +1874,7 @@ M_EF4C: CALL    M_E208          ; popIntoRr4
         LD      R8, R2
         CALL    M_E099          ; pushRr4
         CALL    %0124
-        JP      M_E306
+        JR      M_E306
 
 M_EF5D: .data   %83
         .data   "MIN"
@@ -1900,14 +1900,14 @@ M_EF81: CALL    %E12C
         ADC     R2, R8
         ADC     R5, R11
         ADC     R4, R10
-        JP      M_E099
+        JR      M_E099
 
 M_EF8F: .data   %82
         .data   "+-"
         .data   M_EF7B %00
 M_EF95: CALL    M_E208
         XOR     R4, R2
-        JP      MI, M_E3E7
+        JR      MI, M_E3E7
         RET
 
 M_EF9E: .data   %83
@@ -1915,7 +1915,7 @@ M_EF9E: .data   %83
         .data   M_EF8F %00
 M_EFA5: CALL    M_E208
         XOR     R4, R2
-        JP      MI, M_E8EF
+        JR      MI, M_E8EF
         RET
 
 M_EFAE: .data   %87
@@ -1924,7 +1924,7 @@ M_EFAE: .data   %87
 M_EFB9: CALL    M_E2B8
         .data   %000a
         CALL    M_E98B
-        JP      M_E281
+        JR      M_E281
 
 M_EFC4: .data   %83
         .data   "HEX"
@@ -1932,13 +1932,13 @@ M_EFC4: .data   %83
 M_EFCB: CALL    M_E2B8
         .data   %0010
         CALL    M_E98B
-        JP      M_E281
+        JR      M_E281
 
 M_EFD6: .data   %84
         .data   "2DUP"
         .data   M_EFC4 %00
 M_EFDE: CALL    M_E34A
-        JP      M_E34A
+        JR      M_E34A
 
 M_EFE4: .data   %82
         .data   "C@"
@@ -1952,7 +1952,7 @@ M_EFEF: .data   %82
         .data   M_EFE4 %00
 M_EFF5: CALL    M_E208
         LDC     @RR4, R3
-        JP      M_E208
+        JR      M_E208
 
 M_EFFD: .data   %81
         .data   "?"
@@ -1968,7 +1968,7 @@ M_F013: CALL    M_E208
         LDE     R4, @RR2
         XOR     R4, R5
         LDE     @RR2, R4
-        JP      M_E208
+        JR      M_E208
 
 M_F01F: .data   %85
         .data   "CMOVE"
@@ -1983,7 +1983,7 @@ M_F032: LDE     R7, @RR2
         INCW    R4
         DECW    R8
         JR      NZ, M_F032
-        JP      M_E208          ; popIntoRr4
+        JR      M_E208          ; popIntoRr4
 
 M_F041: .data   %84
         .data   "FILL"
@@ -1995,7 +1995,7 @@ M_F051: LDE     @RR2, R7
         INCW    R2
         DECW    R4
         JR      NZ, M_F051
-        JP      M_E208
+        JR      M_E208
 
 M_F05C: .data   %85
         .data   "ERASE"
@@ -2017,7 +2017,7 @@ M_F07F: .data   %85
 M_F088: LDE     R5, @RR2
         CLR     R4
         INCW    R2
-        JP      M_E099
+        JR      M_E099
 
 M_F091: .data   %82
         .data   ".R"
@@ -2034,7 +2034,7 @@ M_F0AC: CALL    M_EC5F
         CALL    M_E34A
         CALL    M_E3A7
         CALL    M_EC4E
-        JP      M_EC7D
+        JR      M_EC7D
 
 M_F0BE: .data   %83
         .data   "D.R"
@@ -2062,7 +2062,7 @@ M_F0F2: CALL    M_E2B8
         .data   %0000
         CALL    M_E9FD
         CALL    M_E281
-        JP      M_E0DD
+        JR      M_E0DD
 
 M_F100: .data   %85
         .data   "BUSIN"
@@ -2076,7 +2076,7 @@ M_F10E: .data   %86
         .data   M_F100 %00
 M_F118: CALL    M_E208          ; popIntoRr4
         LD      @R5, R3
-        JP      M_E208          ; popIntoRr4
+        JR      M_E208          ; popIntoRr4
 
 M_F120: .data   %85
         .data   "ALLOT"
@@ -2094,7 +2094,7 @@ M_F139: CALL    M_E31F
         CALL    M_E306
         CALL    M_E281
         CALL    M_E5DC
-        JP      M_E281
+        JR      M_E281
 
 M_F14E: .data   %85
         .data   "DEPTH"
@@ -2103,7 +2103,7 @@ M_F157: LD      R5, #%50
         SUB     R5, R15
         RR      R5
         LD      R4, #0
-        JP      M_E099          ; pushRr4
+        JR      M_E099          ; pushRr4
 
 M_F162: .data   %84
         .data   "ROLL"
@@ -2117,7 +2117,7 @@ M_F16A: LD      R4, R3
         INC     R4
         LD      R6, #%31
         CP      R4, #%51
-        JP      NC, M_E0B2
+        JR      NC, M_E0B2
         LD      R2, @R4
 M_F181: LD      R7, @R5
         LD      @R4, R7
@@ -2141,7 +2141,7 @@ M_F1A0: LD      R4, R3
         ADD     R4, R15
         LD      R6, #%31
         CP      R4, #%50
-        JP      NC, M_E0B2
+        JR      NC, M_E0B2
         LD      R3, @R4
         INC     R4
         LD      R2, @R4
@@ -2161,7 +2161,7 @@ M_F1CC: .data   %85
         .data   "2DROP"
         .data   M_F1B4 %00
 M_F1D5: CALL    M_E208
-        JP      M_E208
+        JR      M_E208
 
 M_F1DB: .data   %85
         .data   "2SWAP"
@@ -2171,13 +2171,13 @@ M_F1E4: CALL    M_E2B8          ; literal
         CALL    M_F16A
         CALL    M_E2B8          ; literal
         .data   %0003
-        JP      M_F16A
+        JR      M_F16A
 
 M_F1F4: .data   %82
         .data   "D-"
         .data   M_F1DB %00
 M_F1FA: CALL    M_E157
-        JP      M_E099
+        JR      M_E099
 
 M_F200: .data   %83
         .data   "DU<"
@@ -2220,7 +2220,7 @@ M_F246: CALL    M_E2B8          ; literal
         CALL    M_F1A0
         CALL    M_E2B8          ; literal
         .data   %0003
-        JP      M_F1A0
+        JR      M_F1A0
 
 M_F256: .data   %84
         .data   "DMAX"
@@ -2232,7 +2232,7 @@ M_F25E: CALL    M_F246
         .data   M_F272
         CALL    M_F1E4
         CALL    M_EF43
-M_F272: JP      M_F1D5
+M_F272: JR      M_F1D5
 
 M_F275: .data   %84
         .data   "DMIN"
@@ -2246,7 +2246,7 @@ M_F27D: CALL    M_F246
         .data   M_F296
 M_F290: CALL    M_F1E4
         CALL    M_EF43
-M_F296: JP      M_F1D5
+M_F296: JR      M_F1D5
 
 M_F299: .data   %82
         .data   "U<"
@@ -2284,7 +2284,7 @@ M_F2CE: CALL    M_E208          ; popIntoRr4
         RRC     R5
         RRC     R2
         RRC     R3
-        JP      M_E099          ; pushRr4
+        JR      M_E099          ; pushRr4
 
 M_F2DC: .data   %83
         .data   "NOT"
@@ -2305,7 +2305,7 @@ M_F2EE: CALL    M_E208          ; popIntoRr4
         LDE     @RR4, R7
         DECW    R4
         LDE     @RR4, R6
-        JP      M_E208          ; popIntoRr4
+        JR      M_E208          ; popIntoRr4
 
 M_F304: .data   %82
         .data   "2@"
@@ -2314,7 +2314,7 @@ M_F30A: CALL    M_E31F
 M_F30C: CALL    M_E603          ; incorrect label - see usage of M_F30C
         CALL    M_E5F4
         CALL    M_E306
-        JP      M_E5F4
+        JR      M_E5F4
 
 M_F319: .data   %82
         .data   "2!"
@@ -2324,7 +2324,7 @@ M_F31F: CALL    M_E31F
         CALL    M_E281
         CALL    M_E372
         CALL    M_E603
-        JP      M_E281
+        JR      M_E281
 
 M_F331: .data   %86
         .data   "CMOVE>"
@@ -2343,7 +2343,7 @@ M_F34D: LDE     R7, @RR2
         DECW    R4
         DECW    R8
         JR      NZ, M_F34D
-        JP      M_E208          ; popIntoRr4
+        JR      M_E208          ; popIntoRr4
 
 M_F35C: .data   %88
         .data   "FORTH-83"
@@ -2356,18 +2356,18 @@ M_F368: CALL    M_E221
 M_F3A0: .data   %83
         .data   "UM*"
         .data   M_F35C %00
-M_F3A7: JP      M_E3FD
+M_F3A7: JR      M_E3FD
 
 M_F3AA: .data   %86
         .data   "UM/MOD"
         .data   M_F3A0 %00
 M_F3B4: CALL    M_E48D
-        JP      M_E208
+        JR      M_E208
 
 M_F3BA: .data   %82
         .data   "R@"
         .data   M_F3AA %00
-M_F3C0: JP      M_E384
+M_F3C0: JR      M_E384
 
 M_F3C3: .data   %84
         .data   "EXIT"
@@ -2395,7 +2395,7 @@ M_F3EE: LD      R6, SPH
         LDE     R4, @RR6
         INCW    R6
         LDE     R5, @RR6
-        JP      M_E099          ; pushRr4
+        JR      M_E099          ; pushRr4
 
 M_F3FE: .data   %82
         .data   "S."

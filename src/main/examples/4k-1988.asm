@@ -36,7 +36,7 @@ M_080F: JP      @%7E
         NOP
 
         ; boot
-M_0812: JP      M_2000
+M_0812: JR      M_2000
 
 M_0815: JP      M_081D
 
@@ -294,7 +294,7 @@ M_0924: SRP     #%10
         JR      .15
 
 .14:    CALL    M_0CA4
-.15:    JP      M_0924
+.15:    JR      M_0924
 
 .16:    CALL    M_0A81
         JR      .13
@@ -335,7 +335,7 @@ M_0A62: INCW    SPH
         INCW    R0
         DJNZ    R2, .1
 .2:     EI
-        JP      M_0824
+        JR      M_0824
 
 M_0A81: CALL    %0500
         LD      R2, R0
@@ -367,7 +367,7 @@ M_0AB0: LD      R4, @R11
         CP      R11, #%1A
         JR      C, M_0AB0
 M_0ABD: LD      %5A, R4
-        JP      M_0872
+        JR      M_0872
 
 M_0AC2: CALL    M_0ABD
         INC     R11
@@ -542,7 +542,7 @@ M_0C0A: CALL    M_0827
         JR      Z, M_0C0A
         LD      R10, #%20
         POP     RP
-        JP      M_0872
+        JR      M_0872
 
 M_0C1D: CP      %54, #%75
         JR      NZ, M_0C1D
@@ -806,7 +806,8 @@ M_0E35: SCF
         RET
 
 M_0E37: LD      R5, #0
-        JP      F, %5C01        ; M_0E3A: LD R5, #1
+        .data   %0d
+M_0E3A: LD R5, #1
         CALL    M_0CF4
         JR      NC, M_0DEB
         OR      R5, R5
@@ -814,7 +815,7 @@ M_0E37: LD      R5, #0
         LD      R6, #%3B
         LD      %58, #%13
         CALL    M_0BF2
-M_0E4D: JP      M_0DCC
+M_0E4D: JR      M_0DCC
 
 M_0E50: CALL    @%6E
         CP      R6, #%22
@@ -846,7 +847,7 @@ M_0E80: CALL    M_0AD4
         AND     R3, #%F0
         SWAP    R3
 M_0E92: CALL    M_0AA3
-        JP      M_0AD4
+        JR      M_0AD4
 
         ; read from M_0BF2
 M_0E98: .data   %CC "ET"
@@ -915,7 +916,7 @@ M_201F: LD      %58, R12
         EI
         CALL    M_0824
         CP      %5A, #%42   ; B ... Basic
-        JP      Z, M_08FF
+        JR      Z, M_08FF
         CP      %5A, #%53   ; S ... Save
         JR      NZ, M_2038
         CALL    M_268F
@@ -926,7 +927,7 @@ M_2040: CP      %5A, #%52   ; R ... Data
         JR      NZ, M_2048
         CALL    M_2352
 M_2048: CP      %5A, #%50   ; P ... Prog
-        JP      Z, M_23E4
+        JR      Z, M_23E4
         CP      %5A, #%49   ; I ... Init
         JR      NZ, M_2000
         CALL    M_0824
@@ -957,7 +958,7 @@ M_20BE: AND     %5A, #%0F
         JR      C, M_20C9
         ADD     %5A, #7
 M_20C9: ADD     %5A, #%30
-        JP      M_0872
+        JR      M_0872
 
 M_20CF: PUSH    RP
         SRP     #%50
@@ -992,7 +993,7 @@ M_210A: PUSH    RP
         SRP     #%50
         LD      R14, #%20
         LD      R15, #%6E
-        JP      M_0BFA
+        JR      M_0BFA
 
 M_2115: SUB     R1, #4
         SBC     R0, #0
@@ -1352,7 +1353,7 @@ M_23C5: CP      %5A, #%2D
 
 M_23DC: CALL    M_2312
 M_23DF: CLR     %5B
-        JP      M_2357
+        JR      M_2357
 
 M_23E4: PUSH    FLAGS
         PUSH    RP
@@ -1397,7 +1398,7 @@ M_2437: CALL    M_260E
         EI
 M_2440: CALL    M_22CA
         JR      NC, M_2471
-        JP      NZ, M_24D3
+        JR      NZ, M_24D3
         LD      %5B, #%73
         CALL    M_0B95
         LD      %5B, #%70
@@ -1427,7 +1428,7 @@ M_2471: SRP     #%70
         LD      R15, %71
         DJNZ    R11, M_2489
 M_2484: POP     RP
-        JP      M_2405
+        JR      M_2405
 
 M_2489: CALL    M_22E5
         JR      NC, M_24C0
@@ -1468,7 +1469,7 @@ M_24D3: CP      %5A, #%51
         JR      NZ, M_24DF
         LD      %70, R14
         LD      %71, R15
-M_24DC: JP      M_2440
+M_24DC: JR      M_2440
 
 M_24DF: CP      %5A, #%2D
         JR      NZ, M_24EA
@@ -1494,7 +1495,7 @@ M_2508: LD      R14, R4
         LD      R15, R5
         DI
         CALL    M_21AB
-        JP      NC, M_2484
+        JR      NC, M_2484
         EI
         LD      R9, #%3F
         PUSH    R9
@@ -1550,7 +1551,7 @@ M_2570: CP      %5A, #%48
         LD      %71, R15
         POP     %6F
         POP     %6E
-        JP      C, M_24E8
+        JR      C, M_24E8
 M_2587: POP     RP
         JR      M_25C7
 
@@ -1569,18 +1570,18 @@ M_2596: CP      %5A, #%52
         CALL    M_2352
         POP     %6F
         POP     %6E
-M_25AB: JP      M_2405
+M_25AB: JR      M_2405
 
 M_25AE: CP      %5A, #%60
         JR      C, M_25B6
-        JP      M_2000
+        JR      M_2000
 
 M_25B6: CP      %5A, #%53
         JR      Z, M_25C5
         PUSH    RP
         SRP     #%60
         CALL    M_2312
-        JP      M_2484
+        JR      M_2484
 
 M_25C5: CLR     %70
 M_25C7: DI
@@ -1672,7 +1673,7 @@ M_267F: CALL    M_20CF
         CALL    M_0872
         DJNZ    R11, M_267F
         DEC     %5B
-M_268C: JP      M_0AD4
+M_268C: JR      M_0AD4
 
 M_268F: CALL    CLS
         CALL    M_231F
@@ -1840,7 +1841,7 @@ M_27A7: CALL    M_2737
         JR      NZ, M_27C4
         CP      R6, %5D
         JR      Z, M_27D0
-M_27C4: JP      M_0A62
+M_27C4: JR      M_0A62
 
 M_27C7: CALL    M_2723
         CP      R11, R14

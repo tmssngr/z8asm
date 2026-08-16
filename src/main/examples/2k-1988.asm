@@ -25,7 +25,7 @@
         JP      %E00F
 
         ; boot
-M_0812: JP      M_08FF
+M_0812: JR      M_08FF
 
 M_0815: JP      M_081D
 
@@ -283,7 +283,7 @@ M_0A13: LD      %6F, #%D7
         JR      M_0A30
 
 M_0A2D: CALL    M_0CA4
-M_0A30: JP      M_0924
+M_0A30: JR      M_0924
 
 M_0A33: CALL    M_0A81
         JR      M_0A13
@@ -322,7 +322,7 @@ M_0A38: DI
         INCW    R0
         OR      R6, R6
         JR      NZ, .1
-M_0A60: JP      %0020
+M_0A60: JR      %0020
 
 M_0A63: CP      R6, #'@'        ; shift P ... Save
         JR      NZ, M_0A60
@@ -369,7 +369,7 @@ M_0AB0: LD      R4, @R11
         CP      R11, #%1A
         JR      C, M_0AB0
 M_0ABD: LD      %5A, R4
-        JP      M_0872
+        JR      M_0872
 M_0AC2: CALL    M_0ABD
         INC     R11
         LD      R4, @R11
@@ -548,7 +548,7 @@ M_0C0A: CALL    M_0827
         JR      Z, M_0C0A
         LD      R10, #%20
         POP     RP
-        JP      M_0872
+        JR      M_0872
 
         ; read keyboard waiting with caret
         ; out: %5A = ascii
@@ -818,8 +818,9 @@ M_0E27: CALL    @%6E
 M_0E35: SCF
         RET
 
-        LD      R5, #0
-        JP      F, %5C01
+M_0E37: LD      R5, #0
+        .data   %0d           ; skip next
+M_0E3A: LD      R5, #1
         CALL    M_0CF4
         JR      NC, M_0DEB
         OR      R5, R5
@@ -827,7 +828,7 @@ M_0E35: SCF
         LD      R6, #%3B
         LD      %58, #%13
         CALL    M_0BF2
-M_0E4D: JP      M_0DCC
+M_0E4D: JR      M_0DCC
 
         CALL    @%6E
         CP      R6, #%22
@@ -859,7 +860,7 @@ M_0E80: CALL    M_0AD4
         AND     R3, #%F0
         SWAP    R3
 M_0E92: CALL    M_0AA3
-        JP      M_0AD4
+        JR      M_0AD4
 
 M_0E98: .data   %CC "ET"
         .data   %D0 "ROC"
