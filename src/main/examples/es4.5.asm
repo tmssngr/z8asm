@@ -2585,26 +2585,25 @@ M_1CF9: LDEI    @RR0, @R2
         RET
 
         ; keyboard mapping
-M_1D00: .data   %0e "1234567890-=" %05 %0c %07
-        .data   " qwertyuiop[]" %09 %0a %06
-        .data   %c2 "asdfghjkl;'@" %04 %0b %03
-        .data   "<zxcvbnm,./" %c1 %0d %01 %02 %08
-        ; 1d40
-        .data   %0e "!@#$%^&*()_+" %05 %0c %07
-        .data   " QWERTYUIOP{}" %09 %0a %06
-        .data   %c2 "ASDFGHJKL:" %22 "|" %04 %0b %03
-        .data   ">ZXCVBNM,.?" %C1 %0d %01 %02 %08
-        ; 1d80
-        .data   %0F %11 %12 %13 %14 %15 %16 %17 %18 %19 %10 %7F %60 %05 %0C %07
-        .data   " 1234567890" %1c %5c %09 %0a %06
-        .data   %C2 %80 %81 %82 %83 %84 %85 %86 %87 %6C %1B %1A %7E %04 %0B %03
-        .data   "<ABCDEFm" %1E %1D %1F %C1 %0D %01 %02 %08
-        ; 1dc0
-        .repeat 4
-            .repeat 16
-                .data %FF
-            .end
-        .end
+M_1D00: .data %FF "1234567890-=" %08 %09 %0c
+        .data %C3 "qwertyuiop[]" %07 %03 %06
+        .data %C2 "asdfghjkl;'\\" %01 %05 %02
+        .data %C1 "zxcvbnm,./\r  " %04 %0d
+
+        .data %FF "!@#$%^&*()_+" %FF %FF %FF
+        .data %FF "QWERTYUIOP{}" %07 %03 %06
+        .data %FF "ASDFGHJKL:\"|" %01 %05 %02
+        .data %FF "ZXCVBNM<>?\r  " %04 %0d
+
+        .data %FF %08 %09 %0C %FF %1A %1B %1C %1D %1E %1F %5E %FF %FF %FF %FF
+        .data %FF %07 %03 %06 %0A %FF %FF %FF %FF %FF %FF %5C %FF %FF %FF %FF
+        .data %FF %01 %05 %02 %0B %FF %FF %FF %FF %FF %FF %7C %FF %FF %FF %FF
+        .data %FF %0F %04 %FF %0E %FF %FF %FF %7B %7D %5F %7E %FF %FF %FF %FF
+
+        .data %FF %11 %12 %13 %14 %15 %16 %17 %18 %19 %10 %7F %FF %FF %FF %FF
+        .data %FF %80 %81 %82 %83 %84 %85 %86 %87 %FF %FF %60 %FF %FF %FF %FF
+        .data %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF
+        .data %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF %FF
         ; 1e00
         .repeat 4
             .repeat 16
