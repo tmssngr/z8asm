@@ -507,7 +507,7 @@ M_E3DA: INCW    R2
 M_E3DD: .data   %86
         .data   "NEGATE"
         .data   M_E3D4 %00
-M_E3E7: JP      %E150
+M_E3E7: JP      M_E150
 
 M_E3EA: NOP
 
@@ -2141,7 +2141,7 @@ M_F1A0: LD      R4, R3
         ADD     R4, R15
         LD      R6, #%31
         CP      R4, #%50
-        JP      NC, %E0B2
+        JP      NC, M_E0B2
         LD      R3, @R4
         INC     R4
         LD      R2, @R4
