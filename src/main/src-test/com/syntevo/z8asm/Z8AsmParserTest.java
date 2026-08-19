@@ -60,6 +60,11 @@ public class Z8AsmParserTest {
 	}
 
 	@Test
+	public void testKeys() throws IOException {
+		assembleFileBinary(Path.of("src/main/examples/wkey.asm"));
+	}
+
+	@Test
 	public void testMissingLabel() {
 		try {
 			assembleAsString("""
@@ -290,8 +295,16 @@ public class Z8AsmParserTest {
 	private static void assembleFileBinaryAscii(Path file) throws IOException {
 		final Output output = assemble(file);
 
-		try (Writer writer = Files.newBufferedWriter(getExpectedFile(file))) {
+		try (Writer writer = Files.newBufferedWriter(getExpectedFile(file, ".expected"))) {
 			output.print(writer);
+		}
+	}
+
+	private static void assembleFileBinary(Path file) throws IOException {
+		final Output output = assemble(file);
+
+		try (OutputStream os = Files.newOutputStream(getExpectedFile(file, ".bin"))) {
+			output.write(os);
 		}
 	}
 
@@ -303,8 +316,8 @@ public class Z8AsmParserTest {
 	}
 
 	@NotNull
-	private static Path getExpectedFile(Path file) {
-		return file.resolveSibling(file.getFileName() + ".expected");
+	private static Path getExpectedFile(Path file, String suffix) {
+		return file.resolveSibling(file.getFileName() + suffix);
 	}
 
 	private static String assembleAsString(String input) {
