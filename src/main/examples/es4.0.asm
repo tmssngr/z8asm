@@ -41,8 +41,8 @@ M_0818: JP      %FFE9
         ; KEY
 M_081B: JP      M_1B0A
 
-        ; WKEY
-M_081E: JP      M_1B94
+        ; WKEY 081E
+WKEY:   JP      _wkey
 
         ; SAVE
 M_0821: JP      M_1C86
@@ -319,7 +319,7 @@ M_0A35: TM      %55, #4
         RCF
         RET
 
-M_0A3F: CALL    M_081E
+M_0A3F: CALL    WKEY
         LD      %5A, %13
         CALL    M_1905
         RCF
@@ -397,7 +397,7 @@ M_0ABE: INCW    R0
 M_0ACA: CALL    M_0818      ; PTC
         CP      R5, #%0D
         JR      NZ, M_0ABE
-        CALL    M_081E          ;WKEY
+        CALL    WKEY
         CP      R3, #' '
         JR      NZ, M_0AAA
         INCW    R0
@@ -547,7 +547,7 @@ M_0C8D: LD      R5, #%0D
         JR      M_0C8A
 
 M_0C91: CALL    M_0C8D          ; println
-        CALL    M_081E          ;WKEY
+        CALL    WKEY
         JP      M_0DFA          ; could be JR
 
         NOP
@@ -1807,7 +1807,7 @@ M_17A6: LD      %2, #%30
         RET
 
 M_17E9: PUSH    %13
-        CALL    M_081E
+        CALL    WKEY
         LD      %5A, %13
         POP     %13
         RET
@@ -1934,7 +1934,9 @@ M_18D0: LD      %5F, R3
         ; in: %5B column
         ;     %5C row
         ;     %5Ew count
-M_18D8: PUSH    %5B
+        ; M_18D8
+RedrawChars:
+        PUSH    %5B
         PUSH    %5C
 M_18DC: CALL    M_1856      ; getScreenCharAddress
         LDE     R2, @RR0
@@ -2030,7 +2032,7 @@ M_1971: DEC     %63
 M_1983: LD      R2, #%20
         LDE     @RR0, R2
         CLR     %5E
-        CALL    M_18D8
+        CALL    RedrawChars
 M_198C: JR      M_191F
 
 M_198E: DJNZ    R10, M_19AF
@@ -2059,7 +2061,7 @@ M_19B9: LDE     R4, @RR0
         INCW    %60
         DJNZ    R3, M_19B9
         CLR     %5E
-        CALL    M_18D8
+        CALL    RedrawChars
 M_19C8: JR      M_19AD
 
 M_19CA: DJNZ    R10, M_1A18
@@ -2096,7 +2098,7 @@ M_1A0B: LD      R2, #%20
 M_1A0D: LDE     @RR0, R2
         INCW    %60
         DJNZ    R9, M_1A0D
-        CALL    M_18D8
+        CALL    RedrawChars
 M_1A16: JR      M_19C8
 
 M_1A18: DJNZ    R10, M_1A6C
@@ -2135,7 +2137,7 @@ M_1A5F: LD      R2, #%20
 M_1A61: LDE     @RR0, R2
         DECW    %60
         DJNZ    R9, M_1A61
-M_1A67: CALL    M_18D8          ; redraw screen
+M_1A67: CALL    RedrawChars          ; redraw screen
         JR      M_1A16
 
 M_1A6C: DJNZ    R10, M_1A8C
@@ -2192,7 +2194,7 @@ M_1ACE: LDE     @RR0, R8
         INCW    %60
         DJNZ    R9, M_1ACE
         CLR     %5C
-        CALL    M_18D8
+        CALL    RedrawChars
         LD      %5C, #%14
         .repeat 7
             NOP
@@ -2294,7 +2296,8 @@ M_1B0A: PUSH    RP
         NOP
 
         ; Wait for keypress
-M_1B94: PUSH    RP
+        ; 1B94
+_wkey:  PUSH    RP
         SRP     #%60
         ; push value from F7A0 (color-mask for char)
         LD      R0, #%F7    ; F7A0 = COLOR_TEXT
@@ -2306,54 +2309,54 @@ M_1B94: PUSH    RP
         LDE     R2, @RR0
         DEC     %61
         LDE     @RR0, R2
-        ;
+        ; redraw single char at cursor (%5B/%5C)
         CLR     %5E
         LD      %5F, #1
-        CALL    M_18D8
+        CALL    RedrawChars
         ; restore initial value from F7A0
         POP     %62
         LD      R0, #%F7    ; F7A0 = COLOR_TEXT
         LD      R1, #%A0
         LDE     @RR0, R2
-        JR      M_1BBC
+        JR      .2
 
-M_1BB9: AND     %6C, #%7F   ; 0xxx_xxxx; unset auto-repeat flag
-M_1BBC: LD      %5F, R13
+.1:     AND     %6C, #%7F   ; 0xxx_xxxx; unset auto-repeat flag
+.2:     LD      %5F, R13
         CALL    M_081B      ; get key in %6D
         LD      %13, R13
         OR      R13, R13
-        JR      Z, M_1BB9   ; no key?
+        JR      Z, .1   ; no key?
         ; got key press
         LD      R0, #%1F
         AND     R0, R12     ; auto-repeat rate
         ; wait 96 * (6 + 12) * 0.25us + 6 = 438us
         LD      R15, %60
-M_1BCD: OR      R15, R15    ; wait until %5F is cleared
-        JR      NZ, M_1BCD
+.3:     OR      R15, R15    ; wait until %5F is cleared
+        JR      NZ, .3
         ;
         CP      %5F, %6D
-        JR      Z, M_1BDB	; same char?
+        JR      Z, .4	; same char?
         AND     %6C, #%7F	; different char -> unset auto-repeat flag
-        JR      M_1BF4
+        JR      .6
         ; same key
-M_1BDB: OR      R12, R12
-        JR      MI, M_1BF4	; auto-repeat active?
+.4:     OR      R12, R12
+        JR      MI, .6	; auto-repeat active?
         LD      R15, #%80
-M_1BE1: CALL    M_081B
+.5:     CALL    M_081B
         OR      R13, R13
-        JR      Z, M_1BB9	; no key?
+        JR      Z, .1	; no key?
         CP      %5F, %6D
-        JR      NZ, M_1BB9	; different key?
+        JR      NZ, .1	; different key?
         OR      R15, R15
-        JR      NZ, M_1BE1
+        JR      NZ, .5
         ; set auto-repeat
         OR      %6C, #%80
-M_1BF4: TM      %6C, #%40   ; %6C == x1xx_xxxx -> beep after keypress?
-        JR      Z, M_1BFC
+.6:     TM      %6C, #%40   ; %6C == x1xx_xxxx -> beep after keypress?
+        JR      Z, .7
         CALL    M_1AF0      ; beep
-M_1BFC: CLR     %5E
+.7:     CLR     %5E
         LD      %5F, #1
-        CALL    M_18D8
+        CALL    RedrawChars
         POP     RP
         RET
 
@@ -2393,7 +2396,7 @@ M_1C19: PUSH    RP
         LDE     R10, @RR14
         JR      .2
 
-.4:     CALL    M_081E          ;WKEY
+.4:     CALL    WKEY
         LD      R10, %13
         CALL    M_1905
         TM      %55, #%80
@@ -2551,7 +2554,7 @@ M_1E90: LDE     R4, @RR0
         JR      NZ, M_1E90
         CLR     %5B
         CLR     %5C
-        CALL    M_18D8
+        CALL    RedrawChars
         POP     RP
         RET
 
