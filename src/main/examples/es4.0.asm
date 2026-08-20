@@ -2211,64 +2211,60 @@ _wkey:  PUSH    RP
         LD      R0, #%F7    ; F7A0 = COLOR_TEXT
         LD      R1, #%A0
         LDE     R2, @RR0
-        PUSH    %62
+        PUSH    R2
         ; store value from F7A1 (color-mask for cursor) in F7A0
         INC     R1
         LDE     R2, @RR0
-        DEC     %61
+        DEC     R1
         LDE     @RR0, R2
         ; redraw single char at cursor (%5B/%5C)
         CLR     %5E
         LD      %5F, #1
         CALL    RedrawChars
         ; restore initial value from F7A0
-        POP     %62
         LD      R0, #%F7    ; F7A0 = COLOR_TEXT
         LD      R1, #%A0
+        POP     R2
         LDE     @RR0, R2
-        JR      .2
+        JR      .loop1
 
-.1:     AND     %6C, #%7F   ; 0xxx_xxxx; unset auto-repeat flag
-.2:     LD      %5F, R13
-        CALL    M_081B      ; get key in %6D
+.restart:
+        AND     R12, #%7F   ; 0xxx_xxxx; unset auto-repeat flag
+.loop1:
+        LD      %5F, R13
+        LD      %6F, #%1F
+        AND     %6F, R12
+        OR      R12, R12
+        JR      MI, .loop2
+        LD      %6F, #%40
+        OR      %5F, %5F
+        JR      Z, .loop2
+        OR      R12, #%80
+.loop2:
+        CALL    M_081B
+        OR      R13, R13
+        JR      Z, .restart
+
+        CP      R13, %5F
+        JR      NE, .other
+        OR      %6F, %6F
+        JR      NZ, .loop2
+        JR      .ret
+.other:
+        AND     R12, #%7F
+.ret:
+        TM      R12, #%40
+        JR      Z, .ret2
+        CALL    M_1AF0     ; beep
+.ret2:
         LD      %13, R13
-        OR      R13, R13
-        JR      Z, .1   ; no key?
-        ; got key press
-        LD      R0, #%1F
-        AND     R0, R12     ; auto-repeat rate
-        ; wait 96 * (6 + 12) * 0.25us + 6 = 438us
-        LD      R15, %60
-.3:     OR      R15, R15    ; wait until %5F is cleared
-        JR      NZ, .3
-        ;
-        CP      %5F, %6D
-        JR      Z, .4	; same char?
-        AND     %6C, #%7F	; different char -> unset auto-repeat flag
-        JR      .6
-        ; same key
-.4:     OR      R12, R12
-        JR      MI, .6	; auto-repeat active?
-        LD      R15, #%80
-.5:     CALL    M_081B
-        OR      R13, R13
-        JR      Z, .1	; no key?
-        CP      %5F, %6D
-        JR      NZ, .1	; different key?
-        OR      R15, R15
-        JR      NZ, .5
-        ; set auto-repeat
-        OR      %6C, #%80
-.6:     TM      %6C, #%40   ; %6C == x1xx_xxxx -> beep after keypress?
-        JR      Z, .7
-        CALL    M_1AF0      ; beep
-.7:     CLR     %5E
+        CLR     %5E
         LD      %5F, #1
         CALL    RedrawChars
         POP     RP
         RET
 
-        .repeat 7
+        .repeat 16
             NOP
         .end
 
