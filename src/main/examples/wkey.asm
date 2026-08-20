@@ -1,5 +1,5 @@
-	.org %e000
-
+	.org %1B94
+/*
 test:
 	call wkey
 	ld   %15, %13
@@ -7,7 +7,7 @@ test:
 	cp   %13, #%40
 	jr   nz, test
 	ret
-
+*/
 wkey:
 	push %fd
 	srp  #%60
@@ -41,7 +41,7 @@ wkey:
 	jr   z, .loop2
 	or   r12, #%80
 .loop2:
-	call debounce
+	call %081b
 	or   r13, r13
 	jr   z, .restart
 
@@ -57,20 +57,9 @@ wkey:
 	jr   z, .ret2
 	call %1Af0     ; beep
 .ret2:
+	ld   %13, r13
 	clr  %5e
 	ld   %5f, #1
 	call %18d8
 	pop  %fd
-	ret
-
-debounce:
-	push %5e
-.1:	ld   %13, r13
-	ld   %5e, #%08
-.2:	call %081b
-	cp   r13, %13
-	jr   nz, .1
-	dec  %5e
-	jr   nz, .2
-	pop  %5e
 	ret
