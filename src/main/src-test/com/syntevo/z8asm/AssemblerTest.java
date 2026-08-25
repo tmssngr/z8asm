@@ -10,9 +10,7 @@ import org.junit.*;
 /**
  * @author Thomas Singer
  */
-public class Z8AsmParserTest {
-
-	// Accessing ==============================================================
+public class AssemblerTest {
 
 	@Test
 	public void testUB8830Rom() throws IOException {
