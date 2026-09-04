@@ -7,30 +7,28 @@ import org.jetbrains.annotations.*;
 /**
  * @author Thomas Singer
  */
-public class Assembler {
+public record Assembler(@NotNull List<Command> commands, @NotNull Map<String, Integer> labels) {
 
 	@NotNull
 	public static List<Command> assemble(List<Command> commands) {
-		final Assembler assembler = new Assembler();
-		return assembler.assemble(commands, System.out::println);
-	}
-
-	public Assembler() {
+		final Assembler assembler = assemble(commands, System.out::println);
+		return assembler.commands;
 	}
 
 	@NotNull
-	public List<Command> assemble(List<Command> commands, @NotNull WarningOut out) {
+	public static Assembler assemble(List<Command> commands, @NotNull WarningOut out) {
 		commands = new ArrayList<>(commands);
 		final Labels labels = determineLabels(commands);
 		resolveAutoJumps(commands, labels);
 		resolveLazyCommands(commands, labels, out);
 		labels.reportUnused(out);
 		commands.removeIf(Objects::isNull);
-		return commands;
+		final Map<String, Integer> mapping = labels.getMapping();
+		return new Assembler(commands, mapping);
 	}
 
 	@NotNull
-	private Labels determineLabels(List<Command> commands) {
+	private static Labels determineLabels(List<Command> commands) {
 		final Labels labels = new Labels();
 		boolean allowOrg = true;
 		int pc = 0;
@@ -66,7 +64,7 @@ public class Assembler {
 		return labels;
 	}
 
-	private void resolveAutoJumps(List<Command> commands, Labels labels) {
+	private static void resolveAutoJumps(List<Command> commands, Labels labels) {
 		while (true) {
 			if (!resolveAutoJumps(commands, labels, false)) {
 				break;
@@ -76,7 +74,7 @@ public class Assembler {
 		resolveAutoJumps(commands, labels, true);
 	}
 
-	private boolean resolveAutoJumps(List<Command> commands, Labels labels, boolean finalize) {
+	private static boolean resolveAutoJumps(List<Command> commands, Labels labels, boolean finalize) {
 		int pc = 0;
 		boolean changed = false;
 		for (int i = 0; i < commands.size(); i++) {
@@ -135,14 +133,14 @@ public class Assembler {
 		return changed;
 	}
 
-	private int getAlignmentOffset(int alignment, int pc) {
+	private static int getAlignmentOffset(int alignment, int pc) {
 		Utils.assertTrue(alignment > 0);
 		final int maxPc = pc + alignment - 1;
 		final int remainder = maxPc % alignment;
 		return maxPc - remainder - pc;
 	}
 
-	private void resolveLazyCommands(@NotNull List<Command> commands, @NotNull Labels labels, @NotNull WarningOut out) {
+	private static void resolveLazyCommands(@NotNull List<Command> commands, @NotNull Labels labels, @NotNull WarningOut out) {
 		int pc = 0;
 		for (int i = 0; i < commands.size(); i++) {
 			final Command command = commands.get(i);
@@ -179,7 +177,7 @@ public class Assembler {
 	}
 
 	@NotNull
-	private Command resolveLazyCommand(@NotNull Command command, int pc, @NotNull Labels labels, @NotNull WarningOut out) {
+	private static Command resolveLazyCommand(@NotNull Command command, int pc, @NotNull Labels labels, @NotNull WarningOut out) {
 		Utils.assertTrue(command.type == Command.Type.LAZY_CONTENT);
 
 		final int opCode = command.get(0);
@@ -246,7 +244,7 @@ public class Assembler {
 		throw new IllegalStateException("Unsupported command " + command);
 	}
 
-	private int resolveLabelHighOrLow(boolean high, @NotNull String text, @NotNull Location location, @NotNull Labels labels) {
+	private static int resolveLabelHighOrLow(boolean high, @NotNull String text, @NotNull Location location, @NotNull Labels labels) {
 		final String textLower = text.toLowerCase(Locale.ROOT);
 		if (textLower.length() == text.length() && textLower.endsWith(")")) {
 			if (textLower.startsWith("lo(")) {

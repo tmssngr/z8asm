@@ -286,23 +286,61 @@ public class AssemblerTest {
 	}
 
 	private static void assembleFileBinaryAscii(Path file) throws IOException {
-		final Output output = assemble(file);
+		final Assembler assembler = assemble(file);
+		final List<Command> commands = assembler.commands();
+		final Output output = Output.create(commands);
 
 		try (Writer writer = Files.newBufferedWriter(getExpectedFile(file))) {
 			output.print(writer);
 		}
 	}
 
+	private static void assembleFileBinary(Path file) throws IOException {
+		final Assembler assembler = assemble(file);
+		final Output output = Output.create(assembler.commands());
+
+		final Path expectedFile = getExpectedFile(file);
+		try (OutputStream os = Files.newOutputStream(expectedFile)) {
+			output.write(os);
+		}
+
+		final Map<String, Integer> labelMapping = assembler.labels();
+		final List<String> labelsSortedByAddress = new ArrayList<>(labelMapping.keySet());
+		labelsSortedByAddress.sort((o1, o2) -> {
+			final int a1 = labelMapping.get(o1);
+			final int a2 = labelMapping.get(o2);
+			if (a1 != a2) {
+				return a1 - a2;
+			}
+			return o1.compareTo(o2);
+		});
+
+		final Path labelsFile = createSibling(file, ".labels");
+		try (Writer writer = Files.newBufferedWriter(labelsFile)) {
+			for (String label : labelsSortedByAddress) {
+				final int address = labelMapping.get(label);
+				writer.write(Utils.toHex(address, 4));
+				writer.write(" ");
+				writer.write(label);
+				writer.write("\n");
+			}
+		}
+	}
+
 	@NotNull
-	private static Output assemble(Path file) throws IOException {
+	public static Assembler assemble(Path file) throws IOException {
 		List<Command> commands = Parser.parse(file);
-		final List<Command> newCommands = Assembler.assemble(commands);
-		return Output.create(newCommands);
+		return Assembler.assemble(commands, System.out::println);
 	}
 
 	@NotNull
 	private static Path getExpectedFile(Path file) {
-		return file.resolveSibling(file.getFileName() + ".expected");
+		return createSibling(file, ".expected");
+	}
+
+	@NotNull
+	private static Path createSibling(Path file, String suffix) {
+		return file.resolveSibling(file.getFileName() + suffix);
 	}
 
 	private static String assembleAsString(String input) {
