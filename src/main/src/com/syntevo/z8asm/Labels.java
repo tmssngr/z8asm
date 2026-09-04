@@ -103,6 +103,14 @@ public final class Labels {
 		}
 	}
 
+	public Map<String, Integer> getMapping() {
+		final Map<String, Integer> map = new HashMap<>();
+		for (Map.Entry<String, GlobalLabel> entry : globalLabels.entrySet()) {
+			map.put(entry.getKey(), entry.getValue().address);
+		}
+		return map;
+	}
+
 	private boolean isLocalLabel(String text) {
 		return text.startsWith(".");
 	}
