@@ -73,6 +73,11 @@ public class AssemblerTest {
 	}
 
 	@Test
+	public void testTinyC() throws IOException {
+		assembleFileBinary(Path.of("src/main/examples/tinyc.asm"));
+	}
+
+	@Test
 	public void testMissingLabel() {
 		try {
 			assembleAsString("""
