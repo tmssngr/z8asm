@@ -1874,6 +1874,7 @@ M_1856: LD      R1, %5C
 
         NOP
 
+        ; print char without interpretion
         ; in: %5A = char
         ;     %5B = column
         ;     %5C = row
@@ -1953,6 +1954,8 @@ M_18F1: DECW    %5E
         POP     %5B
         RET
 
+        ; print char from %15
+        ; destroys %5a
 M_18FA: TM      %55, #0b0010_0000
         JR      Z, M_1902
         CALL    %F512
@@ -1966,7 +1969,7 @@ M_190D: AND     %55, #0b0111_1111
         CALL    M_1878
         INC     R11
         CP      %5B, #COLUMNS
-        JR      C, M_191F
+        JR      ult, M_191F
         INC     R12
         LD      R11, #0
         JR      M_1A9D
@@ -1975,7 +1978,7 @@ M_191F: POP     RP
         RET
 
 M_1922: CP      %5A, #%10
-        JR      NC, M_190D      ; %5A >= #%10?
+        JR      uge, M_190D      ; %5A >= #%10?
         NOP
         DJNZ    R10, M_1938     ; r10=%5A
         DEC     %5B             ; case 1 (cursor left, Ctrl+A):
@@ -2296,6 +2299,8 @@ M_1B0A: PUSH    RP
         NOP
 
         ; Wait for keypress
+        ; out: %13
+        ; destroys/uses %5E, %5F, %60-62, %6D, %6F
         ; 1B94
 _wkey:  PUSH    RP
         SRP     #%60
