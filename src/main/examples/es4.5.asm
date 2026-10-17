@@ -1917,6 +1917,11 @@ M_17F7: JP      M_163A
 M_17FA: JP      M_0F0A
 M_17FD: JP      M_0839
 
+        ; Calculate Video RAM start address of character at cursor position
+        ; assumes RP=%60
+        ; input: %5B: cursor column/x
+        ;        %5C: cursor row/y
+        ; output: rr4: video RAM address (0x4000+)
 M_1800: LD      R4, %5C         ; cursor row
         LD      R5, #0
         SCF
