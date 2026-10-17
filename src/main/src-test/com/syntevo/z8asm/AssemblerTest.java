@@ -293,6 +293,11 @@ public class AssemblerTest {
 		try (Writer writer = Files.newBufferedWriter(getExpectedFile(file))) {
 			output.print(writer);
 		}
+
+		final Path expectedFile = createSibling(file, ".bin");
+		try (OutputStream os = Files.newOutputStream(expectedFile)) {
+			output.write(os);
+		}
 	}
 
 	private static void assembleFileBinary(Path file) throws IOException {
