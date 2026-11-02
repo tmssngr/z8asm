@@ -1,0 +1,11 @@
+{
+	"name": "z8asm",
+	"description": "Z8 Assembler - D port of the Java z8asm project",
+	"authors": ["Thomas Singer"],
+	"license": "MIT",
+	"sourcePaths": ["src/z8asm"],
+	"importPaths": ["src"],
+	"targetName": "z8asm",
+	"targetType": "library",
+	"subPackages": ["z8asm"]
+}

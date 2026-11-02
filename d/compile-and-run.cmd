@@ -1,0 +1,2 @@
+rdmd main.d
+pause
