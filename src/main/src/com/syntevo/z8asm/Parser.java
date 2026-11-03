@@ -21,7 +21,11 @@ public final class Parser {
 		try (BufferedReader reader = Files.newBufferedReader(file)) {
 			final Lexer lexer = new Lexer(() -> {
 				try {
-					return reader.read();
+					final int read = reader.read();
+					if (read < 0) {
+						return OptionalInt.empty();
+					}
+					return OptionalInt.of(read);
 				}
 				catch (IOException ex) {
 					throw new UncheckedIOException(ex);
