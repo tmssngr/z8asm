@@ -36,7 +36,7 @@ public final class Parser {
 	private final Map<String, Integer> constToValue = new HashMap<>();
 	private final Lexer lexer;
 
-	private TokenType token;
+	private Token token;
 
 	public Parser(@NotNull Lexer lexer) {
 		this.lexer = lexer;
@@ -51,17 +51,17 @@ public final class Parser {
 	}
 
 	private void parse(@NotNull TokenType allowedEndType, @NotNull List<Command> commands) {
-		while (token != allowedEndType) {
-			if (token == TokenType.LABEL) {
+		while (token.type() != allowedEndType) {
+			if (token.type() == TokenType.LABEL) {
 				if (allowedEndType == TokenType.END) {
-					throw new SyntaxException("Labels inside .repeat .end blocks are not allowed", getLocation());
+					throw new SyntaxException("Labels inside .repeat .end blocks are not allowed", token.location());
 				}
-				final String label = getText();
-				commands.add(label(label, getLocation()));
+				final String label = token.text();
+				commands.add(label(label, token.location()));
 				consume();
 			}
 
-			switch (token) {
+			switch (token.type()) {
 			case LINE_BREAK -> {
 				consume();
 				continue;
@@ -123,10 +123,10 @@ public final class Parser {
 			case CCF -> commands.add(singleByteCommand(0xEF));
 			case NOP -> commands.add(singleByteCommand(0xFF));
 
-			default -> throw new SyntaxException("unexpected " + token + " " + getText(), getLocation());
+			default -> throw new SyntaxException("unexpected " + token + " " + token.text(), token.location());
 			}
 
-			if (token == TokenType.EOF) {
+			if (token.type() == TokenType.EOF) {
 				break;
 			}
 
@@ -138,7 +138,7 @@ public final class Parser {
 		consume();
 		final int alignment = consumeIntLiteral();
 		if (alignment < 2 || !isPowerOf2(alignment)) {
-			throw new SyntaxException("Expected a number the power of 2 (2, 4, 8, ...", getLocation());
+			throw new SyntaxException("Expected a number the power of 2 (2, 4, 8, ...", token.location());
 		}
 
 		consumeComma();
@@ -150,11 +150,11 @@ public final class Parser {
 		consume();
 		final String name = consumeIdentifier();
 		if (constToValue.containsKey(name)) {
-			throw new SyntaxException("Duplicate definition of " + name, getLocation());
+			throw new SyntaxException("Duplicate definition of " + name, token.location());
 		}
 
 		if (!"=".equals(consumeIdentifier())) {
-			throw new SyntaxException("Expected =", getLocation());
+			throw new SyntaxException("Expected =", token.location());
 		}
 
 		final int value = consumeIntLiteral();
@@ -165,17 +165,17 @@ public final class Parser {
 		consume();
 		boolean isFirst = true;
 		while (true) {
-			if (token == TokenType.EOF || token == TokenType.LINE_BREAK) {
+			if (token.type() == TokenType.EOF || token.type() == TokenType.LINE_BREAK) {
 				if (isFirst) {
-					throw new SyntaxException("Expected at least one byte", getLocation());
+					throw new SyntaxException("Expected at least one byte", token.location());
 				}
 				break;
 			}
 
 			isFirst = false;
 
-			if (token == TokenType.INT_LITERAL) {
-				final int size = lexer.getSize();
+			if (token.type() == TokenType.INT_LITERAL) {
+				final int size = token.size();
 				final int value = consumeIntValue();
 				if (size == 1) {
 					commands.add(Command.content1(value));
@@ -184,26 +184,26 @@ public final class Parser {
 					commands.add(Command.content2(value >> 8, value));
 				}
 			}
-			else if (token == TokenType.IDENTIFIER) {
-				final Location location = getLocation();
+			else if (token.type() == TokenType.IDENTIFIER) {
+				final Location location = token.location();
 				final String text = consumeText();
 				commands.add(Command.lazyContent2(0, text, location));
 			}
-			else if (token == TokenType.STRING) {
-				final Location location = getLocation();
+			else if (token.type() == TokenType.STRING) {
+				final Location location = token.location();
 				final String text = consumeText();
 				if (text.isEmpty()) {
 					throw new SyntaxException("Strings must not be empty.", location);
 				}
 				appendString(text, commands);
 			}
-			else if (token == TokenType.LENGTH_STRING) {
+			else if (token.type() == TokenType.LENGTH_STRING) {
 				final String text = consumeText();
 				commands.add(Command.content1(text.length()));
 				appendString(text, commands);
 			}
 			else {
-				throw new SyntaxException("unsupported constant", getLocation());
+				throw new SyntaxException("unsupported constant", token.location());
 			}
 		}
 	}
@@ -211,7 +211,7 @@ public final class Parser {
 	@NotNull
 	private Command org() {
 		consume();
-		final Location location = getLocation();
+		final Location location = token.location();
 		return Command.org(consumeIntLiteral(), location);
 	}
 
@@ -220,7 +220,7 @@ public final class Parser {
 
 		int repeatTimes = consumeIntLiteral();
 		if (repeatTimes <= 1) {
-			throw new SyntaxException("Expected a value > 1", getLocation());
+			throw new SyntaxException("Expected a value > 1", token.location());
 		}
 
 		final int repeatStart = commands.size();
@@ -287,12 +287,12 @@ public final class Parser {
 			return content2(0xD4, reg);
 		}
 
-		if (token == TokenType.INT_LITERAL) {
+		if (token.type() == TokenType.INT_LITERAL) {
 			final int address = consumeIntValue();
 			return content3(0xD6, address >> 8, address);
 		}
 
-		final Location location = getLocation();
+		final Location location = token.location();
 		final String target = consumeIdentifier();
 		return lazyContent3(0xD6, target, location);
 	}
@@ -304,23 +304,23 @@ public final class Parser {
 			return content2(0x30, reg);
 		}
 
-		if (token == TokenType.INT_LITERAL) {
+		if (token.type() == TokenType.INT_LITERAL) {
 			final int address = consumeIntValue();
 			return content3(0x8d, address >> 8, address);
 		}
 
-		Location location = getLocation();
+		Location location = token.location();
 		final String jcOrTarget = consumeIdentifier();
 		final String target;
 		int jc = getJumpCondition(jcOrTarget);
 		if (jc >= 0) {
 			consumeComma();
-			if (token == TokenType.INT_LITERAL) {
+			if (token.type() == TokenType.INT_LITERAL) {
 				final int address = consumeIntValue();
 				return content3(jc + 0x0D, address >> 8, address);
 			}
 
-			location = getLocation();
+			location = token.location();
 			target = consumeIdentifier();
 		}
 		else {
@@ -333,8 +333,8 @@ public final class Parser {
 
 	private Command createJr() {
 		consume();
-		Location location = getLocation();
-		if (token == TokenType.INT_LITERAL) {
+		Location location = token.location();
+		if (token.type() == TokenType.INT_LITERAL) {
 			final int address = consumeIntValue();
 			return autoJump(0x8b, address);
 		}
@@ -344,8 +344,8 @@ public final class Parser {
 		int jc = getJumpCondition(jcOrTarget);
 		if (jc >= 0) {
 			consumeComma();
-			location = getLocation();
-			if (token == TokenType.INT_LITERAL) {
+			location = token.location();
+			if (token.type() == TokenType.INT_LITERAL) {
 				final int address = consumeIntValue();
 				return autoJump(jc + 0x0b, address);
 			}
@@ -363,7 +363,7 @@ public final class Parser {
 		consume();
 		final int reg = consumeWorkRegister();
 		consumeComma();
-		final Location location = getLocation();
+		final Location location = token.location();
 		final String target = consumeIdentifier();
 		return lazyContent2(command(reg, 0xA), target, location);
 	}
@@ -492,7 +492,7 @@ public final class Parser {
 		consume();
 		consumeAt();
 
-		if (token == TokenType.WORK_REGISTER_PAIR) {
+		if (token.type() == TokenType.WORK_REGISTER_PAIR) {
 			final int dest = consumeIntValue();
 			consumeComma();
 			consumeAt();
@@ -556,7 +556,7 @@ public final class Parser {
 	}
 
 	private boolean consumeIf(TokenType type) {
-		if (token != type) {
+		if (token.type() != type) {
 			return false;
 		}
 
@@ -586,12 +586,12 @@ public final class Parser {
 	}
 
 	private int consumeRegister(boolean pair) {
-		if (token == TokenType.INT_LITERAL) {
+		if (token.type() == TokenType.INT_LITERAL) {
 			return consumeIntValue();
 		}
 
-		if (pair && token == TokenType.WORK_REGISTER_PAIR
-		    || !pair && token == TokenType.WORK_REGISTER) {
+		if (pair && token.type() == TokenType.WORK_REGISTER_PAIR
+		    || !pair && token.type() == TokenType.WORK_REGISTER) {
 			return WORK_REG + (consumeIntValue() & 0xF);
 		}
 
@@ -600,8 +600,8 @@ public final class Parser {
 
 	@NotNull
 	private Integer consumeConstant(String msg) {
-		final Location location = getLocation();
-		if (token == TokenType.IDENTIFIER) {
+		final Location location = token.location();
+		if (token.type() == TokenType.IDENTIFIER) {
 			final Integer value = constToValue.get(consumeText());
 			if (value != null) {
 				return value;
@@ -625,18 +625,13 @@ public final class Parser {
 
 	@NotNull
 	private String consumeText() {
-		final String text = getText();
+		final String text = token.text();
 		consume();
 		return text;
 	}
 
-	@NotNull
-	private String getText() {
-		return lexer.getText();
-	}
-
 	private int consumeIntLiteral() {
-		if (token == TokenType.INT_LITERAL) {
+		if (token.type() == TokenType.INT_LITERAL) {
 			return consumeIntValue();
 		}
 		return consumeConstant("expected int literal or constant");
@@ -648,25 +643,21 @@ public final class Parser {
 	}
 
 	private int consumeIntValue() {
-		final int value = lexer.getIntValue();
+		final int value = token.intValue();
 		consume();
 		return value;
-	}
-
-	private Location getLocation() {
-		return lexer.getLocation();
 	}
 
 	private void consume() {
 		do {
 			token = lexer.next();
 		}
-		while (token == TokenType.WHITESPACE || token == TokenType.COMMENT);
+		while (token.type() == TokenType.WHITESPACE || token.type() == TokenType.COMMENT);
 	}
 
 	private void expectType(TokenType type) {
-		if (token != type) {
-			throw new SyntaxException("Expected " + type + " but got " + token, getLocation());
+		if (token.type() != type) {
+			throw new SyntaxException("Expected " + type + " but got " + token, token.location());
 		}
 	}
 
@@ -697,12 +688,12 @@ public final class Parser {
 
 		@NotNull
 		public final Command run() {
-			if (token == TokenType.INT_LITERAL) {
+			if (token.type() == TokenType.INT_LITERAL) {
 				final int immediate = consumeIntValue();
 				return create(immediate);
 			}
 
-			final Location location = getLocation();
+			final Location location = token.location();
 			String identifier = consumeIdentifier();
 			if (consumeIf(TokenType.L_PAREN)) {
 				identifier += "(" + consumeIdentifier() + ")";

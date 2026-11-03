@@ -38,68 +38,69 @@ public final class Lexer {
 		chr = source.next();
 	}
 
-	public TokenType next() {
+	@NotNull
+	public Token next() {
 		text = "";
 		intValue = 0;
 		size = 0;
 		location = new Location(line, column);
 
 		if (chr < 0) {
-			return TokenType.EOF;
+			return new Token(TokenType.EOF, "", 0, 0, location);
 		}
 
 		if (isWhitespace()) {
-			text = detectWhitespace();
-			return TokenType.WHITESPACE;
+			final String text = detectWhitespace();
+			return new Token(TokenType.WHITESPACE, text, 0, 0, location);
 		}
 		if (isLineBreak()) {
-			text = detectLineBreak();
-			return TokenType.LINE_BREAK;
+			final String text = detectLineBreak();
+			return new Token(TokenType.LINE_BREAK, text, 0, 0, location);
 		}
 		if (chr == ';') {
-			text = detectLineComment("");
-			return TokenType.COMMENT;
+			final String text = detectLineComment("");
+			return new Token(TokenType.COMMENT, text, 0, 0, location);
 		}
 		if (chr == '/') {
 			consume();
 			if (chr == '/') {
-				text = detectLineComment("/");
-				return TokenType.COMMENT;
+				final String text = detectLineComment("/");
+				return new Token(TokenType.COMMENT, text, 0, 0, location);
 			}
 
 			if (chr == '*') {
-				text = detectBlockComment();
-				return TokenType.COMMENT;
+				final String text = detectBlockComment();
+				return new Token(TokenType.COMMENT, text, 0, 0, location);
 			}
 
-			text = "/";
-			return TokenType.IDENTIFIER;
+			final String text = "/";
+			return new Token(TokenType.IDENTIFIER, text, 0, 0, location);
 		}
 
 		if (chr == ',') {
 			consume();
-			return TokenType.COMMA;
+			return new Token(TokenType.COMMA, "", 0, 0, location);
 		}
 		if (chr == '#') {
 			consume();
-			return TokenType.HASH;
+			return new Token(TokenType.HASH, "", 0, 0, location);
 		}
 		if (chr == '@') {
 			consume();
-			return TokenType.AT;
+			return new Token(TokenType.AT, "", 0, 0, location);
 		}
 		if (chr == '(') {
 			consume();
-			return TokenType.L_PAREN;
+			return new Token(TokenType.L_PAREN, "", 0, 0, location);
 		}
 		if (chr == ')') {
 			consume();
-			return TokenType.R_PAREN;
+			return new Token(TokenType.R_PAREN, "", 0, 0, location);
 		}
 		if (chr == '"') {
 			consume();
-			text = detectStringOrChar(false, '"');
-			return TokenType.STRING;
+			final String text = detectStringOrChar(false, '"');
+			return new Token(TokenType.STRING, text, 0, 0, location);
 		}
 		if (chr == '\'') {
 			consume();
@@ -108,8 +109,7 @@ public final class Lexer {
 				throw new InvalidTokenException("Invalid char literal", location);
 			}
 			intValue = text.charAt(0);
-			size = 1;
-			return TokenType.INT_LITERAL;
+			return new Token(TokenType.INT_LITERAL, "", intValue, 1, location);
 		}
 
 		final StringBuilder buffer = new StringBuilder();
@@ -132,26 +132,33 @@ public final class Lexer {
 		if (text.equalsIgnoreCase("L") && chr == '"') {
 			consume();
 			text = detectStringOrChar(true, '"');
-			return TokenType.LENGTH_STRING;
+			return new Token(TokenType.LENGTH_STRING, text, 0, 0, location);
 		}
 
 		if (text.length() > 1) {
 			if (text.endsWith(":")) {
 				text = buffer.substring(0, text.length() - 1);
-				return TokenType.LABEL;
+				return new Token(TokenType.LABEL, text, 0, 0, location);
 			}
-			if (isWorkRegister(text)) {
-				return TokenType.WORK_REGISTER;
+			Token token = detectWorkRegister(text, "rr", TokenType.WORK_REGISTER_PAIR, location);
+			if (token == null) {
+				token = detectWorkRegister(text, "r", TokenType.WORK_REGISTER, location);
 			}
-			if (isWorkRegisterPair(text)) {
-				return TokenType.WORK_REGISTER_PAIR;
+			if (token != null) {
+				return token;
 			}
 		}
 
-		if (detectInt(text)) {
-			return TokenType.INT_LITERAL;
+		final Token token = detectInt(text, location);
+		if (token != null) {
+			return token;
 		}
 
+		return new Token(getKeywordOrIdentifier(), text, 0, 0, location);
+	}
+
+	@NotNull
+	private TokenType getKeywordOrIdentifier() {
 		return switch (text.toLowerCase()) {
 			case ".align" -> TokenType.ALIGN;
 			case ".const" -> TokenType.CONST;
@@ -211,64 +218,31 @@ public final class Lexer {
 		};
 	}
 
-	@NotNull
-	public String getText() {
-		return text;
-	}
-
-	public int getIntValue() {
-		return intValue;
-	}
-
-	public int getSize() {
-		return size;
-	}
-
-	public Location getLocation() {
-		return location;
-	}
-
-	private boolean isWorkRegister(String text) {
+	@Nullable
+	private Token detectWorkRegister(String text, String prefix, TokenType type, Location location) {
 		text = text.toLowerCase(Locale.ROOT);
-		if (!text.startsWith("r")) {
-			return false;
-		}
+		if (text.startsWith(prefix)) {
+			text = text.substring(prefix.length());
 
-		text = text.substring(1);
+			try {
+				final int intValue = Integer.parseInt(text);
 
-		try {
-			intValue = Integer.parseInt(text);
-			return intValue >= 0
-			       && intValue < 16;
+				if (intValue >= 0 && intValue < 16) {
+					return new Token(type, "", intValue, 0, location);
+				}
+			}
+			catch (NumberFormatException ignored) {
+			}
 		}
-		catch (NumberFormatException e) {
-			return false;
-		}
+		return null;
 	}
 
-	private boolean isWorkRegisterPair(String text) {
-		text = text.toLowerCase(Locale.ROOT);
-		if (!text.startsWith("rr")) {
-			return false;
-		}
-
-		text = text.substring(2);
-
-		try {
-			intValue = Integer.parseInt(text);
-			return intValue >= 0
-			       && intValue < 16;
-		}
-		catch (NumberFormatException e) {
-			return false;
-		}
-	}
-
-	private boolean detectInt(String text) {
+	@Nullable
+	private Token detectInt(String text, Location location) {
 		try {
 			intValue = Integer.parseInt(text);
 			size = 2;
-			return true;
+			return new Token(TokenType.INT_LITERAL, "", intValue, 2, location);
 		}
 		catch (NumberFormatException ignored) {
 		}
@@ -277,8 +251,7 @@ public final class Lexer {
 			final String possibleNumberString = text.substring(2).replace("_", "");
 			try {
 				intValue = Integer.parseInt(possibleNumberString, 2);
-				size = 1;
-				return true;
+				return new Token(TokenType.INT_LITERAL, "", intValue, 1, location);
 			}
 			catch (NumberFormatException ignored) {
 				throw new InvalidTokenException("Invalid number", location);
@@ -291,12 +264,12 @@ public final class Lexer {
 				intValue = Integer.parseInt(possibleNumberString,
 				                            16);
 				size = possibleNumberString.length() <= 2 ? 1 : 2;
-				return true;
+				return new Token(TokenType.INT_LITERAL, "", intValue, size, location);
 			}
 			catch (NumberFormatException ignored) {
 			}
 		}
-		return false;
+		return null;
 	}
 
 	private String detectWhitespace() {
