@@ -13,21 +13,18 @@ public final class Lexer {
 
 	private int line;
 	private int column;
-	private int chr;
-	private int intValue;
-	private int size;
-	private String text = "";
-	private Location location;
+	private OptionalInt chr;
 
 	public Lexer(@NotNull String text) {
 		this(new CharSource() {
 			private int index;
 
+			@NotNull
 			@Override
-			public int next() {
+			public OptionalInt next() {
 				return index == text.length()
-						? -1
-						: text.charAt(index++);
+						? OptionalInt.empty()
+						: OptionalInt.of(text.charAt(index++));
 			}
 		});
 	}
@@ -40,37 +37,38 @@ public final class Lexer {
 
 	@NotNull
 	public Token next() {
-		text = "";
-		intValue = 0;
-		size = 0;
-		location = new Location(line, column);
+		final Location location = new Location(line, column);
 
-		if (chr < 0) {
+		if (isEmpty()) {
 			return new Token(TokenType.EOF, "", 0, 0, location);
 		}
 
-		if (isWhitespace()) {
+		final int chr = getChr();
+		if (isWhitespace(chr)) {
 			final String text = detectWhitespace();
 			return new Token(TokenType.WHITESPACE, text, 0, 0, location);
 		}
-		if (isLineBreak()) {
+		if (isLineBreak(chr)) {
 			final String text = detectLineBreak();
 			return new Token(TokenType.LINE_BREAK, text, 0, 0, location);
 		}
 		if (chr == ';') {
-			final String text = detectLineComment("");
+			final String text = detectLineComment(";");
 			return new Token(TokenType.COMMENT, text, 0, 0, location);
 		}
 		if (chr == '/') {
 			consume();
-			if (chr == '/') {
-				final String text = detectLineComment("/");
-				return new Token(TokenType.COMMENT, text, 0, 0, location);
-			}
+			if (this.chr.isPresent()) {
+				final int chr2 = getChr();
+				if (chr2 == '/') {
+					final String text = detectLineComment("//");
+					return new Token(TokenType.COMMENT, text, 0, 0, location);
+				}
 
-			if (chr == '*') {
-				final String text = detectBlockComment();
-				return new Token(TokenType.COMMENT, text, 0, 0, location);
+				if (chr2 == '*') {
+					final String text = detectBlockComment(location);
+					return new Token(TokenType.COMMENT, text, 0, 0, location);
+				}
 			}
 
 			final String text = "/";
@@ -99,47 +97,55 @@ public final class Lexer {
 		}
 		if (chr == '"') {
 			consume();
-			final String text = detectStringOrChar(false, '"');
+			final String text = detectStringOrChar(false, '"', location);
 			return new Token(TokenType.STRING, text, 0, 0, location);
 		}
 		if (chr == '\'') {
 			consume();
-			final String text = detectStringOrChar(false, '\'');
+			final String text = detectStringOrChar(false, '\'', location);
 			if (text.length() != 1) {
 				throw new InvalidTokenException("Invalid char literal", location);
 			}
-			intValue = text.charAt(0);
+			final int intValue = text.charAt(0);
 			return new Token(TokenType.INT_LITERAL, "", intValue, 1, location);
 		}
 
 		final StringBuilder buffer = new StringBuilder();
-		do {
-			append(buffer);
+		append(chr, buffer);
+		while (true) {
 			consume();
-		}
-		while (chr >= 0
-		       && chr != ','
-		       && chr != ';'
-		       && chr != '"'
-		       && chr != '('
-		       && chr != ')'
-		       && chr != '#'
-		       && !isWhitespace()
-		       && !isLineBreak()
-		);
-		text = buffer.toString();
+			if (isEmpty()) {
+				break;
+			}
 
-		if (text.equalsIgnoreCase("L") && chr == '"') {
-			consume();
-			text = detectStringOrChar(true, '"');
-			return new Token(TokenType.LENGTH_STRING, text, 0, 0, location);
+			final int chr2 = getChr();
+			if (chr2 == '"') {
+				if (buffer.length() == 1 && buffer.charAt(0) == 'L') {
+					consume();
+					final String text = detectStringOrChar(true, '"', location);
+					return new Token(TokenType.LENGTH_STRING, text, 0, 0, location);
+				}
+				break;
+			}
+			if (chr2 == ','
+			    || chr2 == ';'
+			    || chr2 == '('
+			    || chr2 == ')'
+			    || chr2 == '#'
+			    || isWhitespace(chr2) || isLineBreak(chr2)) {
+				break;
+			}
+
+			append(chr2, buffer);
 		}
 
+		final String text = buffer.toString();
 		if (text.length() > 1) {
 			if (text.endsWith(":")) {
-				text = buffer.substring(0, text.length() - 1);
-				return new Token(TokenType.LABEL, text, 0, 0, location);
+				final String label = buffer.substring(0, text.length() - 1);
+				return new Token(TokenType.LABEL, label, 0, 0, location);
 			}
+
 			Token token = detectWorkRegister(text, "rr", TokenType.WORK_REGISTER_PAIR, location);
 			if (token == null) {
 				token = detectWorkRegister(text, "r", TokenType.WORK_REGISTER, location);
@@ -154,11 +160,11 @@ public final class Lexer {
 			return token;
 		}
 
-		return new Token(getKeywordOrIdentifier(), text, 0, 0, location);
+		return new Token(getKeywordOrIdentifier(text), text, 0, 0, location);
 	}
 
 	@NotNull
-	private TokenType getKeywordOrIdentifier() {
+	private TokenType getKeywordOrIdentifier(String text) {
 		return switch (text.toLowerCase()) {
 			case ".align" -> TokenType.ALIGN;
 			case ".const" -> TokenType.CONST;
@@ -240,8 +246,7 @@ public final class Lexer {
 	@Nullable
 	private Token detectInt(String text, Location location) {
 		try {
-			intValue = Integer.parseInt(text);
-			size = 2;
+			final int intValue = Integer.parseInt(text);
 			return new Token(TokenType.INT_LITERAL, "", intValue, 2, location);
 		}
 		catch (NumberFormatException ignored) {
@@ -250,7 +255,7 @@ public final class Lexer {
 		if (text.startsWith("0b")) {
 			final String possibleNumberString = text.substring(2).replace("_", "");
 			try {
-				intValue = Integer.parseInt(possibleNumberString, 2);
+				final int intValue = Integer.parseInt(possibleNumberString, 2);
 				return new Token(TokenType.INT_LITERAL, "", intValue, 1, location);
 			}
 			catch (NumberFormatException ignored) {
@@ -261,9 +266,9 @@ public final class Lexer {
 		if (text.startsWith("%")) {
 			final String possibleNumberString = text.substring(1);
 			try {
-				intValue = Integer.parseInt(possibleNumberString,
+				final int intValue = Integer.parseInt(possibleNumberString,
 				                            16);
-				size = possibleNumberString.length() <= 2 ? 1 : 2;
+				final int size = possibleNumberString.length() <= 2 ? 1 : 2;
 				return new Token(TokenType.INT_LITERAL, "", intValue, size, location);
 			}
 			catch (NumberFormatException ignored) {
@@ -274,46 +279,59 @@ public final class Lexer {
 
 	private String detectWhitespace() {
 		final StringBuilder buffer = new StringBuilder();
-		do {
-			append(buffer);
+		while (chr.isPresent()) {
+			final int chr = getChr();
+			if (!isWhitespace(chr)) {
+				break;
+			}
+			append(chr, buffer);
 			consume();
 		}
-		while (isWhitespace());
 		return buffer.toString();
 	}
 
 	private String detectLineBreak() {
 		final StringBuilder buffer = new StringBuilder();
-		do {
-			append(buffer);
+		while (chr.isPresent()) {
+			final int chr = getChr();
+			if (!isLineBreak(chr)) {
+				break;
+			}
+
+			append(chr, buffer);
 			consume();
 		}
-		while (isLineBreak());
 		return buffer.toString();
 	}
 
 	private String detectLineComment(String start) {
 		final StringBuilder buffer = new StringBuilder();
 		buffer.append(start);
-		do {
-			append(buffer);
+		consume();
+		while (chr.isPresent()) {
+			final int chr = getChr();
+			if (isLineBreak(chr)) {
+				break;
+			}
+
+			append(chr, buffer);
 			consume();
 		}
-		while (chr >= 0 && !isLineBreak());
 		return buffer.toString();
 	}
 
-	private String detectBlockComment() {
+	private String detectBlockComment(Location location) {
 		final StringBuilder buffer = new StringBuilder();
 		buffer.append("/*");
 		int prev = 0;
 		while (true) {
 			consume();
-			if (chr < 0) {
+			if (isEmpty()) {
 				throw new InvalidTokenException("Block comment needs to be closed", location);
 			}
 
-			append(buffer);
+			final int chr = getChr();
+			append(chr, buffer);
 			if (prev == '*' && chr == '/') {
 				consume();
 				return buffer.toString();
@@ -323,17 +341,18 @@ public final class Lexer {
 		}
 	}
 
-	private String detectStringOrChar(boolean isLengthString, char endChar) {
+	private String detectStringOrChar(boolean isLengthString, char endChar, Location location) {
 		final StringBuilder buffer = new StringBuilder();
 		Location escapeStartLocation = null;
 		while (true) {
-			if (chr < 0 || isLineBreak()) {
+			if (isEmpty() || isLineBreak(getChr())) {
 				if (endChar == '\'') {
-					throw new InvalidTokenException("A char must end with a quote", location);
+					throw new InvalidTokenException("A char literal must end with a quote", location);
 				}
 				throw new InvalidTokenException("String must end with a double-quote", new Location(line, column));
 			}
 
+			final int chr = getChr();
 			if (escapeStartLocation != null) {
 				switch (chr) {
 				case 't' -> consumeAppend('\t', buffer);
@@ -345,14 +364,14 @@ public final class Lexer {
 					boolean tooShort = true;
 					int hexValue = 0;
 					while (true) {
-						if (chr < 0) {
+						if (isEmpty()) {
 							if (tooShort) {
 								throw new InvalidTokenException("Invalid char escape", escapeStartLocation);
 							}
 							break;
 						}
 
-						final int nibble = toHexNibble(chr);
+						final int nibble = toHexNibble(getChr());
 						if (nibble < 0) {
 							if (tooShort) {
 								throw new InvalidTokenException("Invalid char escape", escapeStartLocation);
@@ -368,7 +387,6 @@ public final class Lexer {
 				}
 				default -> consumeAppend(chr, buffer);
 				}
-				;
 				escapeStartLocation = null;
 				continue;
 			}
@@ -382,7 +400,7 @@ public final class Lexer {
 				escapeStartLocation = new Location(line, column);
 			}
 			else {
-				append(buffer);
+				append(chr, buffer);
 			}
 			consume();
 		}
@@ -395,6 +413,14 @@ public final class Lexer {
 			throw new InvalidTokenException("An empty string can only be done with L\"\"", location);
 		}
 		return buffer.toString();
+	}
+
+	private int getChr() {
+		return chr.orElseThrow();
+	}
+
+	private boolean isEmpty() {
+		return chr.isEmpty();
 	}
 
 	private int toHexNibble(int chr) {
@@ -420,11 +446,11 @@ public final class Lexer {
 	}
 
 	private void consume() {
-		if (chr < 0) {
+		if (isEmpty()) {
 			return;
 		}
 
-		final int prevChr = chr;
+		final int prevChr = getChr();
 		chr = source.next();
 
 		if (prevChr == '\n') {
@@ -436,16 +462,12 @@ public final class Lexer {
 		}
 	}
 
-	private boolean isWhitespace() {
-		return " \t".indexOf(chr) >= 0;
+	private static boolean isWhitespace(int chr) {
+		return chr == ' ' || chr == '\t';
 	}
 
-	private boolean isLineBreak() {
-		return "\r\n".indexOf(chr) >= 0;
-	}
-
-	private void append(StringBuilder buffer) {
-		append(chr, buffer);
+	private static boolean isLineBreak(int chr) {
+		return chr == '\r' || chr == '\n';
 	}
 
 	private void consumeAppend(int chr, StringBuilder buffer) {

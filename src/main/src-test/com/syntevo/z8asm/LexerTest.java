@@ -133,7 +133,7 @@ public class LexerTest {
 		new LexerTester(" '") {
 			@Override
 			protected void test() {
-				assertInvalidTokenException("A char must end with a quote", 0, 1);
+				assertInvalidTokenException("A char literal must end with a quote", 0, 1);
 			}
 		}.test();
 
