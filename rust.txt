@@ -1,0 +1,328 @@
+Here are the **most impactful Java refactorings** to simplify your Rust rewrite, ranked by priority:
+
+---
+
+## 🎯 **Priority 1: Return Token Objects (Biggest Win)**
+
+**Current pattern (awkward for Rust):**
+```java
+TokenType type = lexer.next();
+String text = lexer.getText();
+int value = lexer.getIntValue();
+Location loc = lexer.getLocation();
+```
+
+**Refactor to:**
+```java
+public record Token(
+    TokenType type,
+    String text,
+    int intValue,
+    int size,
+    Location location
+) {}
+
+public Token next() {  // Return Token instead of TokenType
+    // ... same logic, but return new Token(type, text, intValue, size, location)
+}
+```
+
+**Why for Rust:**
+- Eliminates the need to call multiple getters after `next()`
+- Maps directly to a Rust `Token` struct
+- Makes the lexer stateless between tokens (each `next()` returns a complete snapshot)
+
+---
+
+## 🎯 **Priority 2: Make CharSource Type-Safe**
+
+**Current:**
+```java
+public interface CharSource {
+    int next();  // -1 = EOF, otherwise character code
+}
+```
+
+**Refactor to:**
+```java
+public interface CharSource {
+    // Option 1: Use Integer (null = EOF)
+    Integer next();
+
+    // Option 2: Create a wrapper type
+    OptionalInt next();  // Java 8+
+}
+```
+
+**Why for Rust:**
+- `Option<char>` in Rust is idiomatic
+- Eliminates magic number `-1` for EOF
+- Makes the intent clearer
+
+---
+
+## 🎯 **Priority 3: Extract Token Matching Logic**
+
+**Current:** 50-line switch expression embedded in `next()`
+```java
+return switch (text.toLowerCase()) {
+    case ".align" -> TokenType.ALIGN;
+    case ".const" -> TokenType.CONST;
+    // ... 50+ cases
+    default -> TokenType.IDENTIFIER;
+};
+```
+
+**Refactor to:**
+```java
+private static final Map<String, TokenType> KEYWORD_MAP = Map.ofEntries(
+    Map.entry(".align", TokenType.ALIGN),
+    Map.entry(".const", TokenType.CONST),
+    // ...
+    Map.entry("nop", TokenType.NOP)
+);
+
+private TokenType matchKeyword(String text) {
+    return KEYWORD_MAP.getOrDefault(text.toLowerCase(), TokenType.IDENTIFIER);
+}
+```
+
+**Why for Rust:**
+- Maps to Rust's `HashMap` or `phf` (perfect hash function) for static data
+- Easier to maintain and extend
+- Clean separation of concerns
+
+---
+
+## 🎯 **Priority 4: Simplify String Building**
+
+**Current:** Multiple `StringBuilder` patterns with similar logic
+```java
+private String detectWhitespace() {
+    final StringBuilder buffer = new StringBuilder();
+    do { append(buffer); consume(); }
+    while (isWhitespace());
+    return buffer.toString();
+}
+```
+
+**Refactor to:**
+```java
+private String consumeWhile(Predicate<Integer> condition) {
+    final StringBuilder buffer = new StringBuilder();
+    while (chr >= 0 && condition.test(chr)) {
+        append(buffer);
+        consume();
+    }
+    return buffer.toString();
+}
+
+private String detectWhitespace() {
+    return consumeWhile(this::isWhitespace);
+}
+```
+
+**Why for Rust:**
+- Reduces code duplication
+- Maps to Rust's iterator pattern: `chars.take_while(|c| is_whitespace(*c)).collect()`
+- Makes the intent clearer
+
+---
+
+## 🎯 **Priority 5: Separate Character Classification**
+
+**Current:** Methods scattered through the lexer
+```java
+private boolean isWhitespace() { return " \t".indexOf(chr) >= 0; }
+private boolean isLineBreak() { return "\r\n".indexOf(chr) >= 0; }
+```
+
+**Refactor to:**
+```java
+public static final class CharClass {
+    private static final Set<Integer> WHITESPACE = Set.of(' ', '\t');
+    private static final Set<Integer> LINE_BREAK = Set.of('\r', '\n');
+
+    public static boolean isWhitespace(int chr) { return WHITESPACE.contains(chr); }
+    public static boolean isLineBreak(int chr) { return LINE_BREAK.contains(chr); }
+    // ...
+}
+```
+
+**Why for Rust:**
+- Maps to Rust's pattern matching on characters
+- Centralizes character classification logic
+- Makes it easier to test classification in isolation
+
+---
+
+## 🎯 **Priority 6: Use Records for Data Classes**
+
+**Current:** Multiple small classes
+```java
+public final class InvalidTokenException extends RuntimeException {
+    public final Location location;
+    // ...
+}
+```
+
+**Refactor to:**
+```java
+public record InvalidTokenException(String message, Location location)
+    extends RuntimeException {
+
+    public InvalidTokenException(String message, Location location) {
+        super(message);
+    }
+}
+```
+
+**Why for Rust:**
+- Records map naturally to Rust structs
+- Immutable by default (good for Rust's ownership model)
+- Less boilerplate
+
+---
+
+## 🎯 **Priority 7: Extract Number Parsing Logic**
+
+**Current:** Inline in `detectInt()`
+```java
+if (text.startsWith("0b")) {
+    final String possibleNumberString = text.substring(2).replace("_", "");
+    try {
+        intValue = Integer.parseInt(possibleNumberString, 2);
+        // ...
+    }
+}
+```
+
+**Refactor to:**
+```java
+public static final class NumberParser {
+    public static Integer parseInt(String text) { /* ... */ }
+    public static Integer parseBinary(String text) { /* ... */ }
+    public static Integer parseHex(String text) { /* ... */ }
+}
+```
+
+**Why for Rust:**
+- Parsing logic can use Rust's `i32::from_str_radix()`
+- Easier to test in isolation
+- Clearer separation of concerns
+
+---
+
+## 🎯 **Priority 8: Make Lexer More Stateless**
+
+**Current:** All state in fields, methods modify fields
+```java
+private int chr;
+private int line;
+private int column;
+
+private void consume() {
+    if (chr < 0) return;
+    final int prevChr = chr;
+    chr = source.next();
+    // ...
+}
+```
+
+**Refactor to:**
+```java
+// Keep state, but make methods pure where possible
+private int nextChar() {
+    final int current = chr;
+    consume();  // Updates state
+    return current;
+}
+```
+
+**Why for Rust:**
+- While Rust lexers typically have state, making the intent clearer helps
+- Easier to reason about what mutates what
+
+---
+
+## 📊 **Refactoring Impact Summary**
+
+| Refactoring | Lines Affected | Rust Benefit | Difficulty |
+|-------------|----------------|--------------|------------|
+| Return Token objects | ~50 | ✅✅✅✅✅ | Medium |
+| Type-safe CharSource | ~10 | ✅✅✅✅ | Easy |
+| Extract keyword map | ~50 | ✅✅✅✅ | Easy |
+| Generalize string building | ~30 | ✅✅✅ | Medium |
+| Separate char classification | ~10 | ✅✅✅ | Easy |
+| Use records | ~20 | ✅✅ | Easy |
+| Extract number parsing | ~40 | ✅✅✅ | Medium |
+| Make stateless where possible | ~20 | ✅✅ | Medium |
+
+---
+
+## 🎯 **Recommended Refactoring Order**
+
+1. **Return Token objects** (highest impact)
+2. **Use records for data classes**
+3. **Extract keyword map**
+4. **Generalize string building**
+5. **Type-safe CharSource**
+6. **Separate char classification**
+7. **Extract number parsing**
+
+---
+
+## 💡 **Bonus: Create a Rust-Friendly API Layer**
+
+For maximum Rust compatibility, add a **separate Rust-friendly API** without changing the core lexer:
+
+```java
+// New class for Rust compatibility
+public final class RustCompatibleLexer {
+    private final Lexer lexer;
+
+    public RustCompatibleLexer(String text) {
+        this.lexer = new Lexer(text);
+    }
+
+    public Optional<Token> nextToken() {
+        TokenType type = lexer.next();
+        if (type == TokenType.EOF) return Optional.empty();
+        return Optional.of(new Token(
+            type,
+            lexer.getText(),
+            lexer.getIntValue(),
+            lexer.getSize(),
+            lexer.getLocation()
+        ));
+    }
+
+    // Provide all data in one call
+    public record Token(TokenType type, String text, int intValue, int size, Location location) {}
+}
+```
+
+This gives you a **clean interface for Rust** while keeping the existing code working.
+
+---
+
+## ⚠️ **What NOT to Refactor**
+
+Avoid these - they won't help the Rust rewrite:
+
+- ❌ Converting to functional style (Java isn't great at this)
+- ❌ Adding streams API (adds complexity, not helpful for Rust)
+- ❌ Making everything immutable (would require major rewrite)
+- ❌ Converting to use Java 21 features (pre-parse tree, etc.)
+
+---
+
+## 📈 **Expected Outcome**
+
+After these refactorings:
+- **Rust rewrite time reduced by 30-50%**
+- **Rust code will be cleaner and more idiomatic**
+- **Fewer bugs in the Rust port** (clearer logic)
+- **Easier to maintain both versions** during transition
+
+The **most valuable single change** is **returning Token objects** - this alone would make the Rust port significantly easier.

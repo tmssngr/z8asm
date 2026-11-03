@@ -1,5 +1,6 @@
 package com.syntevo.z8asm;
 
+import org.jetbrains.annotations.*;
 import org.junit.*;
 
 import static org.junit.Assert.*;
@@ -20,114 +21,98 @@ public class LexerTest {
 				                  ret""") {
 			@Override
 			protected void test() {
-				assertLabel("main");
-				assertLocation(0, 0);
+				nextLabel("main", 0, 0);
 
-				assertLineBreak();
+				nextLineBreak("\n", 0, 5);
 
-				assertType(TokenType.LD);
-				assertLocation(1, 2);
-				assertWorkRegister(0);
-				assertLocation(1, 5);
-				assertType(TokenType.COMMA);
-				assertLocation(1, 7);
-				assertType(TokenType.HASH);
-				assertLocation(1, 9);
-				assertIntValue(10);
-				assertLocation(1, 10);
-				assertLineBreak();
+				nextType(TokenType.LD, "ld", 1, 2);
+				nextValue(TokenType.WORK_REGISTER, 0, 1, 5);
+				nextType(TokenType.COMMA, 1, 7);
+				nextType(TokenType.HASH, 1, 9);
+				nextIntValue(10, 2, 1, 10);
+				nextLineBreak("\n", 1, 12);
 
-				assertLabel("main");
-				assertLocation(2, 0);
-				assertComment("; duplicate");
-				assertLocation(2, 6);
-				assertLineBreak();
+				nextLabel("main", 2, 0);
+				nextType(TokenType.COMMENT, "; duplicate", 2, 6);
+				nextLineBreak("\n", 2, 17);
 
-				assertType(TokenType.CALL);
-				assertLocation(3, 2);
-				assertIntValue(0x1000);
-				assertLocation(3, 7);
-				assertLineBreak();
+				nextType(TokenType.CALL, "call", 3, 2);
+				nextIntValue(0x1000, 2, 3, 7);
+				nextLineBreak("\n", 3, 12);
 
-				assertType(TokenType.DJNZ);
-				assertLocation(4, 2);
-				assertWorkRegister(0);
-				assertLocation(4, 7);
-				assertType(TokenType.COMMA);
-				assertLocation(4, 9);
-				assertIdentifier("main");
-				assertLocation(4, 11);
-				assertLineBreak();
+				nextType(TokenType.DJNZ, "djnz", 4, 2);
+				nextValue(TokenType.WORK_REGISTER, 0, 4, 7);
+				nextType(TokenType.COMMA, 4, 9);
+				nextType(TokenType.IDENTIFIER, "main", 4, 11);
+				nextLineBreak("\n", 4, 15);
 
-				assertType(TokenType.RET);
-				assertEof();
+				nextType(TokenType.RET, "ret", 5, 2);
+				nextEof(5, 5);
 			}
 		}.test();
 
-		new LexerTester("TM      R3, #0b0000_0100") {
+		//               01234567890123456789
+		new LexerTester("TM R3, #0b0000_0100") {
 			@Override
 			protected void test() {
-				assertType(TokenType.TM);
-				assertWorkRegister(3);
-				assertType(TokenType.COMMA);
-				assertType(TokenType.HASH);
-				assertIntValue(0x4);
-				assertEof();
+				nextType(TokenType.TM, "TM", 0, 0);
+				nextValue(TokenType.WORK_REGISTER, 3, 0, 3);
+				nextType(TokenType.COMMA, 0, 5);
+				nextType(TokenType.HASH, 0, 7);
+				nextIntValue(0x4, 1, 0, 8);
+				nextEof(0, 19);
 			}
 		}.test();
 
+		//               0123456789012
 		new LexerTester("LD %20, #'0'") {
 			@Override
 			protected void test() {
-				assertType(TokenType.LD);
-				assertIntValue(0x20);
-				assertType(TokenType.COMMA);
-				assertType(TokenType.HASH);
-				assertIntValue(0x30);
-				assertEof();
+				nextType(TokenType.LD, "LD", 0, 0);
+				nextIntValue(0x20, 1, 0, 3);
+				nextType(TokenType.COMMA, 0, 6);
+				nextType(TokenType.HASH, 0, 8);
+				nextIntValue(0x30, 1, 0, 9);
+				nextEof(0, 12);
 			}
 		}.test();
 
+		//               012345678901234
 		new LexerTester("LDEI @R6, @RR0") {
 			@Override
 			protected void test() {
-				assertType(TokenType.LDEI);
-				assertType(TokenType.AT);
-				assertWorkRegister(6);
-				assertType(TokenType.COMMA);
-				assertType(TokenType.AT);
-				assertWorkRegisterPair(0);
-				assertEof();
+				nextType(TokenType.LDEI, "LDEI", 0, 0);
+				nextType(TokenType.AT, 0, 5);
+				nextValue(TokenType.WORK_REGISTER, 6, 0, 6);
+				nextType(TokenType.COMMA, 0, 8);
+				nextType(TokenType.AT, 0, 10);
+				nextValue(TokenType.WORK_REGISTER_PAIR, 0, 0, 11);
+				nextEof(0, 14);
 			}
 		}.test();
 
+		//               0          1           2              3             4
+		//               01234567 89012345 67 89012 345 6 78 9 0 1 2345 678 90123
 		new LexerTester(".data L\"foo bar\" \"bazz\" L\"\" \"\\\"\\x0d\" '\\x7f'") {
 			@Override
 			protected void test() {
-				assertType(TokenType.DATA);
-				assertLocation(0, 0);
-				assertText(TokenType.LENGTH_STRING, "foo bar");
-				assertLocation(0, 6);
-				assertText(TokenType.STRING, "bazz");
-				assertLocation(0, 17);
-				assertText(TokenType.LENGTH_STRING, "");
-				assertLocation(0, 24);
-				assertText(TokenType.STRING, "\"\r");
-				assertLocation(0, 28);
-				assertIntValue(0x7f);
-				assertLocation(0, 37);
-				assertEof();
+				nextType(TokenType.DATA, ".data", 0, 0);
+				nextType(TokenType.LENGTH_STRING, "foo bar", 0, 6);
+				nextType(TokenType.STRING, "bazz", 0, 17);
+				nextType(TokenType.LENGTH_STRING, "", 0, 24);
+				nextType(TokenType.STRING, "\"\r", 0, 28);
+				nextIntValue(0x7f, 1, 0, 37);
+				nextEof(0, 43);
 			}
 		}.test();
 
+		//               0123456 7 89 0
 		new LexerTester(".data \"\\0\"") {
 			@Override
 			protected void test() {
-				assertType(TokenType.DATA);
-				assertLocation(0, 0);
-				assertText(TokenType.STRING, "\0");
-				assertLocation(0, 6);
-				assertEof();
+				nextType(TokenType.DATA, ".data", 0, 0);
+				nextType(TokenType.STRING, "\0", 0, 6);
+				nextEof(0, 10);
 			}
 		}.test();
 
@@ -169,13 +154,13 @@ public class LexerTest {
 				                bazz* / */ blupp""") {
 			@Override
 			protected void test() {
-				assertText(TokenType.COMMENT, "// line");
-				assertType(TokenType.LINE_BREAK);
-				assertText(TokenType.COMMENT, "; comment");
-				assertType(TokenType.LINE_BREAK);
-				assertIdentifier("foo");
-				assertText(TokenType.COMMENT, "/* bar\nbazz* / */");
-				assertIdentifier("blupp");
+				nextType(TokenType.COMMENT, "// line", 0, 0);
+				nextType(TokenType.LINE_BREAK, "\n", 0, 7);
+				nextType(TokenType.COMMENT, "; comment", 1, 0);
+				nextType(TokenType.LINE_BREAK, "\n", 1, 9);
+				nextType(TokenType.IDENTIFIER, "foo", 2, 0);
+				nextType(TokenType.COMMENT, "/* bar\nbazz* / */", 2, 4);
+				nextType(TokenType.IDENTIFIER, "blupp", 3, 11);
 			}
 		}.test();
 	}
@@ -189,45 +174,45 @@ public class LexerTest {
 			this.lexer = new Lexer(text);
 		}
 
-		public void assertLocation(int expectedLine, int expectedColumn) {
-			final Location location = lexer.getLocation();
-			assertEquals(expectedLine, location.line());
-			assertEquals(expectedColumn, location.column());
+		public void nextEof(int line, int column) {
+			nextType(TokenType.EOF, "", line, column);
 		}
 
-		public void assertEof() {
-			assertType(TokenType.EOF);
+		public void nextLineBreak(String text, int line, int column) {
+			nextType(TokenType.LINE_BREAK, text, line, column);
 		}
 
-		public void assertLineBreak() {
-			assertType(TokenType.LINE_BREAK);
+		public void nextLabel(String expected, int line, int column) {
+			nextType(TokenType.LABEL, expected, line, column);
 		}
 
-		public void assertLabel(String expected) {
-			assertText(TokenType.LABEL, expected);
+		public void nextType(TokenType expectedType, int line, int column) {
+			nextType(expectedType, "", line, column);
 		}
 
-		public void assertComment(String expected) {
-			assertText(TokenType.COMMENT, expected);
+		public void nextType(TokenType expectedType, String expected, int line, int column) {
+			final Token token = next();
+			assertToken(token, expectedType, expected, 0, 0, new Location(line, column));
 		}
 
-		public void assertIdentifier(String expected) {
-			assertText(TokenType.IDENTIFIER, expected);
+		private void assertToken(Token token, TokenType expectedType, String expectedText, int expectedIntValue, int expectedSize, @Nullable Location expectedLocation) {
+			assertEquals(expectedType, token.type());
+			assertEquals(expectedText, token.text());
+			assertEquals(expectedIntValue, token.intValue());
+			assertEquals(expectedSize, token.size());
+			if (expectedLocation != null) {
+				assertEquals(expectedLocation, token.location());
+			}
 		}
 
-		public void assertWorkRegister(int expectedRegister) {
-			assertType(TokenType.WORK_REGISTER);
-			assertEquals(expectedRegister, lexer.getIntValue());
+		public void nextValue(TokenType type, int expectedRegister, int expectedLine, int expectedColumn) {
+			final Token token = next();
+			assertToken(token, type, "", expectedRegister, 0, new Location(expectedLine, expectedColumn));
 		}
 
-		public void assertWorkRegisterPair(int expectedRegister) {
-			assertType(TokenType.WORK_REGISTER_PAIR);
-			assertEquals(expectedRegister, lexer.getIntValue());
-		}
-
-		public void assertIntValue(int expectedValue) {
-			assertType(TokenType.INT_LITERAL);
-			assertEquals(expectedValue, lexer.getIntValue());
+		public void nextIntValue(int expectedValue, int expectedSize, int expectedLine, int expectedColumn) {
+			final Token token = next();
+			assertToken(token, TokenType.INT_LITERAL, "", expectedValue, expectedSize, new Location(expectedLine, expectedColumn));
 		}
 
 		public void assertInvalidTokenException(String expectedMsg, int expectedLine, int expectedColumn) {
@@ -242,23 +227,13 @@ public class LexerTest {
 			}
 		}
 
-		public void assertType(TokenType type) {
-			final TokenType next = next();
-			assertEquals(type, next);
-		}
-
-		public void assertText(TokenType type, String expected) {
-			assertType(type);
-			assertEquals(expected, lexer.getText());
-		}
-
-		private TokenType next() {
-			TokenType type;
+		private Token next() {
+			Token token;
 			do {
-				type = lexer.next();
+				token = lexer.next();
 			}
-			while (type == TokenType.WHITESPACE);
-			return type;
+			while (token.type() == TokenType.WHITESPACE);
+			return token;
 		}
 	}
 }
