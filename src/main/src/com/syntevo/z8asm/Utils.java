@@ -1,5 +1,9 @@
 package com.syntevo.z8asm;
 
+import java.nio.file.*;
+
+import org.jetbrains.annotations.*;
+
 /**
  * @author Thomas Singer
  */
@@ -25,5 +29,15 @@ public class Utils {
 
 	public static String toHex8(int value) {
 		return toHex(value, 2);
+	}
+
+	@NotNull
+	public static String getFileNameWithoutSuffix(Path file) {
+		String fileName = file.getFileName().toString();
+		final int lastDot = fileName.lastIndexOf('.');
+		if (lastDot > 0) {
+			fileName = fileName.substring(0, lastDot);
+		}
+		return fileName;
 	}
 }

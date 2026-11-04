@@ -324,17 +324,14 @@ public class AssemblerTest {
 	}
 
 	@NotNull
-	public static Assembler assemble(Path file) throws IOException {
+	private static Assembler assemble(Path file) throws IOException {
 		List<Command> commands = Parser.parse(file);
 		return Assembler.assemble(commands, System.out::println);
 	}
 
 	@NotNull
 	private static Path createSibling(Path file, String suffix) {
-		String fileName = file.getFileName().toString();
-		final int lastDot = fileName.lastIndexOf('.');
-		Assert.assertTrue(lastDot > 0);
-		fileName = fileName.substring(0, lastDot);
+		final String fileName = Utils.getFileNameWithoutSuffix(file);
 		return file.resolveSibling(fileName + suffix);
 	}
 
