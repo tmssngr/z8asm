@@ -309,26 +309,9 @@ public class AssemblerTest {
 			output.write(os);
 		}
 
-		final Map<String, Integer> labelMapping = assembler.labels();
-		final List<String> labelsSortedByAddress = new ArrayList<>(labelMapping.keySet());
-		labelsSortedByAddress.sort((o1, o2) -> {
-			final int a1 = labelMapping.get(o1);
-			final int a2 = labelMapping.get(o2);
-			if (a1 != a2) {
-				return a1 - a2;
-			}
-			return o1.compareTo(o2);
-		});
-
 		final Path labelsFile = createSibling(file, ".labels");
 		try (Writer writer = Files.newBufferedWriter(labelsFile)) {
-			for (String label : labelsSortedByAddress) {
-				final int address = labelMapping.get(label);
-				writer.write(Utils.toHex(address, 4));
-				writer.write(" ");
-				writer.write(label);
-				writer.write("\n");
-			}
+			assembler.writeLabels(writer);
 		}
 	}
 

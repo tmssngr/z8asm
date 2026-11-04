@@ -1,5 +1,6 @@
 package com.syntevo.z8asm;
 
+import java.io.*;
 import java.util.*;
 
 import org.jetbrains.annotations.*;
@@ -25,6 +26,26 @@ public record Assembler(@NotNull List<Command> commands, @NotNull Map<String, In
 		commands.removeIf(Objects::isNull);
 		final Map<String, Integer> mapping = labels.getMapping();
 		return new Assembler(commands, mapping);
+	}
+
+	public void writeLabels(Writer writer) throws IOException {
+		final Map<String, Integer> labelMapping = labels();
+		final List<String> labelsSortedByAddress = new ArrayList<>(labelMapping.keySet());
+		labelsSortedByAddress.sort((o1, o2) -> {
+			final int a1 = labelMapping.get(o1);
+			final int a2 = labelMapping.get(o2);
+			if (a1 != a2) {
+				return a1 - a2;
+			}
+			return o1.compareTo(o2);
+		});
+		for (String label : labelsSortedByAddress) {
+			final int address = labelMapping.get(label);
+			writer.write(Utils.toHex(address, 4));
+			writer.write(" ");
+			writer.write(label);
+			writer.write("\n");
+		}
 	}
 
 	@NotNull
