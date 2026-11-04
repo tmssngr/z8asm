@@ -288,36 +288,38 @@ public class AssemblerTest {
 	private static void assembleFileBinaryAscii(Path file) throws IOException {
 		final Assembler assembler = assemble(file);
 		final List<Command> commands = assembler.commands();
+		final int org = assembler.org();
 		final Output output = Output.create(commands);
 
-		final Path asciiFile = createSibling(file, ".bin.ascii");
+		final Path asciiFile = createSibling(file, org, ".bin.ascii");
 		try (Writer writer = Files.newBufferedWriter(asciiFile)) {
 			output.print(writer);
 		}
 
-		writeAndCheckBinaryFile(file, output);
+		writeAndCheckBinaryFile(file, org, output);
 	}
 
 	private static void assembleFileBinary(Path file) throws IOException {
 		final Assembler assembler = assemble(file);
+		final int org = assembler.org();
 		final Output output = Output.create(assembler.commands());
 
-		writeAndCheckBinaryFile(file, output);
+		writeAndCheckBinaryFile(file, org, output);
 
-		final Path labelsFile = createSibling(file, ".labels");
+		final Path labelsFile = createSibling(file, org, ".labels");
 		try (Writer writer = Files.newBufferedWriter(labelsFile)) {
 			assembler.writeLabels(writer);
 		}
 	}
 
-	private static void writeAndCheckBinaryFile(Path file, Output output) throws IOException {
+	private static void writeAndCheckBinaryFile(Path file, int org, Output output) throws IOException {
 		final String fileName = file.getFileName().toString();
 		final Path tempFile = Files.createTempFile(file.getParent(), fileName, "");
 		try (OutputStream os = Files.newOutputStream(tempFile)) {
 			output.write(os);
 		}
 		final byte[] actualBytes = Files.readAllBytes(tempFile);
-		final Path expectedFile = createSibling(file, ".bin");
+		final Path expectedFile = createSibling(file, org, ".bin");
 		final byte[] expectedBytes = Files.readAllBytes(expectedFile);
 		Assert.assertArrayEquals(fileName, expectedBytes, actualBytes);
 		Files.delete(tempFile);
@@ -330,9 +332,13 @@ public class AssemblerTest {
 	}
 
 	@NotNull
-	private static Path createSibling(Path file, String suffix) {
-		final String fileName = Utils.getFileNameWithoutSuffix(file);
-		return file.resolveSibling(fileName + suffix);
+	private static Path createSibling(Path file, int org, String suffix) {
+		final StringBuilder buffer = new StringBuilder();
+		buffer.append(Utils.getFileNameWithoutSuffix(file));
+		buffer.append("_");
+		buffer.append(Utils.toHex(org, 4));
+		buffer.append(suffix);
+		return file.resolveSibling(buffer.toString());
 	}
 
 	private static String assembleAsString(String input) {
