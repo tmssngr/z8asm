@@ -290,29 +290,37 @@ public class AssemblerTest {
 		final List<Command> commands = assembler.commands();
 		final Output output = Output.create(commands);
 
-		try (Writer writer = Files.newBufferedWriter(getExpectedFile(file))) {
+		final Path asciiFile = createSibling(file, ".bin.ascii");
+		try (Writer writer = Files.newBufferedWriter(asciiFile)) {
 			output.print(writer);
 		}
 
-		final Path expectedFile = createSibling(file, ".bin");
-		try (OutputStream os = Files.newOutputStream(expectedFile)) {
-			output.write(os);
-		}
+		writeAndCheckBinaryFile(file, output);
 	}
 
 	private static void assembleFileBinary(Path file) throws IOException {
 		final Assembler assembler = assemble(file);
 		final Output output = Output.create(assembler.commands());
 
-		final Path expectedFile = getExpectedFile(file);
-		try (OutputStream os = Files.newOutputStream(expectedFile)) {
-			output.write(os);
-		}
+		writeAndCheckBinaryFile(file, output);
 
 		final Path labelsFile = createSibling(file, ".labels");
 		try (Writer writer = Files.newBufferedWriter(labelsFile)) {
 			assembler.writeLabels(writer);
 		}
+	}
+
+	private static void writeAndCheckBinaryFile(Path file, Output output) throws IOException {
+		final String fileName = file.getFileName().toString();
+		final Path tempFile = Files.createTempFile(file.getParent(), fileName, "");
+		try (OutputStream os = Files.newOutputStream(tempFile)) {
+			output.write(os);
+		}
+		final byte[] actualBytes = Files.readAllBytes(tempFile);
+		final Path expectedFile = createSibling(file, ".bin");
+		final byte[] expectedBytes = Files.readAllBytes(expectedFile);
+		Assert.assertArrayEquals(fileName, expectedBytes, actualBytes);
+		Files.delete(tempFile);
 	}
 
 	@NotNull
@@ -322,13 +330,12 @@ public class AssemblerTest {
 	}
 
 	@NotNull
-	private static Path getExpectedFile(Path file) {
-		return createSibling(file, ".expected");
-	}
-
-	@NotNull
 	private static Path createSibling(Path file, String suffix) {
-		return file.resolveSibling(file.getFileName() + suffix);
+		String fileName = file.getFileName().toString();
+		final int lastDot = fileName.lastIndexOf('.');
+		Assert.assertTrue(lastDot > 0);
+		fileName = fileName.substring(0, lastDot);
+		return file.resolveSibling(fileName + suffix);
 	}
 
 	private static String assembleAsString(String input) {
