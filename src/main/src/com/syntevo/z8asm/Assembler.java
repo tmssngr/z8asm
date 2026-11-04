@@ -10,13 +10,13 @@ import org.jetbrains.annotations.*;
 public record Assembler(@NotNull List<Command> commands, @NotNull Map<String, Integer> labels) {
 
 	@NotNull
-	public static List<Command> assemble(List<Command> commands) {
+	public static List<Command> assemble(@NotNull List<Command> commands) {
 		final Assembler assembler = assemble(commands, System.out::println);
 		return assembler.commands;
 	}
 
 	@NotNull
-	public static Assembler assemble(List<Command> commands, @NotNull WarningOut out) {
+	public static Assembler assemble(@NotNull List<Command> commands, @NotNull WarningOut out) {
 		commands = new ArrayList<>(commands);
 		final Labels labels = determineLabels(commands);
 		resolveAutoJumps(commands, labels);
@@ -28,7 +28,7 @@ public record Assembler(@NotNull List<Command> commands, @NotNull Map<String, In
 	}
 
 	@NotNull
-	private static Labels determineLabels(List<Command> commands) {
+	private static Labels determineLabels(@NotNull List<Command> commands) {
 		final Labels labels = new Labels();
 		boolean allowOrg = true;
 		int pc = 0;
