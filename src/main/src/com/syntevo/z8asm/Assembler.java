@@ -8,7 +8,7 @@ import org.jetbrains.annotations.*;
 /**
  * @author Thomas Singer
  */
-public record Assembler(@NotNull List<Command> commands, @NotNull Map<String, Integer> labels) {
+public record Assembler(@NotNull List<Command> commands, @NotNull Map<String, Integer> labels, int org) {
 
 	@NotNull
 	public static List<Command> assemble(@NotNull List<Command> commands) {
@@ -19,13 +19,14 @@ public record Assembler(@NotNull List<Command> commands, @NotNull Map<String, In
 	@NotNull
 	public static Assembler assemble(@NotNull List<Command> commands, @NotNull WarningOut out) {
 		commands = new ArrayList<>(commands);
-		final Labels labels = determineLabels(commands);
+		final Pair<Labels, Integer> labelsAndOrg = determineLabels(commands);
+		final Labels labels = labelsAndOrg.first();
 		resolveAutoJumps(commands, labels);
 		resolveLazyCommands(commands, labels, out);
 		labels.reportUnused(out);
 		commands.removeIf(Objects::isNull);
 		final Map<String, Integer> mapping = labels.getMapping();
-		return new Assembler(commands, mapping);
+		return new Assembler(commands, mapping, labelsAndOrg.second());
 	}
 
 	public void writeLabels(Writer writer) throws IOException {
@@ -49,25 +50,29 @@ public record Assembler(@NotNull List<Command> commands, @NotNull Map<String, In
 	}
 
 	@NotNull
-	private static Labels determineLabels(@NotNull List<Command> commands) {
+	private static Pair<Labels, Integer> determineLabels(@NotNull List<Command> commands) {
 		final Labels labels = new Labels();
-		boolean allowOrg = true;
+		boolean isFirst = true;
+		int org = 0;
 		int pc = 0;
 		for (Command command : commands) {
+			if (isFirst) {
+				isFirst = false;
+				if (command.type == Command.Type.ORG) {
+					org = command.get16bitValue();
+					pc = org;
+					continue;
+				}
+			}
 			switch (command.type) {
 			case LABEL -> {
 				labels.add(command.text, pc, command.location);
-				allowOrg = false;
 			}
 			case ORG -> {
-				if (!allowOrg) {
-					throw new SyntaxException(".org is only allowed before any content or label", command.location);
-				}
-				pc = command.get16bitValue();
+				throw new SyntaxException(".org is only allowed before any content or label", command.location);
 			}
 			case CONTENT,
 			     LAZY_CONTENT -> {
-				allowOrg = false;
 				pc += command.size;
 			}
 			case AUTO_JUMP -> {
@@ -82,7 +87,7 @@ public record Assembler(@NotNull List<Command> commands, @NotNull Map<String, In
 			}
 		}
 		labels.finishedInitialization();
-		return labels;
+		return new Pair<>(labels, org);
 	}
 
 	private static void resolveAutoJumps(List<Command> commands, Labels labels) {
