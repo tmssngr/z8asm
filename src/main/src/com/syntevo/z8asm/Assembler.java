@@ -55,35 +55,28 @@ public record Assembler(@NotNull List<Command> commands, @NotNull Map<String, In
 		boolean isFirst = true;
 		int org = 0;
 		int pc = 0;
-		for (Command command : commands) {
+		for (Command cmd : commands) {
 			if (isFirst) {
 				isFirst = false;
-				if (command.type == Command.Type.ORG) {
-					org = command.get16bitValue();
+				if (cmd instanceof Command.Org c) {
+					org = c.org();
 					pc = org;
 					continue;
 				}
 			}
-			switch (command.type) {
-			case LABEL -> {
-				labels.add(command.text, pc, command.location);
-			}
-			case ORG -> {
-				throw new SyntaxException(".org is only allowed before any content or label", command.location);
-			}
-			case CONTENT,
-			     LAZY_CONTENT -> {
-				pc += command.size;
-			}
-			case AUTO_JUMP -> {
-				Utils.assertTrue(command.size == 1 || command.size == 3);
-				pc += 2;
-			}
-			case ALIGN -> {
-				final int offset = getAlignmentOffset(command.get16bitValue(), pc);
+
+			switch (cmd) {
+			case Command.Align align -> {
+				final int offset = getAlignmentOffset(align.alignment(), pc);
 				pc += offset;
 			}
-			default -> throw new IllegalStateException("Unsupported command " + command);
+			case Command.AutoJumpAddress ignored -> pc += 2;
+			case Command.AutoJumpString ignored -> pc += 2;
+			case Command.Content content -> pc += content.size();
+			case Command.Label command -> labels.add(command.name(), pc, command.location());
+			case Command.LazyContent2 ignored -> pc += 2;
+			case Command.LazyContent3 ignored -> pc += 3;
+			case Command.Org o -> throw new SyntaxException(".org is only allowed before any content or label", o.location());
 			}
 		}
 		labels.finishedInitialization();
@@ -104,55 +97,51 @@ public record Assembler(@NotNull List<Command> commands, @NotNull Map<String, In
 		int pc = 0;
 		boolean changed = false;
 		for (int i = 0; i < commands.size(); i++) {
-			final Command command = commands.get(i);
-			switch (command.type) {
-			case LABEL -> {
-				if (labels.update(command.text, pc)) {
+			final Command cmd = commands.get(i);
+			switch (cmd) {
+			case Command.Align align -> {
+				final int offset = getAlignmentOffset(align.alignment(), pc);
+				pc += offset;
+			}
+			case Command.AutoJumpAddress command -> {
+				final int opCode = command.jrOpCode();
+				final int higherNibble = opCode & 0xF0;
+				pc += 2;
+				final int address = command.address();
+				final int relative = address - pc;
+				if (!isValidRelative(relative)) {
+					commands.set(i, new Command.Content(higherNibble + 0x0D, address >> 8, address & 0xFF));
+					pc++;
+					changed = true;
+				}
+				else if (finalize) {
+					commands.set(i, new Command.Content(higherNibble + 0x0B, relative));
+				}
+			}
+			case Command.AutoJumpString command -> {
+				final int opCode = command.jrOpCode();
+				final int higherNibble = opCode & 0xF0;
+				pc += 2;
+				final int address = labels.resolve(command.target(), command.location());
+				final int relative = address - pc;
+				if (!isValidRelative(relative)) {
+					commands.set(i, new Command.LazyContent3(higherNibble + 0x0D, command.target(), command.location()));
+					pc++;
+					changed = true;
+				}
+				else if (finalize) {
+					commands.set(i, new Command.LazyContent2(higherNibble + 0x0B, command.target(), command.location()));
+				}
+			}
+			case Command.Content command -> pc += command.size();
+			case Command.Label command -> {
+				if (labels.update(command.name(), pc)) {
 					changed = true;
 				}
 			}
-			case ORG -> pc = command.get16bitValue();
-			case CONTENT,
-			     LAZY_CONTENT -> pc += command.size;
-			case AUTO_JUMP -> {
-				final int opCode = command.get(0);
-				final int higherNibble = opCode & 0xF0;
-				pc += 2;
-				if (command.size == 1) {
-					// jump to text target
-					final int address = labels.resolve(command.text, command.location);
-					final int relative = address - pc;
-					if (!isValidRelative(relative)) {
-						commands.set(i, Command.lazyContent3(higherNibble + 0x0D, command.text, command.location));
-						pc++;
-						changed = true;
-					}
-					else if (finalize) {
-						commands.set(i, Command.lazyContent2(higherNibble + 0x0B, command.text, command.location));
-					}
-				}
-				else {
-					// jump to absolute target
-					Utils.assertTrue(command.size == 3);
-					final int addrHi = command.get(1);
-					final int addrLo = command.get(2);
-					final int address = (addrHi << 8) + addrLo;
-					final int relative = address - pc;
-					if (!isValidRelative(relative)) {
-						commands.set(i, Command.content3(higherNibble + 0x0D, addrHi, addrLo));
-						pc++;
-						changed = true;
-					}
-					else if (finalize) {
-						commands.set(i, Command.content2(higherNibble + 0x0B, relative));
-					}
-				}
-			}
-			case ALIGN -> {
-				final int offset = getAlignmentOffset(command.get16bitValue(), pc);
-				pc += offset;
-			}
-			default -> throw new IllegalStateException("Unsupported command " + command);
+			case Command.LazyContent2 ignored -> pc += 2;
+			case Command.LazyContent3 ignored -> pc += 3;
+			case Command.Org o -> pc = o.org();
 			}
 		}
 		labels.finishedInitialization();
@@ -169,102 +158,107 @@ public record Assembler(@NotNull List<Command> commands, @NotNull Map<String, In
 	private static void resolveLazyCommands(@NotNull List<Command> commands, @NotNull Labels labels, @NotNull WarningOut out) {
 		int pc = 0;
 		for (int i = 0; i < commands.size(); i++) {
-			final Command command = commands.get(i);
-			switch (command.type) {
-			case LABEL -> {
-				labels.processing(command.text);
-				commands.set(i, null);
-			}
-			case ORG -> {
-				pc = command.get16bitValue();
-				commands.set(i, null);
-			}
-			case CONTENT -> pc += command.size;
-			case ALIGN -> {
-				final int offset = getAlignmentOffset(command.get16bitValue(), pc);
+			final Command cmd = commands.get(i);
+			switch (cmd) {
+			case Command.Align align -> {
+				final int offset = getAlignmentOffset(align.alignment(), pc);
 				if (offset > 0) {
 					final byte[] bytes = new byte[offset];
-					Arrays.fill(bytes, (byte)command.get(2));
-					commands.set(i, Command.content(bytes));
+					Arrays.fill(bytes, align.fillByte());
+					commands.set(i, new Command.Content(bytes));
 					pc += offset;
 				}
 				else {
 					commands.set(i, null);
 				}
 			}
-			case LAZY_CONTENT -> {
-				final Command resolvedCommand = resolveLazyCommand(command, pc + command.size, labels, out);
-				pc += resolvedCommand.size;
+			case Command.Content command -> pc += command.size();
+			case Command.Label label -> {
+				labels.processing(label.name());
+				commands.set(i, null);
+			}
+			case Command.LazyContent2 command -> {
+				final Command.Content resolvedCommand = resolveLazyCommand(command, pc, labels);
+				pc += resolvedCommand.size();
 				commands.set(i, resolvedCommand);
 			}
-			default -> throw new IllegalStateException("Unsupported command " + command);
+			case Command.LazyContent3 command -> {
+				final Command.Content resolvedCommand = resolveLazyCommand(command, pc, labels, out);
+				pc += resolvedCommand.size();
+				commands.set(i, resolvedCommand);
+			}
+			case Command.Org org -> {
+				pc = org.org();
+				commands.set(i, null);
+			}
+			default -> {
+				throw new IllegalStateException("Unsupported command " + cmd);
+			}
 			}
 		}
 	}
 
 	@NotNull
-	private static Command resolveLazyCommand(@NotNull Command command, int pc, @NotNull Labels labels, @NotNull WarningOut out) {
-		Utils.assertTrue(command.type == Command.Type.LAZY_CONTENT);
-
-		final int opCode = command.get(0);
+	private static Command.Content resolveLazyCommand(@NotNull Command.LazyContent2 command, int pc, @NotNull Labels labels) {
+		final int opCode = command.opCode();
 		final int lowerNibble = opCode & 0x0F;
 		if (lowerNibble == 0x0A || lowerNibble == 0x0B) {
-			Utils.assertTrue(command.size == 2);
-			final int address = labels.resolve(command.text, command.location);
-			final int relative = address - pc;
+			final int address = labels.resolve(command.text(), command.location());
+			final int relative = address - pc - 2;
 			if (!isValidRelative(relative)) {
 				Utils.assertTrue(lowerNibble == 0x0A); // can't happen for JR, because it already should have been turned into a JP
-				throw new SyntaxException("Target '" + command.text + "' too far away (" + relative + ")", command.location);
+				throw new SyntaxException("Target '" + command.text() + "' too far away (" + relative + ")", command.location());
 			}
-			return Command.content2(opCode, relative);
+			return new Command.Content(opCode, relative);
 		}
 
 		if (lowerNibble == 0x0C) {
-			Utils.assertTrue(command.size == 2);
 			final boolean defaultHigh = (opCode & 0x10) == 0;
-			final int value = resolveLabelHighOrLow(defaultHigh, command.text, command.location, labels);
-			return Command.content2(opCode, value);
+			final int value = resolveLabelHighOrLow(defaultHigh, command.text(), command.location(), labels);
+			return new Command.Content(opCode, value);
 		}
 
-		if (lowerNibble == 0x0D) {
-			Utils.assertTrue(command.size == 3);
+		if (opCode == 0) {
+			final int address = labels.resolve(command.text(), command.location());
+			return new Command.Content(address >> 8, address);
+		}
 
-			final int address = labels.resolve(command.text, command.location);
-			if (isValidRelative(address - pc)) {
-				out.print(command.location + ": jp could be jr");
+		throw new IllegalStateException("Unsupported command " + command);
+	}
+
+	@NotNull
+	private static Command.Content resolveLazyCommand(@NotNull Command.LazyContent3 command, int pc, @NotNull Labels labels, @NotNull WarningOut out) {
+		final int opCode = command.opCode();
+		final int lowerNibble = opCode & 0x0F;
+		if (lowerNibble == 0x0D) {
+			final int address = labels.resolve(command.text(), command.location());
+			if (isValidRelative(address - pc - 3)) {
+				out.print(command.location() + ": jp could be jr");
 			}
 
-			return Command.content3(opCode, address >> 8, address);
+			return new Command.Content(opCode, address >> 8, address);
 		}
 
 		final int higherNibble = opCode & 0xF0;
 		if (higherNibble <= 0x70) {
 			if (lowerNibble == 0x06 || lowerNibble == 0x07) {
-				final int register = command.get(1);
+				final int register = command.second();
 				final boolean defaultHigh = (register & 1) == 0;
-				final int value = resolveLabelHighOrLow(defaultHigh, command.text, command.location, labels);
-				return Command.content3(opCode, register, value);
+				final int value = resolveLabelHighOrLow(defaultHigh, command.text(), command.location(), labels);
+				return new Command.Content(opCode, register, value);
 			}
 		}
 
 		if (opCode == 0xD6) {
-			Utils.assertTrue(command.size == 3);
-			final int address = labels.resolve(command.text, command.location);
-			return Command.content3(opCode, address >> 8, address);
+			final int address = labels.resolve(command.text(), command.location());
+			return new Command.Content(opCode, address >> 8, address);
 		}
 
 		if (opCode == 0xE6) {
-			Utils.assertTrue(command.size == 3);
-			final int register = command.get(1);
+			final int register = command.second();
 			final boolean defaultHigh = (register & 1) == 0;
-			final int value = resolveLabelHighOrLow(defaultHigh, command.text, command.location, labels);
-			return Command.content3(opCode, register, value);
-		}
-
-		if (opCode == 0) {
-			Utils.assertTrue(command.size == 2);
-			final int address = labels.resolve(command.text, command.location);
-			return Command.content2(address >> 8, address);
+			final int value = resolveLabelHighOrLow(defaultHigh, command.text(), command.location(), labels);
+			return new Command.Content(opCode, register, value);
 		}
 
 		throw new IllegalStateException("Unsupported command " + command);

@@ -7,134 +7,65 @@ import org.jetbrains.annotations.*;
 /**
  * @author Thomas Singer
  */
-public final class Command {
+public sealed interface Command permits Command.Align, Command.Content, Command.AutoJumpAddress, Command.AutoJumpString, Command.Label, Command.LazyContent2, Command.LazyContent3, Command.Org {
 
-	public static Command label(@NotNull String name, @NotNull Location location) {
-		return new Command(Type.LABEL, null, 0, name, location);
+	record Align(int alignment, byte fillByte) implements Command {
 	}
 
-	public static Command org(int value, @NotNull Location location) {
-		return new Command(Type.ORG, new byte[] {(byte)(value / 0x100), (byte)value}, 0, "", location);
+	record AutoJumpString(byte jrOpCode, @NotNull String target, @NotNull Location location) implements Command {
 	}
 
-	public static Command content1(int first) {
-		return new Command(Type.CONTENT, new byte[] {(byte)first}, 1, "", Location.DUMMY);
+	record AutoJumpAddress(byte jrOpCode, int address) implements Command {
 	}
 
-	public static Command content2(int first, int second) {
-		return new Command(Type.CONTENT, new byte[] {(byte)first, (byte)second}, 2, "", Location.DUMMY);
-	}
-
-	public static Command content3(int first, int second, int third) {
-		return new Command(Type.CONTENT, new byte[] {(byte)first, (byte)second, (byte)third}, 3, "", Location.DUMMY);
-	}
-
-	public static Command content(byte[] bytes) {
-		Utils.assertTrue(bytes.length > 0);
-		return new Command(Type.CONTENT, Arrays.copyOf(bytes, bytes.length), bytes.length, "", Location.DUMMY);
-	}
-
-	public static Command lazyContent2(int first, @NotNull String text, @NotNull Location location) {
-		return new Command(Type.LAZY_CONTENT, new byte[]{(byte)first, 0}, 2, text, location);
-	}
-
-	public static Command lazyContent3(int first, @NotNull String text, @NotNull Location location) {
-		return lazyContent3(first, 0, text, location);
-	}
-
-	public static Command lazyContent3(int first, int second, @NotNull String text, @NotNull Location location) {
-		return new Command(Type.LAZY_CONTENT, new byte[] {(byte)first, (byte)second, 0}, 3, text, location);
-	}
-
-	public static Command autoJump(int jrOpCode, @NotNull String target, @NotNull Location location) {
-		return new Command(Type.AUTO_JUMP, new byte[] {(byte)jrOpCode}, 1, target, location);
-	}
-
-	public static Command autoJump(int jrOpCode, int address) {
-		return new Command(Type.AUTO_JUMP, new byte[] {(byte)jrOpCode, (byte)(address >> 8), (byte)address}, 3, "", Location.DUMMY);
-	}
-
-	public static Command align(int alignment, int fillByte) {
-		return new Command(Type.ALIGN, new byte[] {(byte)(alignment >> 8), (byte)alignment, (byte)fillByte}, 0, "", Location.DUMMY);
-	}
-
-	public final Type type;
-	@Nullable private final byte[] values;
-	public final int size;
-	public final String text;
-	public final Location location;
-
-	private Command(@NotNull Type type, @Nullable byte[] values, int size, @NotNull String text, Location location) {
-		this.type = type;
-		this.values = values;
-		this.size = size;
-		this.text = text;
-		this.location = location;
-	}
-
-	@Override
-	public boolean equals(Object o) {
-		if (o == null || getClass() != o.getClass()) {
-			return false;
+	record Content(byte[] bytes) implements Command {
+		public Content {
+			Utils.assertTrue(bytes.length > 0);
 		}
-		final Command command = (Command)o;
-		return size == command.size
-		       && type == command.type
-		       && Objects.equals(text, command.text)
-		       && Objects.deepEquals(values, command.values)
-		       && Objects.equals(location, command.location);
-	}
 
-	@Override
-	public int hashCode() {
-		return Objects.hash(type, Arrays.hashCode(values), size, text, location);
-	}
+		public Content(int first) {
+			this(new byte[] {(byte)first});
+		}
 
-	@NotNull
-	@Override
-	public String toString() {
-		final StringBuilder buffer = new StringBuilder();
-		buffer.append("Command{");
-		buffer.append("type=");
-		buffer.append(type);
-		buffer.append(", values=");
-		if (values != null) {
-			buffer.append("[");
-			for (int i = 0; i < values.length; i++) {
-				byte value = values[i];
-				if (i > 0) {
-					buffer.append(", ");
-				}
-				buffer.append(Utils.toHex8(value));
+		public Content(int first, int second) {
+			this(new byte[] {(byte)first, (byte)second});
+		}
+
+		public Content(int first, int second, int third) {
+			this(new byte[] {(byte)first, (byte)second, (byte)third});
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (o == null || getClass() != o.getClass()) {
+				return false;
 			}
-			buffer.append("]");
+			final Content content = (Content)o;
+			return Objects.deepEquals(bytes, content.bytes);
 		}
-		else {
-			buffer.append("null");
+
+		@Override
+		public int hashCode() {
+			return Arrays.hashCode(bytes);
 		}
-		buffer.append(", size=");
-		buffer.append(size);
-		buffer.append(", text='");
-		buffer.append(text);
-		buffer.append('\'');
-		buffer.append(", location=");
-		buffer.append(location);
-		buffer.append('}');
-		return buffer.toString();
+
+		public int size() {
+			return bytes.length;
+		}
 	}
 
-	public int get(int index) {
-		if (values == null) {
-			throw new IllegalArgumentException();
+	record Label(@NotNull String name, @NotNull Location location) implements Command {
+	}
+
+	record LazyContent2(int opCode, @NotNull String text, @NotNull Location location) implements Command {
+	}
+
+	record LazyContent3(int opCode, int second, @NotNull String text, @NotNull Location location) implements Command {
+		public LazyContent3(int opCode, @NotNull String text, @NotNull Location location) {
+			this(opCode, 0, text, location);
 		}
-		return (int)values[index] & 0xFF;
 	}
 
-	public int get16bitValue() {
-		return (get(0) << 8) + get(1);
-	}
-
-	public enum Type {
-		LABEL, ORG, CONTENT, ALIGN, LAZY_CONTENT, AUTO_JUMP
+	record Org(int org, @NotNull Location location) implements Command {
 	}
 }

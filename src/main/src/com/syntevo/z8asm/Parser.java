@@ -61,7 +61,7 @@ public final class Parser {
 					throw new SyntaxException("Labels inside .repeat .end blocks are not allowed", token.location());
 				}
 				final String label = token.text();
-				commands.add(label(label, token.location()));
+				commands.add(new Label(label, token.location()));
 				consume();
 			}
 
@@ -147,7 +147,7 @@ public final class Parser {
 
 		consumeComma();
 		final int fillByte = consumeIntLiteral();
-		return Command.align(alignment, fillByte);
+		return new Align(alignment, (byte)fillByte);
 	}
 
 	private void handleConst() {
@@ -182,16 +182,16 @@ public final class Parser {
 				final int size = token.size();
 				final int value = consumeIntValue();
 				if (size == 1) {
-					commands.add(Command.content1(value));
+					commands.add(new Content(value));
 				}
 				else {
-					commands.add(Command.content2(value >> 8, value));
+					commands.add(new Content(value >> 8, value));
 				}
 			}
 			else if (token.type() == TokenType.IDENTIFIER) {
 				final Location location = token.location();
 				final String text = consumeText();
-				commands.add(Command.lazyContent2(0, text, location));
+				commands.add(new LazyContent2(0, text, location));
 			}
 			else if (token.type() == TokenType.STRING) {
 				final Location location = token.location();
@@ -203,7 +203,7 @@ public final class Parser {
 			}
 			else if (token.type() == TokenType.LENGTH_STRING) {
 				final String text = consumeText();
-				commands.add(Command.content1(text.length()));
+				commands.add(new Content(text.length()));
 				appendString(text, commands);
 			}
 			else {
@@ -216,7 +216,8 @@ public final class Parser {
 	private Command org() {
 		consume();
 		final Location location = token.location();
-		return Command.org(consumeIntLiteral(), location);
+		final int address = consumeIntLiteral();
+		return new Org(address, location);
 	}
 
 	private void handleRepeat(@NotNull List<Command> commands) {
@@ -247,7 +248,7 @@ public final class Parser {
 				return createBinaryImmediate(command(highNibble, 7), dst);
 			}
 			final int src = consumeRegister();
-			return content3(command(highNibble, 5), src, dst);
+			return new Content(command(highNibble, 5), src, dst);
 		}
 
 		final int dst = consumeRegister();
@@ -257,13 +258,13 @@ public final class Parser {
 		}
 		if (isWorkReg(dst) && consumeIfAt()) {
 			final int src = consumeWorkRegister();
-			return content2(command(highNibble, 3), command(dst, src));
+			return new Content(command(highNibble, 3), command(dst, src));
 		}
 		final int src = consumeRegister();
 		if (isWorkReg(src) && isWorkReg(dst)) {
-			return content2(command(highNibble, 2), command(dst, src));
+			return new Content(command(highNibble, 2), command(dst, src));
 		}
-		return content3(command(highNibble, 4), src, dst);
+		return new Content(command(highNibble, 4), src, dst);
 	}
 
 	@NotNull
@@ -272,13 +273,13 @@ public final class Parser {
 			@NotNull
 			@Override
 			public Command create(int immediate) {
-				return content3(opCode, dst, immediate);
+				return new Content(opCode, dst, immediate);
 			}
 
 			@NotNull
 			@Override
 			public Command createLazy(String identifier, Location location) {
-				return lazyContent3(opCode, dst, identifier, location);
+				return new LazyContent3(opCode, dst, identifier, location);
 			}
 		};
 		return provider.run();
@@ -288,29 +289,29 @@ public final class Parser {
 		consume();
 		if (consumeIfAt()) {
 			final int reg = consumeRegisterPair();
-			return content2(0xD4, reg);
+			return new Content(0xD4, reg);
 		}
 
 		if (token.type() == TokenType.INT_LITERAL) {
 			final int address = consumeIntValue();
-			return content3(0xD6, address >> 8, address);
+			return new Content(0xD6, address >> 8, address);
 		}
 
 		final Location location = token.location();
 		final String target = consumeIdentifier();
-		return lazyContent3(0xD6, target, location);
+		return new LazyContent3(0xD6, target, location);
 	}
 
 	private Command createJp() {
 		consume();
 		if (consumeIfAt()) {
 			final int reg = consumeRegisterPair();
-			return content2(0x30, reg);
+			return new Content(0x30, reg);
 		}
 
 		if (token.type() == TokenType.INT_LITERAL) {
 			final int address = consumeIntValue();
-			return content3(0x8d, address >> 8, address);
+			return new Content(0x8d, address >> 8, address);
 		}
 
 		Location location = token.location();
@@ -321,7 +322,7 @@ public final class Parser {
 			consumeComma();
 			if (token.type() == TokenType.INT_LITERAL) {
 				final int address = consumeIntValue();
-				return content3(jc + 0x0D, address >> 8, address);
+				return new Content(jc + 0x0D, address >> 8, address);
 			}
 
 			location = token.location();
@@ -332,7 +333,7 @@ public final class Parser {
 			target = jcOrTarget;
 		}
 
-		return lazyContent3(jc + 0x0D, target, location);
+		return new LazyContent3(jc + 0x0D, target, location);
 	}
 
 	private Command createJr() {
@@ -340,7 +341,7 @@ public final class Parser {
 		Location location = token.location();
 		if (token.type() == TokenType.INT_LITERAL) {
 			final int address = consumeIntValue();
-			return autoJump(0x8b, address);
+			return new AutoJumpAddress((byte)0x8b, address);
 		}
 
 		final String jcOrTarget = consumeIdentifier();
@@ -351,7 +352,7 @@ public final class Parser {
 			location = token.location();
 			if (token.type() == TokenType.INT_LITERAL) {
 				final int address = consumeIntValue();
-				return autoJump(jc + 0x0b, address);
+				return new AutoJumpAddress((byte)(jc + 0x0b), address);
 			}
 			target = consumeIdentifier();
 		}
@@ -360,7 +361,7 @@ public final class Parser {
 			target = jcOrTarget;
 		}
 
-		return autoJump(jc + 0x0b, target, location);
+		return new AutoJumpString((byte)(jc + 0x0b), target, location);
 	}
 
 	private Command createDjnz() {
@@ -369,7 +370,7 @@ public final class Parser {
 		consumeComma();
 		final Location location = token.location();
 		final String target = consumeIdentifier();
-		return lazyContent2(command(reg, 0xA), target, location);
+		return new LazyContent2(command(reg, 0xA), target, location);
 	}
 
 	private int getJumpCondition(String text) {
@@ -404,15 +405,15 @@ public final class Parser {
 			consumeComma();
 			if (consumeIfHash()) {
 				final int immediate = consumeIntLiteral();
-				return content3(0xE7, dst, immediate);
+				return new Content(0xE7, dst, immediate);
 			}
 
 			final int src = consumeRegister();
 			if (isWorkReg(dst) && isWorkReg(src)) {
-				return content2(0xF3, command(dst, src));
+				return new Content(0xF3, command(dst, src));
 			}
 
-			return content3(0xF5, src, dst);
+			return new Content(0xF5, src, dst);
 		}
 
 		final int dst = consumeRegister();
@@ -421,7 +422,7 @@ public final class Parser {
 			consume(TokenType.R_PAREN);
 			consumeComma();
 			final int src = consumeWorkRegister();
-			return content3(0xD7, command(src, wr), dst);
+			return new Content(0xD7, command(src, wr), dst);
 		}
 
 		consumeComma();
@@ -432,9 +433,9 @@ public final class Parser {
 		if (consumeIfAt()) {
 			final int src = consumeRegister();
 			if (isWorkReg(dst) && isWorkReg(src)) {
-				return content2(0xe3, command(dst, src));
+				return new Content(0xe3, command(dst, src));
 			}
-			return content3(0xE5, src, dst);
+			return new Content(0xE5, src, dst);
 		}
 
 		final int src = consumeRegister();
@@ -442,15 +443,15 @@ public final class Parser {
 			if (consumeIf(TokenType.L_PAREN)) {
 				final int wr = consumeWorkRegister();
 				consume(TokenType.R_PAREN);
-				return content3(0xC7, command(dst, wr), src);
+				return new Content(0xC7, command(dst, wr), src);
 			}
 
-			return content2(command(dst, 8), src);
+			return new Content(command(dst, 8), src);
 		}
 		if (isWorkReg(src)) {
-			return content2(command(src, 9), dst);
+			return new Content(command(src, 9), dst);
 		}
-		return content3(0xE4, src, dst);
+		return new Content(0xE4, src, dst);
 	}
 
 	@NotNull
@@ -460,18 +461,18 @@ public final class Parser {
 			@Override
 			public Command create(int immediate) {
 				if (isWorkReg(dst)) {
-					return content2(command(dst, 0xC), immediate);
+					return new Content(command(dst, 0xC), immediate);
 				}
-				return content3(0xE6, dst, immediate);
+				return new Content(0xE6, dst, immediate);
 			}
 
 			@NotNull
 			@Override
 			public Command createLazy(String identifier, Location location) {
 				if (isWorkReg(dst)) {
-					return lazyContent2(command(dst, 0xC), identifier, location);
+					return new LazyContent2(command(dst, 0xC), identifier, location);
 				}
-				return lazyContent3(0xE6, dst, identifier, location);
+				return new LazyContent3(0xE6, dst, identifier, location);
 			}
 		};
 		return provider.run();
@@ -483,13 +484,13 @@ public final class Parser {
 			final int dest = consumeWorkRegisterPair();
 			consumeComma();
 			final int src = consumeWorkRegister();
-			return content2(command(highNibble + 1, 2), command(src, dest));
+			return new Content(command(highNibble + 1, 2), command(src, dest));
 		}
 		final int dest = consumeWorkRegister();
 		consumeComma();
 		consumeAt();
 		final int src = consumeWorkRegisterPair();
-		return content2(command(highNibble, 2), command(dest, src));
+		return new Content(command(highNibble, 2), command(dest, src));
 	}
 
 	private Command createLdXi(int highNibble) {
@@ -501,13 +502,13 @@ public final class Parser {
 			consumeComma();
 			consumeAt();
 			final int src = consumeWorkRegister();
-			return content2(command(highNibble + 1, 3), command(src, dest));
+			return new Content(command(highNibble + 1, 3), command(src, dest));
 		}
 		final int dest = consumeWorkRegister();
 		consumeComma();
 		consumeAt();
 		final int src = consumeWorkRegisterPair();
-		return content2(command(highNibble, 3), command(dest, src));
+		return new Content(command(highNibble, 3), command(dest, src));
 	}
 
 	private Command unary(int opCode) {
@@ -516,27 +517,27 @@ public final class Parser {
 			opCode++;
 		}
 		final int register = consumeRegister();
-		return content2(opCode, register);
+		return new Content(opCode, register);
 	}
 
 	private Command inc() {
 		consume();
 		if (consumeIfAt()) {
 			final int register = consumeRegister();
-			return content2(0x21, register);
+			return new Content(0x21, register);
 		}
 
 		final int register = consumeRegister();
 		if (isWorkReg(register)) {
-			return content1(command(register, 0x0E));
+			return new Content(command(register, 0x0E));
 		}
-		return content2(0x20, register);
+		return new Content(0x20, register);
 	}
 
 	@NotNull
 	private Command singleByteCommand(int opCode) {
 		consume();
-		return content1(opCode);
+		return new Content(opCode);
 	}
 
 	private boolean isWorkReg(int reg) {
@@ -618,7 +619,7 @@ public final class Parser {
 		consume();
 		consume(TokenType.HASH);
 		final int value = consumeIntLiteral();
-		return content2(0x31, value);
+		return new Content(0x31, value);
 	}
 
 	@NotNull
@@ -672,7 +673,7 @@ public final class Parser {
 		for (int i = 0; i < length; i++) {
 			bytes[i] = (byte)text.charAt(i);
 		}
-		commands.add(Command.content(bytes));
+		commands.add(new Content(bytes));
 	}
 
 	private static boolean isPowerOf2(int alignment) {

@@ -16,13 +16,14 @@ public final class Output {
 	public static Output create(@NotNull List<Command> commands) {
 		final Output output = new Output();
 
-		for (Command command : commands) {
-			if (command.type != Command.Type.CONTENT) {
-				throw new IllegalStateException(command.toString());
+		for (Command c : commands) {
+			if (c instanceof Command.Content(byte[] bytes)) {
+				for (final byte value : bytes) {
+					output.write(value);
+				}
 			}
-
-			for (int i = 0; i < command.size; i++) {
-				output.write(command.get(i));
+			else {
+				throw new IllegalStateException(c.toString());
 			}
 		}
 		return output;
@@ -38,7 +39,7 @@ public final class Output {
 	}
 
 	public void write(int value) {
-		buffer[pc] = (byte) value;
+		buffer[pc] = (byte)value;
 		pc++;
 	}
 

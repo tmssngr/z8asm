@@ -5,6 +5,7 @@ import java.util.*;
 import org.jetbrains.annotations.*;
 import org.junit.*;
 
+import static com.syntevo.z8asm.Command.*;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -17,14 +18,14 @@ public class ParserTest {
 		assertUnary(0x00, "dec");
 		assertUnary(0x10, "rlc");
 
-		assertCommand(Command.content2(0x20, 0x60), "inc %60");
-		assertCommand(Command.content1(0x2E), "inc r2");
-		assertCommand(Command.content2(0x21, 0xE1), "inc @r1");
-		assertCommand(Command.content2(0x20, 0x62), """
+		assertCommand(new Content(0x20, 0x60), "inc %60");
+		assertCommand(new Content(0x2E), "inc r2");
+		assertCommand(new Content(0x21, 0xE1), "inc @r1");
+		assertCommand(new Content(0x20, 0x62), """
 				.const FOO = %62
 				inc FOO""");
 
-		assertCommand(Command.content2(0x31, 0x40), "srp #%40");
+		assertCommand(new Content(0x31, 0x40), "srp #%40");
 
 		assertUnary(0x40, "da");
 		assertUnary(0x50, "pop");
@@ -56,81 +57,81 @@ public class ParserTest {
 
 	@Test
 	public void testLd() {
-		assertCommand(Command.content2(0x68, 0x5a), "LD R6, %5a");
-		assertCommand(Command.content2(0x18, 0xE2), "LD R1, R2");
-		assertCommand(Command.content2(0x79, 0x32), "LD %32, R7");
-		assertCommand(Command.content2(0xFC, 0x16), "LD R15, #%16");
-		assertCommand(Command.content2(0xE3, 0x26), "LD R2, @R6");
-		assertCommand(Command.content2(0xF3, 0x74), "LD @R7, R4");
-		assertCommand(Command.content3(0xE4, 0x15, 0x5A), "LD %5A, %15");
-		assertCommand(Command.content3(0xE5, 0x45, 0x34), "LD %34, @%45");
-		assertCommand(Command.content3(0xF5, 0x15, 0x5A), "LD @%5A, %15");
-		assertCommand(Command.content3(0xE6, 0x5A, 0x3d), "LD %5A, #%3D");
-		assertCommand(Command.content3(0xE7, 0x5A, 0x3d), "LD @%5A, #%3D");
-		assertCommand(Command.content3(0xC7, 0x26, 0x9E), "LD R2, %9E(R6)");
-		assertCommand(Command.content3(0xD7, 0xA0, 0xF0), "LD %F0(R0), R10");
+		assertCommand(new Content(0x68, 0x5a), "LD R6, %5a");
+		assertCommand(new Content(0x18, 0xE2), "LD R1, R2");
+		assertCommand(new Content(0x79, 0x32), "LD %32, R7");
+		assertCommand(new Content(0xFC, 0x16), "LD R15, #%16");
+		assertCommand(new Content(0xE3, 0x26), "LD R2, @R6");
+		assertCommand(new Content(0xF3, 0x74), "LD @R7, R4");
+		assertCommand(new Content(0xE4, 0x15, 0x5A), "LD %5A, %15");
+		assertCommand(new Content(0xE5, 0x45, 0x34), "LD %34, @%45");
+		assertCommand(new Content(0xF5, 0x15, 0x5A), "LD @%5A, %15");
+		assertCommand(new Content(0xE6, 0x5A, 0x3d), "LD %5A, #%3D");
+		assertCommand(new Content(0xE7, 0x5A, 0x3d), "LD @%5A, #%3D");
+		assertCommand(new Content(0xC7, 0x26, 0x9E), "LD R2, %9E(R6)");
+		assertCommand(new Content(0xD7, 0xA0, 0xF0), "LD %F0(R0), R10");
 
-		assertCommand(Command.lazyContent2(0x2c, "foo", new Location(0, 8)), "LD R2, #foo");
-		assertCommand(Command.lazyContent3(0xe6, 0x20, "foo", new Location(0, 9)), "LD %20, #foo");
+		assertCommand(new LazyContent2(0x2c, "foo", new Location(0, 8)), "LD R2, #foo");
+		assertCommand(new LazyContent3(0xe6, 0x20, "foo", new Location(0, 9)), "LD %20, #foo");
 	}
 
 	@Test
 	public void testLdX() {
-		assertCommand(Command.content2(0x82, 0x60), "LDE R6, @RR0");
-		assertCommand(Command.content2(0x92, 0x60), "LDE @RR0, R6");
-		assertCommand(Command.content2(0xC2, 0x60), "LDC R6, @RR0");
-		assertCommand(Command.content2(0xd2, 0x60), "LDC @RR0, R6");
+		assertCommand(new Content(0x82, 0x60), "LDE R6, @RR0");
+		assertCommand(new Content(0x92, 0x60), "LDE @RR0, R6");
+		assertCommand(new Content(0xC2, 0x60), "LDC R6, @RR0");
+		assertCommand(new Content(0xd2, 0x60), "LDC @RR0, R6");
 
-		assertCommand(Command.content2(0x83, 0x60), "LDEI @R6, @RR0");
-		assertCommand(Command.content2(0x93, 0x60), "LDEI @RR0, @R6");
-		assertCommand(Command.content2(0xc3, 0x9e), "LDCI @R9, @RR14");
-		assertCommand(Command.content2(0xd3, 0x60), "LDCI @RR0, @R6");
+		assertCommand(new Content(0x83, 0x60), "LDEI @R6, @RR0");
+		assertCommand(new Content(0x93, 0x60), "LDEI @RR0, @R6");
+		assertCommand(new Content(0xc3, 0x9e), "LDCI @R9, @RR14");
+		assertCommand(new Content(0xd3, 0x60), "LDCI @RR0, @R6");
 	}
 
 	@Test
 	public void testJpJrCallDjnz() {
-		assertCommand(Command.content2(0x30, 0x6E), "jp @%6e");
-		assertCommand(Command.content2(0x30, 0xEE), "jp @rr14");
-		assertCommand(Command.content3(0x8D, 0x08, 0x12), "jp %0812");
-		assertCommand(Command.lazyContent3(0x8D, "M_0812", new Location(0, 3)), "jp M_0812");
-		assertCommand(Command.content3(0xED, 0x08, 0x12), "jp nz, %0812");
-		assertCommand(Command.lazyContent3(0x7D, "M_0812", new Location(0, 6)), "jp c, M_0812");
+		assertCommand(new Content(0x30, 0x6E), "jp @%6e");
+		assertCommand(new Content(0x30, 0xEE), "jp @rr14");
+		assertCommand(new Content(0x8D, 0x08, 0x12), "jp %0812");
+		assertCommand(new LazyContent3(0x8D, "M_0812", new Location(0, 3)), "jp M_0812");
+		assertCommand(new Content(0xED, 0x08, 0x12), "jp nz, %0812");
+		assertCommand(new LazyContent3(0x7D, "M_0812", new Location(0, 6)), "jp c, M_0812");
 
-		assertCommand(Command.autoJump(0x8B, 0x0812), "jr %0812");
-		assertCommand(Command.autoJump(0x7B, 0x0812), "jr c, %0812");
-		assertCommand(Command.autoJump(0x8B, "M_0812", new Location(0, 3)), "jr M_0812");
-		assertCommand(Command.autoJump(0x7B, "M_0812", new Location(0, 6)), "jr c, M_0812");
+		assertCommand(new AutoJumpAddress((byte)0x8B, 0x0812), "jr %0812");
+		assertCommand(new AutoJumpAddress((byte)0x7B, 0x0812), "jr c, %0812");
+		assertCommand(new AutoJumpString((byte)0x8B, "M_0812", new Location(0, 3)), "jr M_0812");
+		assertCommand(new AutoJumpString((byte)0x7B, "M_0812", new Location(0, 6)), "jr c, M_0812");
 
-		assertCommand(Command.lazyContent2(0x1A, "FOO", new Location(0, 9)), "djnz r1, FOO");
+		assertCommand(new LazyContent2(0x1A, "FOO", new Location(0, 9)), "djnz r1, FOO");
 
-		assertCommand(Command.content2(0xD4, 0x6E), "call @%6e");
-		assertCommand(Command.content2(0xD4, 0xEE), "call @rr14");
-		assertCommand(Command.content3(0xD6, 0x08, 0x12), "call %0812");
-		assertCommand(Command.lazyContent3(0xD6, "M_0812", new Location(0, 5)), "call M_0812");
+		assertCommand(new Content(0xD4, 0x6E), "call @%6e");
+		assertCommand(new Content(0xD4, 0xEE), "call @rr14");
+		assertCommand(new Content(0xD6, 0x08, 0x12), "call %0812");
+		assertCommand(new LazyContent3(0xD6, "M_0812", new Location(0, 5)), "call M_0812");
 	}
 
 	@Test
 	public void testXF() {
-		assertCommand(Command.content1(0x8F), "di");
-		assertCommand(Command.content1(0x9F), "ei");
-		assertCommand(Command.content1(0xAF), "ret");
-		assertCommand(Command.content1(0xBF), "iret");
-		assertCommand(Command.content1(0xCF), "rcf");
-		assertCommand(Command.content1(0xDF), "scf");
-		assertCommand(Command.content1(0xEF), "ccf");
-		assertCommand(Command.content1(0xFF), "nop");
+		assertCommand(new Content(0x8F), "di");
+		assertCommand(new Content(0x9F), "ei");
+		assertCommand(new Content(0xAF), "ret");
+		assertCommand(new Content(0xBF), "iret");
+		assertCommand(new Content(0xCF), "rcf");
+		assertCommand(new Content(0xDF), "scf");
+		assertCommand(new Content(0xEF), "ccf");
+		assertCommand(new Content(0xFF), "nop");
 	}
 
 	@Test
 	public void testData() {
 		assertCommands(List.of(
-				Command.content1(0x46),
-				Command.content1(0x16),
-				Command.content1(0x40),
-				Command.content1(0x50),
-				Command.content1(0x60),
-				Command.content(new byte[] {0x20, 0}),
-				Command.lazyContent2(0, "FOO", new Location(1, 16))
+				new Content(0x46),
+				new Content(0x16),
+				new Content(0x40),
+				new Content(0x50),
+				new Content(0x60),
+				new Content(new byte[] {0x20, 0}),
+				new LazyContent2(0, "FOO", new Location(1, 16))
 		), """
 				               .data %46 %16 %40 %50
 				               .data %60 " \\0" FOO
@@ -140,21 +141,21 @@ public class ParserTest {
 	@Test
 	public void testRepeat() {
 		assertCommands(List.of(
-				Command.content1(0xFF),
-				Command.content1(0xFF),
-				Command.content1(0xFF)
+				new Content(0xFF),
+				new Content(0xFF),
+				new Content(0xFF)
 		), """
 				               .repeat 3
 				               	nop
 				               .end""");
 
 		assertCommands(List.of(
-				Command.content1(0x22),
-				Command.content1(0x22),
-				Command.content1(0x22),
-				Command.content1(0x22),
-				Command.content1(0x22),
-				Command.content1(0x22)
+				new Content(0x22),
+				new Content(0x22),
+				new Content(0x22),
+				new Content(0x22),
+				new Content(0x22),
+				new Content(0x22)
 		), """
 				               .repeat 3
 				                 .repeat 2
@@ -166,11 +167,11 @@ public class ParserTest {
 	@Test
 	public void testParser() {
 		final List<Command> commands = assertCommands(List.of(
-				Command.org(0x0800, new Location(0, 8)),
-				Command.content3(0x8d, 0xe0, 0),
-				Command.content3(0x8d, 0xe0, 3),
-				Command.label("M_0812", new Location(4, 0)),
-				Command.lazyContent3(0x8d, "M_0812", new Location(4, 11))
+				new Org(0x0800, new Location(0, 8)),
+				new Content(0x8d, 0xe0, 0),
+				new Content(0x8d, 0xe0, 3),
+				new Label("M_0812", new Location(4, 0)),
+				new LazyContent3(0x8d, "M_0812", new Location(4, 11))
 		), """
 				                                                 .org %0800
 				                                                 jp %e000
@@ -181,46 +182,44 @@ public class ParserTest {
 
 		final List<Command> newCommands = Assembler.assemble(commands);
 		assertEquals(List.of(
-				Command.content3(0x8d, 0xe0, 0),
-				Command.content3(0x8d, 0xe0, 3),
-				Command.content3(0x8d, 0x8, 6)
+				(Command)new Content(0x8d, 0xe0, 0),
+				new Content(0x8d, 0xe0, 3),
+				new Content(0x8d, 0x8, 6)
 		), newCommands);
 	}
 
 	private void assertUnary(int opCode, String mnemonic) {
-		assertCommand(Command.content2(opCode, 0x60), mnemonic + " %60");
-		assertCommand(Command.content2(opCode, 0xE2), mnemonic + " r2");
-		assertCommand(Command.content2(opCode + 1, 0x60), mnemonic + " @%60");
-		assertCommand(Command.content2(opCode + 1, 0xE2), mnemonic + " @r2");
+		assertCommand(new Content(opCode, 0x60), mnemonic + " %60");
+		assertCommand(new Content(opCode, 0xE2), mnemonic + " r2");
+		assertCommand(new Content(opCode + 1, 0x60), mnemonic + " @%60");
+		assertCommand(new Content(opCode + 1, 0xE2), mnemonic + " @r2");
 		assertCommands(List.of(
-				Command.content2(opCode, 0xFD)
+				new Content(opCode, 0xFD)
 		), ".const RP = %FD\n"
 		   + mnemonic + " RP");
 	}
 
 	private void assertBinary(int opCode, String mnemonic) {
-		assertCommand(Command.content2(opCode + 2, 0x23), mnemonic + " r2, r3");
-		assertCommand(Command.content2(opCode + 3, 0x4f), mnemonic + " r4, @r15");
-		assertCommand(Command.content3(opCode + 4, 0x62, 0x60), mnemonic + " %60, %62");
-		assertCommand(Command.content3(opCode + 4, 0x66, 0x64), ".const FOO = %64\n"
-		                                                        + ".const BAR = %66\n"
-		                                                        + mnemonic + " FOO, BAR\n");
-		assertCommand(Command.content3(opCode + 5, 0x12, 0x43), mnemonic + " @%43, %12");
-		assertCommand(Command.content3(opCode + 6, 0x61, 0x0d), mnemonic + " %61, #%0d");
-		assertCommand(Command.content3(opCode + 6, 0xEA, 0x40), mnemonic + " r10, #%40");
-		assertCommand(Command.content3(opCode + 6, 0x64, 0x0d), ".const FOO = %64\n"
-		                                                        + mnemonic + " FOO, #%0d\n");
-		assertCommand(Command.content3(opCode + 6, 0x65, 0x0d), ".const NEWLINE = %0d\n"
-		                                                        + mnemonic + " %65, #NEWLINE");
-		assertCommand(Command.content3(opCode + 7, 0xEB, 0x0F), mnemonic + " @R11, #%0F");
-		assertCommand(Command.content3(opCode + 7, 0x65, 0x0d), ".const NEWLINE = %0d\n"
-		                                                        + mnemonic + " @%65, #NEWLINE");
+		assertCommand(new Content(opCode + 2, 0x23), mnemonic + " r2, r3");
+		assertCommand(new Content(opCode + 3, 0x4f), mnemonic + " r4, @r15");
+		assertCommand(new Content(opCode + 4, 0x62, 0x60), mnemonic + " %60, %62");
+		assertCommand(new Content(opCode + 4, 0x66, 0x64), ".const FOO = %64\n"
+		                                                           + ".const BAR = %66\n"
+		                                                           + mnemonic + " FOO, BAR\n");
+		assertCommand(new Content(opCode + 5, 0x12, 0x43), mnemonic + " @%43, %12");
+		assertCommand(new Content(opCode + 6, 0x61, 0x0d), mnemonic + " %61, #%0d");
+		assertCommand(new Content(opCode + 6, 0xEA, 0x40), mnemonic + " r10, #%40");
+		assertCommand(new Content(opCode + 6, 0x64, 0x0d), ".const FOO = %64\n"
+		                                                           + mnemonic + " FOO, #%0d\n");
+		assertCommand(new Content(opCode + 6, 0x65, 0x0d), ".const NEWLINE = %0d\n"
+		                                                           + mnemonic + " %65, #NEWLINE");
+		assertCommand(new Content(opCode + 7, 0xEB, 0x0F), mnemonic + " @R11, #%0F");
+		assertCommand(new Content(opCode + 7, 0x65, 0x0d), ".const NEWLINE = %0d\n"
+		                                                           + mnemonic + " @%65, #NEWLINE");
 
-		assertCommand(Command.lazyContent3(opCode + 6, 0x50, "foo",
-		                                   new Location(0, mnemonic.length() + 7)),
+		assertCommand(new LazyContent3(opCode + 6, 0x50, "foo", new Location(0, mnemonic.length() + 7)),
 		              mnemonic + " %50, #foo");
-		assertCommand(Command.lazyContent3(opCode + 7, 0x51, "foo",
-		                                   new Location(0, mnemonic.length() + 8)),
+		assertCommand(new LazyContent3(opCode + 7, 0x51, "foo", new Location(0, mnemonic.length() + 8)),
 		              mnemonic + " @%51, #foo");
 	}
 
