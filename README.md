@@ -7,17 +7,37 @@ It accepts the `.asm` file as input and writes the compiled binary file to `outp
 
 ## Syntax
 
+`.const <identifier> = <hex2|hex4|int>` defines a constant that can be used as a placeholder for values.
+
+```
+.const  RP   = %FD
+.const  COLS = 40
+```
+
 `.data <hex2|hex4|char|string>+` writes the specified bytes or characters directly to the memory.
 
 `.org <hex4>` set the output location (only possible once).
 
 `.repeat <number>` start a block which is repeated <number> times, `.end` it.
 
+`.align <power-of-2>, <fill-byte>` pads the output until the specified alignment is reached using the fill byte.
+
 where
 - `hex2`: a 2-digit hex value, e.g. `%0d`
 - `hex4`: a 4-digit hex value, e.g. `%ABCD` (= `%AB %CD`)
 - `char`: a char converted to US-ASCII, e.g. `'?'` (= `%2F`)
 - `string`: a series of characters (US-ASCII), e.g. `"12"` (= `%31 %32`)
+
+## Command Line Options
+
+The assembler accepts the following options:
+
+- `--ascii` — output an ASCII listing (`.ascii`)
+- `--bin` — output a binary file (`.bin`)
+- `--labels` — output a labels file (`.labels`)
+- `--output=<path>` — specify output path (file or directory for multiple inputs)
+
+By default only the binary file is written. Multiple `.asm` files can be passed, with `--output` specifying a directory for all outputs.
 
 ### Comments
 
