@@ -1,0 +1,47 @@
+plugins {
+	id 'application'
+	id 'org.graalvm.buildtools.native' version '0.10.6'
+}
+
+repositories {
+	mavenCentral()
+}
+
+sourceSets {
+	main {
+		java.srcDirs = ['src/main/src']
+	}
+	test {
+		java.srcDirs = ['src/main/src-test']
+	}
+}
+
+dependencies {
+	compileOnly 'org.jetbrains:annotations:24.1.0'
+	testCompileOnly 'org.jetbrains:annotations:24.1.0'
+	testImplementation 'junit:junit:4.13.2'
+}
+
+tasks.withType(JavaCompile).configureEach {
+	options.release = 21
+}
+
+application {
+	mainClass = 'Main'
+}
+
+graalvmNative {
+	binaries {
+		main {
+			imageName = 'z8asm'
+			mainClass = 'Main'
+			buildArgs.add('--no-fallback')
+			buildArgs.add("-H:ConfigurationFileDirectories=${file('config').absolutePath}")
+		}
+	}
+}
+
+tasks.withType(Test).configureEach {
+	useJUnit()
+	workingDir = project.projectDir
+}
