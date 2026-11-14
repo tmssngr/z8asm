@@ -1,1 +1,2 @@
-*.labels eol=lf
+*.labels     eol=lf
+*.bin.ascii  eol=lf
