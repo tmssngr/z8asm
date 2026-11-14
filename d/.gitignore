@@ -1,3 +1,6 @@
 *.exe
 *.lib
 *.pdb
+/z8asm
+/z8asm-test-*
+/dub.selections.json

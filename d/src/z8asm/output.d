@@ -58,6 +58,10 @@ class Output {
 		stream.write(buffer[0 .. pc]);
 	}
 
+	public void writeToFile(string file) {
+		std.file.write(file, buffer[0 .. pc]);
+	}
+
 	public void print(Writer writer) {
 		print(writer, NL);
 	}
