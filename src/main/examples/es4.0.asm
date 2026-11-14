@@ -18,8 +18,77 @@
         .const COLUMNS = 40
         .const ROWS = 24
 
+        ; Register and memory notes
+        ;
+        ; The monitor parser and command handlers run with RP=%10.
+        ; PTC may change %55 bit 7, %5A-%5C/%5E/%5F, %60-%65/%68-%69.
+        ;
+        ; WKEY changes %13, %5A/%5E/%5F, %60-%65, %68-%69, %6C-%6D, %6F.
+        ; Its normal redraw preserves %5B/%5C and restores %F7A0; a special-key
+        ; callback may have additional effects.
+        ; Port 2 is used by the serial-byte output helper; Port 3 bit 6 (P36)
+        ; carries tape output and the short keyboard/beep pulses.
+        ;
+        ; External-memory landmarks used here:
+        ; %1000        default character data (configured in %67);
+        ;              actual character data begins at %1008 after the fallback stub.
+        ; %4000+       video RAM; M_1830 uses a row table to form its addresses.
+        ; %7F00        keyboard-matrix read address
+        ; %E000        Tiny-BASIC program store; its base is held in %06/%07.
+        ; %F500/%F503/%F506/%F509/%F50F call backs
+        ; %F512 is called as a character-translation hook when %55 bit 5 is set.
+        ; %F57B-%F5FF  tape staging buffer
+        ;              %F57B block number
+        ;              %F57C -"-
+        ;              %F57D checksum
+        ;              %F57E -"-
+        ;              %F57F format byte
+        ;              %F580-F5FF up to 128 payload bytes. On a partial
+        ;              %F5FF on shorter blocks the valid-byte count
+        ; -%F6FF       Stack
+        ; %F780-%F78F  saves the Tiny-BASIC register area %10-%1F while the
+        ;              monitor is active.
+        ; %F7A0/%F7A1  text/cursor color masks
+        ; %F7A2        edited-line index;
+        ; %F7A4        next tape-buffer index
+        ; %F7A5        tape-block end index;
+        ; %F7A6        tape block number
+        ; %F7A7        tape mode
+        ; %F7A8-%F7AB  PRNG state
+        ; %F800-%FBBF and %FC00-%FFBF are the two 40x24 character pages;
+        ;              %FC00 is the page used by M_1856 and RedrawChars.
+        ; %FFE0-%FFFF is copied from M_1FE0 at boot for BASIC service stubs:
+        ;              %FFE6 GTC, %FFE9 PTC, %FFF0/%FFF3 tape open/close,
+        ;              and %FFF6/%FFF9 tape read/write.
+        ; Lower-ROM calls: %06C9 (TOFF) clears trap address %04/%05; %0738 is
+        ; the post-RUN/CONTINUE interpreter entry inside ub8830rom.asm.
+        ;
+        ; Shared register interface:
+        ; %13     carries input/read bytes
+        ; %15     carries output/write bytes
+        ; %20-%24 tape arguments/status
+        ; %4E/%4F and %51 pixel coordinates
+        ; %53     pixel value/result
+        ; %55     terminal flags:
+        ;           bit 2 buffered input
+        ;           bit 4 scrolling
+        ;           bit 5 translation
+        ;           bit 6 double-height
+        ;           bit 7 literal output.
+        ; %5A     current character
+        ; %5B/%5C cursor column/row
+        ; %5E/%5F scratch/count registers
+        ; %58     line editor's remaining count
+        ; %6C     keyboard flags
+        ;           bit 5 uppercase
+        ;           bit 6 key beep
+        ;           bit 7 auto-repeat
+        ; %6D     key code
+        ; %6F     key wait/repeat counter
+
         .ORG    %0800
 
+        ; JTC/Tiny-BASIC API entry table.
         JP      %F500
         JP      %F503
         JP      %F506
@@ -31,33 +100,33 @@
         ; boot
 M_0812: JP      M_0870
 
-        ; the next jumps are used from the Tiny-Basic
-        ; G(e)TC(har)
+        ; Tiny-BASIC console and runtime service entries.
+        ; G(e)TC(har): get character into %13.
 M_0815: JP      %FFE6
 
-        ; P(u)TC(har)
+        ; P(u)TC(har): print character from %15.
 M_0818: JP      %FFE9
 
-        ; KEY
+        ; KEY scans once; WKEY waits until a character is ready.
 M_081B: JP      M_1B0A
 
         ; WKEY 081E
 WKEY:   JP      _wkey
 
-        ; SAVE
+        ; SAVE: write the memory range described by %20-%23 to tape.
 M_0821: JP      M_1C86
 
-        ; LOAD
+        ; LOAD: load tape data at %20/%21; return length/error in %22/%23/%24.
 M_0824: JP      M_177A
 
-        ; SCRFUN
+        ; SCRFUN: query/set cursor or read a character; see M_08E0.
 M_0827: JP      M_08E0
 
         ; MONITOR
 M_082A: JP      M_0BF8
 
-        ; PRISTRI
-M_082D: JP      M_163A   ; _print
+PRISTRI: ; %082D: print the NUL-terminated string placed after the CALL.
+        JP      M_163A   ; _print
 
         ; SHOWPLAYER
 M_0830: JP      M_1F00
@@ -70,11 +139,9 @@ M_0836: JP      M_1CAE
 
         NOP
 
-        ; in: %4E
-        ;     %4F
-        ;     %51
-        ;     %53
-        ; destroys: %60-6A
+        ; setPixel
+        ; in: %4E:%4F = x coordinate, %51 = y coordinate, %53 = pixel value
+        ; clobbers %60-%66, %68-%6B and condition flags; leaves P01M=%92,
 M_083A: PUSH    RP
         SRP     #%60
         CALL    M_0FBB
@@ -103,8 +170,11 @@ M_083A: PUSH    RP
 
         NOP
 
-        ; _boot
+        ; boot: establish the external stack, configure timer/ports and color
+        ; masks, copy BASIC service stubs to %FFE0, set the program base to
+        ; %E000, print the banner, and enter the editor loop.
 M_0870: SRP     #%F0
+        ; Establish the external stack before configuring the bus and devices.
         LD      R14, #%F7           ; set Stack pointer to f700
         LD      R15, #0
         LD      R8, #%92            ; P01M: P04-P07 = A12-A15
@@ -120,7 +190,7 @@ M_0870: SRP     #%F0
         CALL    M_0910              ; init timer/interrupts
         SRP     #%60
         LD      R7, #%10            ; default char bitmap address starting at #1000
-        LD      R12, #%68
+        LD      R12, #%68            ; %6C: beep + uppercase; repeat wait count = 8
         LD      R0, #%F7            ; F7A0 = COLOR_TEXT
         LD      R1, #%A0
         LD      R2, #0b0010_1101    ; yellow/blue
@@ -138,20 +208,27 @@ M_0870: SRP     #%F0
         INC     R3
         JR      NZ, .1              ; }
         CLR     %8
+        ; %06/%07 = E000, the Tiny-BASIC program store base.
         CLR     %7
         LD      %6, #%E0
-        CALL    M_082D      ; print
+        CALL    PRISTRI
         .data %0c "Willkommen am JTC : ES4.0 by SWB 1990\r\0"
         NOP
         NOP
         NOP
         JP      M_0949      ; could be JR
 
-        ; in: %53
+        ; SCRFUN
+        ; in: %53 = operation (0 get cursor, 1 set cursor, 2 read cell)
         ;     %5B cursor column
         ;     %5C cursor row
         ; out: %4F
         ;      %51
+        ; operation 2 reads the cell at (%4F,%51) into %53 and restores the cursor.
+        ; clobbers: operation 0 writes %4F/%51
+        ;           operation 1 writes %5B/%5C;
+        ;           operation 2 writes %53 and %60-%62
+        ; preserves RP
 M_08E0: PUSH    RP
         SRP     #%50
         OR      R3, R3
@@ -182,7 +259,10 @@ M_0901: DJNZ    R3, M_08EC
 
         NOP
 
-        ; init timer/interrupts
+        ; initTimer: enable IRQ4 and configure Timer 0 as the periodic tick
+        ; used by keyboard timing and repeat.
+        ; clobbers SFRs %F1, %F4, %F5, %F7-%F9 and %FB
+        ; leaves RP=%F0 and enables interrupts
 M_0910: SRP     #%F0
         LD      R11, #%10       ; FB = IMR: enable IRQ4
         LD      R9, #8          ; F9 = IPR: A > B > C; A: IRQ5 > IRQ3; B: IRQ2 > IRQ0; C: IRQ1 > IRQ4
@@ -207,8 +287,13 @@ M_0922: CALL    M_1856          ; getScreenCharAddress in rr0
            NOP
         .end
 
-        ; edi
-M_0949: CALL    M_082D      ; print
+        ; Tiny-BASIC editor/command loop. Commands: ? variable, N new, R run,
+        ; C continue, E list from a line, S/L tape save/load, M monitor;
+        ; a decimal line number inserts/replaces a line (number alone deletes).
+        ; clobbers R0-R15, %0E/%0F/%13/%55/%58/%20-%24/%60/%61 and PTC/GTC
+        ;         effects. Writes the program store on N/line edits; %0738
+        ;         execution may add ROM/interpreter-state effects.
+M_0949: CALL    PRISTRI
         .data "Edi\r\0"
 M_0951: OR      %55, #0b0100_0000
         LD      %58, #%FF
@@ -217,6 +302,7 @@ M_0951: OR      %55, #0b0100_0000
         CP      %13, #%0D
         JR      Z, M_0949
         LD      R6, %13
+        ; ?<letter>: print the selected 16-bit Tiny-BASIC variable.
         CP      R6, #'?'
         JR      NZ, M_0989
         CALL    M_0815      ; GTC
@@ -235,6 +321,7 @@ M_0951: OR      %55, #0b0100_0000
 
 M_0989: CP      R6, #'C'
         JR      NZ, M_0998
+        ; C is accepted only when the ROM interpreter's continue flag is set.
         TM      %0F, #0b0000_1000
         JR      Z, M_09CE
         AND     %0F, #0b1111_0111
@@ -246,16 +333,17 @@ M_0998: LD      %0F, #4
         LD      R1, %7
         CP      R6, #'N'
         JR      NZ, M_09AC
+        ; N: mark the program store empty by writing its end marker.
         LD      R4, #0
         LDE     @RR0, R4
         JR      M_0949
 
 M_09AC: CP      R6, #'R'
         JR      NZ, M_09E2
-        CALL    %06C9
+        CALL    %06C9                  ; Tiny-BASIC TOFF: clear TRAP address %04/%05
 M_09B4: AND     %55, #%BF
         LD      %58, #%FF
-        CALL    %0738
+        CALL    %0738                  ; enter the ROM run/continue execution path
         OR      %55, #%40
         LD      R5, #%4F
         TM      %0F, #2
@@ -272,11 +360,11 @@ M_09DA: CLR     %12
         CALL    M_0EE0
         JR      M_0949
 
-M_09E2: CP      R6, #'E'
+M_09E2: CP      R6, #'E'               ; E: list BASIC lines from a line number
         JR      Z, M_0A79
         CP      R6, #'S'
         JR      NZ, M_0A0C
-        ; S
+        ; S: save the stored BASIC program through its end marker.
         CALL    M_0EC5
         LD      %20, R0
         LD      %21, R1
@@ -293,6 +381,7 @@ M_0A07: LD      R3, %24
 
 M_0A0C: CP      R6, #'L'
         JR      NZ, M_0A20
+        ; L: load tape data at the BASIC program base.
         LD      %20, R0
         LD      %21, R1
         LD      %60, #%F7
@@ -302,17 +391,23 @@ M_0A0C: CP      R6, #'L'
 
 M_0A20: CP      R6, #'M'
         JR      NZ, M_0E09
+        ; M: enter the machine monitor.
         CALL    M_082A
         OR      %55, #%40
         JR      M_0949
 
         NOP
 
-        ; print char from %15
+        ; PTC implementation: output the character in %15; return with carry clear.
+        ; clobbers PTC effects described above; may write character/video memory.
 M_0A30: CALL    M_18FA
         RCF
         RET
 
+        ; GTC implementation: return a character in %13. With %55 bit 2 set,
+        ; M_1C19 reads the edited line buffer; otherwise wait for and echo a key.
+        ; clobbers %13/%58 and PTC/WKEY effects above
+        ; may update %F7A2 and the input line at %F700+
 M_0A35: TM      %55, #4
         JR      Z, M_0A3F
         CALL    M_1C19
@@ -333,6 +428,8 @@ M_0A3F: CALL    WKEY
         ; in: rr14 = address to string with (up to 5 digit) number
         ; out: rr4 = number
         ;      rr14 = last non-digit address
+        ; clobbers: R2-R3, R10, R12-R13, RR14
+        ; writes RR4 and advances the input pointer over up to five digits
 M_0A52: LD      R12, #5
         LD      R4, #0
         LD      R5, #0
@@ -341,7 +438,7 @@ M_0A58: LDE     R13, @RR14
         JR      C, M_0A77       ; < 0?
         CP      R13, #10
         JR      NC, M_0A77      ; >= 10
-        LD      R10, #9         ; rr4 *= 10?
+        LD      R10, #9         ; add the old value nine more times: RR4 *= 10
         LD      R2, R4
         LD      R3, R5
 M_0A6A: ADD     R5, R3
@@ -355,7 +452,11 @@ M_0A77: RCF
         RET
 
 
-        ; Basic: find line
+        ; listBasicLines: parse a decimal line number from the input buffer,
+        ; locate it in the sorted program store, and print from that line.
+        ; Bit 7 in the first header byte marks a stored line record.
+        ; clobbers: R0-R5, R10-R15, plus PTC/WKEY effects
+        ; M_0EE0's ROM converter may have more effects.
 M_0A79: LD      R15, #1
         LD      R14, #%F7
         CALL    M_0A52      ; asciiToUInt
@@ -409,6 +510,11 @@ M_0ACA: CALL    M_0818      ; PTC
         ; Mon, F(ill)
         ; F<word address> <word length> <byte value>
         ; e.g. F8000 0010 ff  (fill 16 bytes from 0x8000 with 0xFF)
+        ; fillMemory (monitor F): RR8=destination, RR10=byte count,
+        ; R13=fill value; RR8 advances and RR10 is consumed.
+        ; clobbers: R0/R2, R8-R15, %15 and %70-%72
+        ;           through the prompt, plus the PTC effects listed above.
+        ;           Writes the requested memory range.
 M_0AE0: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         LD      R8, R10
         LD      R9, R11
@@ -419,11 +525,14 @@ M_0AE0: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         INCW    R8
         DECW    R10
         JR      NZ, .1
-M_0AF7: CALL    M_082D      ; print
+        ; printMonitorPrompt: output "Mon" and CR
+        ; clobbers %70-%72 and PTC effects above
+M_0AF7: CALL    PRISTRI
         .data "Mon\r\0"
 M_0AFF: ret
 
-        ; data read from M_0FCA
+        ; Pixel-coordinate lookup data used by M_0FBB to map coordinates and
+        ; bit positions into the JTC's interleaved graphics memory.
 M_0B00: .data %00 %20 %40 %60 %80 %A0 %01 %21  %41 %61 %81 %A1 %02 %22 %42 %62
         .data %82 %A2 %03 %23 %43 %63 %83 %A3  %04 %24 %44 %64 %84 %A4 %05 %25
         .data %45 %65 %85 %A5 %06 %26 %46 %66  %86 %A6 %07 %27 %47 %67 %87 %A7
@@ -435,13 +544,15 @@ M_0B00: .data %00 %20 %40 %60 %80 %A0 %01 %21  %41 %61 %81 %A1 %02 %22 %42 %62
         .data %55 %75 %95 %B5 %16 %36 %56 %76  %96 %B6 %17 %37 %57 %77 %97 %B7
         .data %18 %38 %58 %78 %98 %B8 %19 %39  %59 %79 %99 %B9 %1A %3A %5A %7A
         .data %9A %BA %1B %3B %5B %7B %9B %BB  %1C %3C %5C %7C %9C %BC %1D %3D
-        ; data read from M_0FCA
+        ; Continuation of the pixel lookup tables above.
 M_0BC0: .data %5D %7D %9D %BD %1E %3E %5E %7E  %9E %BE %1F %3F %5F %7F %9F %BF
         .data %00 %28 %50 %80 %A8 %D0 %FF %FF  %80 %08 %20 %02 %40 %04 %10 %01
 
-        ; Mon, R(egister)
+        ; Monitor R(egister): dump register bytes starting at the given address.
         ; R<byte register>
         ; e.g. R10 (print content from register %10)
+        ; clobbers: R2, R10-R11/R13-R15
+        ; output helpers also clobber %15/%18/%19 and the PTC/WKEY effects above
 M_0BD0: CALL    M_0CDC      ; getHexByteFromRR14
         JR      C, M_0BE4   ; no hex digit -> ret
         LD      R10, R13
@@ -453,9 +564,12 @@ M_0BD7: LD      R11, @R10
         JR      Z, M_0BD7
 M_0BE4: RET
 
-        ; Mon, !
+        ; Monitor !: write a byte at the supplied register address, then print
+        ; the next register address.
         ; !<register><value>
         ; e.g. !100b (store value %0b in register %10)
+        ; clobbers: R0, R2, R5, R9-R15, including the parsed address/value, plus PTC effects
+        ; Writes one register and prints its successor.
 M_0BE5: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         LD      @R10, R11
         INC     R10
@@ -465,7 +579,11 @@ M_0BE5: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         JP      M_0C72      ; printHexByte, could be JR
 M_0BF5: JR      M_0F37
 
-        ; Mon
+        ; Monitor REPL. Save Tiny-BASIC register area %10-%1F at F780, then
+        ; dispatch the command's first character through the table at M_0C39.
+        ; Uses %10-%1F while the monitor is active
+        ; %F780-%F78F saves and restores that register area
+        ; Clobbers %60-%63 and PTC/WKEY effects
 M_0BF8: CALL    M_0AF7      ; printMon
         PUSH    RP
         SRP     #%60
@@ -501,8 +619,8 @@ M_0C33: INC     R13
         DJNZ    R1, M_0C23
         JR      M_0BF5
 
-M_0C39: ; data read from M_0C1A
-        ; value  address
+M_0C39: ; Monitor command map: command byte followed by handler address.
+        ; The final %FF/%FFFF pair terminates the table.
         .data 'F' M_0AE0
         .data 'R' M_0BD0
         .data 'H' M_0CF2
@@ -522,18 +640,23 @@ M_0C39: ; data read from M_0C1A
 
         ; printHexWord
         ; in: rr8
+        ; out: four uppercase hexadecimal digits through PTC
+        ; clobbers: %15 and the PTC effects above; preserves R9.
 M_0C69: PUSH    R9
         LD      %19, R8
         CALL    M_0C72      ; printHexByte
         POP     R9
         ; printHexByte
         ; in: r9
+        ; out: two uppercase hexadecimal digits through PTC
+        ; clobbers: %15 and the PTC effects above; preserves R9.
 M_0C72: PUSH    R9
         SWAP    R9
         CALL    M_0C7B      ; printHexLowerNibble
         POP     R9
         ; printHexLowerNibble
         ; in: r9
+        ; clobbers: %15 and the PTC effects above.
 M_0C7B: LD      R5, #%0F
         AND     R5, R9
         ADD     R5, #'0'
@@ -542,10 +665,12 @@ M_0C7B: LD      R5, #%0F
         ADD     R5, #7
 M_0C8A: JR      M_0818      ; PTC
 
-        ; println
+        ; printCarriageReturn; clobbers %15 and the PTC effects above.
 M_0C8D: LD      R5, #%0D
         JR      M_0C8A
 
+        ; print a carriage return, wait for a key, and apply monitor pagination.
+        ; clobbers %13 and the PTC/WKEY effects listed above.
 M_0C91: CALL    M_0C8D          ; println
         CALL    WKEY
         JP      M_0DFA          ; could be JR
@@ -555,6 +680,7 @@ M_0C91: CALL    M_0C8D          ; println
         ; printCharWordSpace
         ; in: %15: char
         ;     rr10: word
+        ; clobbers %15, %18/%19 and the PTC effects above.
 M_0C9B: CALL    M_0818      ; PTC
         LD      %18, R10
         LD      %19, R11
@@ -566,6 +692,9 @@ M_0C9B: CALL    M_0818      ; PTC
         ; in: rr14 = address
         ; out: rr10 = entered word
         ; in case of error, the calling method is forgotten
+        ; clobbers R0, R2, R10-R15
+        ; on success RR10 is output
+        ; on error two return addresses are discarded
 M_0CA9: CALL    M_0CD5      ; getHexWordFromRR14
         JR      NC, M_0CB2
         POP     R0          ; no hex digit? forget caller
@@ -580,6 +709,8 @@ M_0CB2: LD      R10, R12
         ; out: C = 1 -> no hex digit
         ;      rr14 =+ 1
         ;      r13 = hex digit (00..0F)
+        ; accepts 0-9 and uppercase A-F
+        ; expects RP=%10; clobbers R13/R15 and condition flags.
 M_0CB8: LDE     R13, @RR14
         INC     R15
         CP      R13, #'0'
@@ -601,6 +732,8 @@ M_0CD4: RET
         ;      rr14 =+ 1, 2, 3 or 4
         ;      %1C = hex value
         ;      r13 = hex digit (00..FF)
+        ; clobbers R2/R12-R13/R15 and advances RR14; %1C is
+        ;         written when at least one hex digit is found.
 M_0CD5: CALL    M_0CDC      ; getHexByteFromRR14
         JR      C, M_0CEA   ; no hex digit -> ret
         LD      %1C, R13
@@ -610,6 +743,7 @@ M_0CD5: CALL    M_0CDC      ; getHexByteFromRR14
         ; out: C = 1 -> no hex digit
         ;      r14w =+ 1 or 2
         ;      r13 = hex digit (00..FF)
+        ; clobbers R2/R13/R15 and advances RR14.
 M_0CDC: CALL    M_0CB8      ; getHexDigitFromRR14
         JR      C, M_0CEA   ; no digit -> ret
         LD      R2, R13
@@ -618,14 +752,19 @@ M_0CDC: CALL    M_0CB8      ; getHexDigitFromRR14
         OR      R13, R2
 M_0CEA: RET
 
-        ; Mon, Q(uit)
+        ; Monitor Q(uit): restore the saved register area and return to BASIC.
+        ; clobbers %60-%63
+        ; discards two return addresses
+        ; restores %10-%1F from %F780-%F78F, then restores the saved RP.
 M_0CEB: POP     R0
         POP     R0
         JR      M_0DB5
 
-        ; Mon, H(ex)
+        ; Monitor H(ex): display eight bytes from the given address per row;
+        ; space advances to the next row.
         ; H<word address>
         ; e.g. H8000 (list 8 memory bytes from address 0x8000)
+        ; clobbers R0, R2, R5, R9-R15, %18/%19, and PTC/WKEY effects above.
 M_0CF2: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
 M_0CF5: LD      R5, #','
         CALL    M_0C9B      ; printCharWordSpace
@@ -640,8 +779,11 @@ M_0CFC: LDE     R9, @RR10
         JR      Z, M_0CF5
 M_0D0F: RET
 
-        ; Mon, ,
+        ; Monitor comma: write up to eight entered bytes beginning at address.
         ; ,<word address> <byte>...
+        ; clobbers R0, R2, R5, R10-R15, %15/%18/%19, and PTC effects
+        ;         above when the row is full.
+        ; Writes through RR10.
 M_0D10: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         LD      R0, #8
 M_0D15: CALL    M_0CDC      ; getHexByteFromRR14
@@ -653,9 +795,11 @@ M_0D15: CALL    M_0CDC      ; getHexByteFromRR14
         LD      R5, #','
 M_0D23: JR      M_0C9B      ; printCharWordSpace
 
-        ; Mon, A
+        ; Monitor A(SCII): display sixteen bytes as literal characters per row.
         ; A<word address>
         ; e.g. A8000 (print 16 characters starting from address %8000)
+        ; clobbers R0, R2, R5, R8-R15, plus PTC/WKEY effects above.
+        ; %55 bit 7 selects literal output for the bytes
 M_0D26: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
 M_0D29: LD      R5, #';'
         CALL    M_0C9B      ; printCharWordSpace
@@ -669,9 +813,12 @@ M_0D30: LDE     R5, @RR10
         JR      Z, M_0D29
         RET
 
-        ; Mon, J(ump)
+        ; Monitor J: call the supplied address, then return to the monitor.
         ; J<word>
-        ; e.g. J000c (jump to address %000c)
+        ; e.g. J000c (call address %000c)
+        ; The parser clobbers R0, R2, R10-R15
+        ; Called code may clobber any register or memory
+        ; The wrapper uses %17, then resets RP=%10 and prints the prompt.
 M_0D42: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         LD      FLAGS, R6
         LD      RP, %17
@@ -681,8 +828,11 @@ M_0D42: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         LD      R6, FLAGS
         JR      M_0AF7
 
-        ; Mon, S(ave)
+        ; Monitor S(ave): write the memory range at the supplied address/length
+        ; to tape and print the returned status.
         ; S<word address> <word amount>
+        ; clobbers R0, R2, R4-R15, %13, %20-%24, and SAVE effects described
+        ;   at M_1C86, plus PTC effects above.
 M_0D56: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         LD      %20, R10
         LD      %21, R11
@@ -697,9 +847,13 @@ M_0D56: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         NOP
         NOP
 
-        ; Mon, ;
+        ; Monitor semicolon: copy input bytes into memory through CR (if
+        ; present), or stop after sixteen bytes.
         ; ;<word> <char>...
         ; e.g. ;8000 hello (save the text "hello" without trailing \0 at address 8000)
+        ; clobbers R0, R2, R5, R10-R15
+        ; writes through RR10.
+        ; The full-row path also has the PTC effects above.
 M_0D6F: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         LD      R0, #%10
 M_0D74: LDE     R2, @RR14
@@ -718,7 +872,10 @@ M_0D86: RET
             NOP
         .end
 
-        ; L
+        ; Monitor L(oad): load tape data at the supplied address and print the
+        ; loaded byte count and status.
+        ; clobbers R0, R2, R5, R8-R15, %13, %20-%24, and LOAD effects
+        ;   described at M_177A, plus PTC effects above.
 M_0D93: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         LD      %20, R10
         LD      %21, R11
@@ -734,6 +891,8 @@ M_0DAD: LD      R9, %24
         CALL    M_0C72      ; printHexByte
 M_0DB2: JR      M_0AF7
 
+        ; Restore the BASIC register area saved by M_0BF8
+        ; clobbers %60-%63 and copies %F780-%F78F to register addresses %10-%1F.
 M_0DB5: SRP     #%60
         LD      R0, #%F7
         LD      R1, #%80
@@ -744,7 +903,9 @@ M_0DBF: LDEI    @R2, @RR0
         POP     RP
         RET
 
-        ; ?
+        ; Monitor ?: parse two hexadecimal words and print their sum and
+        ; difference.
+        ; clobbers R0, R2, R5, R8-R15, %18/%19 and PTC effects.
 M_0DC6: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         CALL    M_0CD5      ; getHexWordFromRR14
         JR      C, M_0DE4   ; no hex digit -> ret
@@ -761,7 +922,9 @@ M_0DC6: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
 
 M_0DE4: RET
 
-        ; #
+        ; Monitor #: convert the entered decimal number to a 16-bit value and
+        ; print that value in hexadecimal.
+        ; clobbers R2-R5, R10-R15, %15/%18/%19 and PTC effects.
 M_0DE5: CALL    M_0A52
         LD      R10, %14
         LD      R11, %15
@@ -773,6 +936,8 @@ M_0DE5: CALL    M_0A52
             NOP
         .end
 
+        ; Monitor pagination: space continues; another key returns to the prompt.
+        ; clobbers %5A/%5B/%5C, %5E/%5F and PTC effects above; preserves RP.
 M_0DFA: CP      %13, #' '
         JR      Z, M_0E06
         LD      %5A, R3
@@ -782,6 +947,10 @@ M_0E06: RET
 
         NOP
         NOP
+        ; submitBasicLine: parse a numbered line, replace an existing line with
+        ; the same number, or delete it when no statement text follows.
+        ; clobbers R0-R15 and %60-%61
+        ; consumes RR14 and may shift/rewrite the program store.
 M_0E09: CP      R6, #%3A
 M_0E0C: JR      NC, M_0951
         CP      R6, #'0'
@@ -877,6 +1046,9 @@ M_0EB3: LDE     R10, @RR2
         LDE     @RR0, R10
         JR      M_0951
 
+        ; findBasicProgramEnd: in RR0=program base; out RR2=zero end marker.
+        ; Scans each marked line record through its CR terminator.
+        ; clobbers R2-R3, R10; RR0 is preserved.
 M_0EC5: LD      R2, R0
         LD      R3, R1
 M_0EC9: LDE     R10, @RR2
@@ -895,6 +1067,8 @@ M_0EDF: RET
         ; printInt (decimal) without leading ' '
         ; input: rr2
         ; assumes RP==%10
+        ; clobbers R4-R5, R11 and PTC effects above
+        ; The ROM converter at %0182 may have additional ROM-defined effects.
 M_0EE0: CALL    %0182       ; intToAscii (decimal)
         CP      R4, #' '
         JR      Z, M_0EF1
@@ -915,10 +1089,12 @@ M_0EFE: LD      R5, @R11
         JR      C, M_0EFE
         RET
 
-        ; in: %4E
-        ;     %4F
-        ;     %51
-        ; out: %53
+        ; getPixel
+        ; in: %4E:%4F = x coordinate, %51 = y coordinate
+        ; out: %53 = pixel value
+        ; clobbers %60-%65, %69-%6B
+        ; leaves P01M=%92
+        ; %53 is the result; video RAM is read.
 M_0F0A: PUSH    RP
         SRP     #%60
         CALL    M_0FBB
@@ -980,7 +1156,12 @@ M_0F37: LD      R12, #%80
         CALL    @%1C
 .7:     JR      M_0C0D
 
-        ; M
+        ; Monitor M(ove): copy RR12 bytes from source RR8 to destination RR10.
+        ; Selects copy direction so overlapping ranges are safe.
+        ; clobbers R0, R2, R8-R15, %70-%72, %15 and PTC effects through the
+        ;         prompt.
+        ; RR8/RR10/RR12 are consumed as source/destination/count
+        ; writes the destination range.
 M_0F7D: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         LD      R8, R10
         LD      R9, R11
@@ -1012,11 +1193,12 @@ M_0FAC: LDE     R0, @RR8
         JR      NZ, M_0FAC
 M_0FB8: JR      M_0AF7
 
-        ; in: %4E/%4F  = x_pixel
-        ;     %51      = y_pixel
-        ; out: %50/%51
-        ;      %53
-        ; expects RP==%50
+        ; getPixelAddress
+        ; in: %4E:%4F = x coordinate, %51 = y coordinate
+        ; out: RR0 = video address, R3 = pixel mask (RP=#%60)
+        ; expects RP=%60; clobbers R0-R3, R10-R11
+        ; y>=192 maps to M_1000. BUG: the x check skips %4F when %4E==0;
+        ; otherwise, %4F>=64 maps to the safe off-screen address.
 M_0FBB: CP      %51, #192
         JR      UGE, M_1000
         OR      %4E, %4E    ; == 0
@@ -1050,7 +1232,7 @@ M_0FCA: LD      R11, %51    ; { ld r0, 0B00+%51
         ADD     R0, #%40
         RET
 
-        ; return invisible address in case of invalid x,y
+        ; Return a safe off-screen address/mask for invalid coordinates.
 M_1000: LD      R0, #%40
         LD      R1, #%79
         LD      R3, #1
@@ -1058,7 +1240,7 @@ M_1000: LD      R0, #%40
 
         .align %8, %FF
 
-        ; char bitmap data
+        ; 8x8 glyphs indexed by character code; the table starts at %1000.
         .data %00 %18 %30 %7E %30 %18 %00 %00     ; 0x01
         .data %00 %18 %0C %7E %0C %18 %00 %00     ; 0x02
         .data %00 %18 %3C %7E %18 %18 %18 %00     ; 0x03
@@ -1194,8 +1376,14 @@ M_1000: LD      R0, #%40
         .data %00 %00 %71 %DB %8E %00 %00 %00
         .data %00 %7C %66 %7C %66 %7C %60 %60
 
-        ; save block
+        ; writeTapeBlock
         ; input %60 format byte (%FC=128 byte, %FA=1..127 bytes, %FE=EOF)
+        ; data is taken from F580-F5FF; block number/checksum copies are
+        ; written at F57B-F57E before the block is emitted on P36.
+        ; clobbers %60-%62, TMR, Port 3 (%03)
+        ; Updates %F7A6 and packet metadata at %F57B-%F57F (plus %F5FF for partial
+        ;         blocks); reads payload at %F580-%F5FF. Preserves %04-%0F/RP.
+        ; P36 is pulsed and left high.
 M_1400: PUSH    RP
         ; { push registers %04-%0F
         SRP     #%60
@@ -1296,6 +1484,7 @@ M_1400: PUSH    RP
 
         ; delay 486 cycles = 121.5us
         ; keeps C flag
+        ; clobbers %60
         ;                       20 cycles (call)
 delay486: LD      %60, #%18   ; 10 cycles
 .1:       DEC     %60         ;    6 cycles
@@ -1306,11 +1495,15 @@ delay486: LD      %60, #%18   ; 10 cycles
         NOP
         NOP
 
-        ; readBuffer (tape)
-        ; input: %F7A6 block number
-        ; output: %F7A5 = max buffer index
+        ; readTapeBlock: decode a tape block into F580-F5FF and validate its
+        ; duplicated block number and checksum.
+        ; input: %F7A6 last block number (incremented before the search)
+        ; output: %F7A5 = end index (0 for 128 bytes; %80|count for partial)
         ;         nc ... OK
-        ;         c  ... error (error code in %13)
+        ;         c  ... error in %13 (%88 marks EOF)
+        ; clobbers %5E, %13/%6D, %F7A5-%F7A6, %F57B-%F5FF, TMR, and
+        ;         %61/%62. Saves/restores %04-%0F and RP. The error-key scan
+        ;         also clobbers %60-%65/%68 and may invoke a special handler.
 M_14AE: PUSH    RP
         SRP     #%60
         ; { push registers %04-%0F
@@ -1462,7 +1655,11 @@ M_14AE: PUSH    RP
         NOP
         NOP
 
-        ; close load/save
+        ; closeTape: flush a partial save block and EOF marker when saving,
+        ; then restore the timer/interrupt setup.
+        ; clobbers %60-%64, %F1/%F4/%F5/%F7-%F9/%FB and flags; when saving,
+        ;         writes Port 3 (%03) and tape packet metadata. M_0910 restores
+        ;         the timer setup and enables interrupts. Preserves RP; C=0.
 M_15A8: PUSH    RP
         SRP     #%60
         LD      R2, #%F7
@@ -1485,12 +1682,11 @@ M_15A8: PUSH    RP
 
         NOP
 
-        ; open load/save tape
-        ; %15 == 1 ... load
-        ;        2 ... save
-        ; %F7A4 = buffer index: %00 (load), %80 (save)
-        ; %F7A6 = %FF
-        ; %F7A7 = R%15 (open mode)
+        ; openTape: %15=1 for load, %15=2 for save; initialize tape buffer
+        ; state at F7A4/F7A6/F7A7. Save mode emits a pre-tone delay.
+        ; clobbers %60-%65, %F1/%F4/%F5/%F7/%F8 and interrupt enable state
+        ;         (leaves interrupts disabled); updates %F7A4/%F7A6/%F7A7.
+        ; Preserves RP; returns with C=0.
 M_15D2: PUSH    RP
         DI
         SRP     #%F0
@@ -1534,11 +1730,13 @@ M_15D2: PUSH    RP
         NOP
         NOP
 
-        ; write byte R%15
+        ; writeTapeByte: append the byte in %15 to the current tape block.
         ; input:  %F7A4 current buffer index
         ; output: %F7A4 next buffer index
         ;         buffer(%F580-%F5FF)
-        ; destroys %60-%64
+        ; clobbers %60-%64 and %F7A4; writes %F580-%F5FF. A full block also
+        ;         changes TMR, updates %F7A6 and packet metadata, and pulses P36.
+        ;         Preserves RP/%15 and returns with C=0.
 M_1614: PUSH    RP
         SRP     #%60
         LD      R0, #%F7
@@ -1562,9 +1760,9 @@ M_1614: PUSH    RP
 
         NOP
 
-        ; _print
-        ; in: string ending with \0
-        ; destroys %70, %71
+        ; printInlineString: send the NUL-terminated bytes after the CALL
+        ; through PTC, then resume after the terminator. Clobbers %70-%72,
+        ; %15, and PTC effects above; may write character/video memory.
 M_163A: POP     %70
         POP     %71
         PUSH    RP
@@ -1583,6 +1781,8 @@ M_163A: POP     %70
             NOP
         .end
 
+        ; drawLine point adapters: copy the rasterizer's current point into
+        ; the pixel-setter interface at M_17FD.
         LD      %51, R7
         LD      %4E, R4
         LD      %4F, R5
@@ -1593,6 +1793,12 @@ M_163A: POP     %70
         LD      %4F, R7
         JR      M_17FD
 
+        ; drawLine
+        ; in: start (%4E:%4F,%51), end (%4A:%4B,%4D), pixel value %53
+        ; out: line drawn through the pixel-setter hook
+        ; clobbers: %5E/%5F, %70-%7F and pixel-hook registers %60-%66/%68-%6B.
+        ;           Preserves RP and %4E/%4F/%51.
+        ;           P01M returns to #%92 after the final pixel call.
 M_166A: PUSH    %4E
         PUSH    %4F
         PUSH    %51
@@ -1708,11 +1914,15 @@ M_166A: PUSH    %4E
 
         NOP
 
-        ; readByte (tape)
-        ; input: %F7A4 buffer index (00=need to read)
-        ;        %F7A5 upper buffer index limit
+        ; readTapeByte: fetch the next buffered byte, reading/validating a new
+        ; block when the buffer is empty.
+        ; input: %F7A4 next buffer index (00=need to read)
+        ;        %F7A5 end index (00 for a 128-byte block)
         ; output: %F7A4 next buffer index
         ;         %13 read byte
+        ; clobbers %60-%64, %13/%5E/%6D, %F7A4-%F7A6, %F57B-%F5FF and TMR.
+        ;         The error-key scan also clobbers %65/%68 and may invoke a
+        ;         special handler. Preserves RP; C=1 reports a read error.
 M_174A: PUSH    RP
         SRP     #%60
         LD      R0, #%F7
@@ -1740,8 +1950,13 @@ M_174A: PUSH    RP
 
         NOP
 
-        ; load
-        ; output: %24 = error (0=OK)
+        ; loadMemoryFromTape
+        ; in: %20/%21=destination address
+        ; out: %22/%23=bytes loaded, %24=error (0=OK)
+        ; clobbers %13/%15, %20-%24, %5E/%6D, %60-%65/%68, %F1/%F4/%F5,
+        ;         %F7-%F9/%FB and tape-buffer/packet state through the calls.
+        ;         Reads Port 3; close restores timer/interrupt setup. Preserves
+        ;         RP and returns with carry clear; %24 contains the error status.
 M_177A: PUSH    RP
         SRP     #%20
         LD      %15, #1
@@ -1764,6 +1979,9 @@ M_177A: PUSH    RP
         POP     RP
         RET
 
+        ; sendPort2Byte: input byte in %15; shift eight bits to Port 2,
+        ; then wait for Port 3 bit 3 to go low. Clobbers %60-%64, Port 2 (%02),
+        ; and P2M; reads Port 3 (%03), preserves RP/%15, and leaves P2M=%0F.
 M_17A6: LD      %2, #%30
         LD      P2M, #%0F
         PUSH    RP
@@ -1806,26 +2024,31 @@ M_17A6: LD      %2, #%30
         POP     RP
         RET
 
+        ; waitKeyForBasic: call WKEY, return the key in %5A, preserve %13.
+        ; clobbers %5A and WKEY effects above except %13; preserves RP and %13.
 M_17E9: PUSH    %13
         CALL    WKEY
         LD      %5A, %13
         POP     %13
         RET
 
+        ; Fixed Tiny-BASIC graphics/input entries: wait key, draw line,
+        ; read pixel, and set pixel.
 M_17F4: JP      M_17E9
 M_17F7: JP      M_166A
 M_17FA: JP      M_0F0A
 M_17FD: JP      M_083A
 
-        ; data read from M_1830
+        ; Video-RAM row lookup used by M_1830.
 M_1800: .data %40 %41 %42 %44 %45 %46 %48 %49  %4a %4c %4d %4e %50 %51 %52 %54  %55 %56 %58 %59 %5a %5c %5d %5e
         .data %00 %50 %a8 %00 %50 %a8 %00 %50  %a8 %00 %50 %a8 %00 %50 %a8 %00  %50 %a8 %00 %50 %a8 %00 %50 %a8
 
         ; in: %5B = column
         ;     %5C = row
         ; out rr4 = video start address for char at [row, column]
-        ; destroys rr0
-        ; expects: RP=%60
+        ; expects RP=%60
+        ; clobbers R0-R1 and outputs RR4. RR0 is the row-table
+        ;         pointer and is consumed.
 M_1830: LD      R0, #M_1800
         LD      R1, %5C
         LDC     R4, @RR0
@@ -1836,8 +2059,10 @@ M_1830: LD      R0, #M_1800
 
         NOP
 
-        ; nextVideoRamLineAddress
+        ; nextVideoRamLineAddress: advance RR4 to the next physical scan line.
         ; in/out: rr4 address
+        ; expects RP=%60
+        ; clobbers R4-R5 and flags.
 M_1840: ADD     R5, #COLUMNS
         JR      C, M_184D
         JR      OV, M_184E
@@ -1855,6 +2080,7 @@ M_1854: RET
         ; in: %5C = row
         ;     %5B = column
         ; out: rr0 = #%fc00 + 40 * %5c + %5b
+        ; expects RP=%60; clobbers R0-R2; RR0 is the output address.
 M_1856: LD      R1, %5C
         RL      R1
         RL      R1
@@ -1874,11 +2100,14 @@ M_1856: LD      R1, %5C
 
         NOP
 
-        ; print char without interpretion
+        ; renderCharacter: update the character buffer and draw its 8 glyph
+        ; rows to video RAM without interpreting control codes.
         ; in: %5A = char
         ;     %5B = column
         ;     %5C = row
         ;     %67 = char bitmap memory base address
+        ; clobbers %60-%65/%68-%69, writes the character buffer and eight
+        ;         video-RAM rows. Leaves P01M=%92 and restores RP.
 M_1878: PUSH    RP
         SRP     #%60
         CALL    M_1856      ; getScreenCharAddress
@@ -1899,12 +2128,12 @@ M_1887: RCF                 ; r2 * 8 -> char bitmap memory address
         LDE     R9, @RR8
         LD      R8, #%60
         LD      P01M, #%B2  ; extended memory timing, P04-P07 = A12-A15, P10-P17 = AD0-AD7, P00-P03 = A8-A11
-M_18A1: LDE     @RR8, R9    ; #60xx color?
+M_18A1: LDE     @RR8, R9    ; write color byte to address in RR8
         LDE     R1, @RR2    ; rr2=char map
         LDE     @RR4, R1    ; video ram
         COM     R1
         SWAP    R9
-        LDE     @RR8, R9    ; #60xx?
+        LDE     @RR8, R9    ; write swapped color byte to address in RR8
         LDE     @RR4, R1
         SWAP    R9
         CALL    M_1840      ; nextVideoRamLineAddress
@@ -1916,6 +2145,9 @@ M_18A1: LDE     @RR8, R9    ; #60xx color?
 
         NOP
 
+        ; getCurrentLineAddress: out RR0=character-buffer address at cursor;
+        ; %5F=cells to row boundary (80-column span in double-height mode).
+        ; expects RP=%60; clobbers R0-R3 and %5F.
 M_18BE: LD      R3, #%27
         SUB     %63, %5B
         TM      %55, #0b0100_0000
@@ -1930,11 +2162,13 @@ M_18D0: LD      %5F, R3
         NOP
         NOP
 
-        ; draw chars from screen char table
-        ; print at screen
+        ; redrawChars: render consecutive cells from the character buffer.
         ; in: %5B column
         ;     %5C row
-        ;     %5Ew count
+        ;     %5E/%5F cell count (consumed to zero)
+        ; preserves the caller's cursor position.
+        ; expects RP=%60; clobbers %5A/%5E/%5F and %60-%65/%68-%69.
+        ; Preserves %5B/%5C; leaves P01M=%92.
         ; M_18D8
 RedrawChars:
         PUSH    %5B
@@ -1954,12 +2188,20 @@ M_18F1: DECW    %5E
         POP     %5B
         RET
 
-        ; print char from %15
-        ; destroys %5a
+        ; PTC output path: input character in %15; bit 5 of %55 selects the
+        ; resident translation hook at %F512 (its additional effects are
+        ; external to this image). Clobbers PTC effects listed above and may
+        ; write character/video memory.
 M_18FA: TM      %55, #0b0010_0000
         JR      Z, M_1902
         CALL    %F512
 M_1902: LD      %5A, %15
+        ; writeTerminalChar: in %5A, cursor %5B/%5C. Printable bytes update
+        ; the character/video buffers; control bytes move/edit/clear/scroll.
+        ; If %55 bit 7 is set, print this byte literally without interpreting it.
+        ; clobbers %55 bit 7, %5A-%5C/%5E/%5F and %60-%65/%68-%69. May
+        ;         rewrite/scroll character-buffer rows and their video image;
+        ;         preserves RP on its local control/print paths.
 M_1905: PUSH    RP
         SRP     #%50
         OR      R5, R5          ; if %55 == 0xxx_xxx
@@ -2067,8 +2309,10 @@ M_19B9: LDE     R4, @RR0
         CALL    RedrawChars
 M_19C8: JR      M_19AD
 
+        ; Ctrl+J: move to column 0, shift following screen rows up, and blank
+        ; the final row. The current row is not retained.
 M_19CA: DJNZ    R10, M_1A18
-        LD      R10, #6         ; case 0x0A delete line? (Ctrl+J, Ctrl+M):
+        LD      R10, #6         ; move cursor to column 0 before shifting rows
         CALL    M_1905
         SRP     #%60
         CALL    M_1856          ; getScreenCharAddress
@@ -2104,8 +2348,9 @@ M_1A0D: LDE     @RR0, R2
         CALL    RedrawChars
 M_1A16: JR      M_19C8
 
+        ; Ctrl+K: insert a blank screen row by shifting following rows down.
 M_1A18: DJNZ    R10, M_1A6C
-        NOP                     ; case 0x0B insert (double) line (Ctrl+K):
+        NOP                     ; case 0x0B; rows are 40 or 80 bytes wide
         LD      R10, #6
         CALL    M_1905
         SRP     #%60
@@ -2161,8 +2406,10 @@ M_1A78: LDE     @RR14, R9
 
 M_1A8A: JR      M_1A16
 
+        ; CR: return to column 0 and advance one row, or two in double-height
+        ; mode. At the bottom, bit 4 of %55 enables scrolling; otherwise home.
 M_1A8C: DJNZ    R10, M_1AE5
-        LD      R10, #6         ; case 0x0D
+        LD      R10, #6         ; return cursor to column 0
         CALL    M_1905
         INC     R12
         TM      %55, #%40
@@ -2211,7 +2458,8 @@ M_1AEA: JR      M_1A8A
             NOP
         .end
 
-        ; short beep
+        ; shortBeep: pulse P36 sixteen times; preserves RP and %60/%61.
+        ; Clobbers condition flags; P36 is pulsed and returns to its initial level.
 M_1AF0: PUSH    RP
         SRP     #%60
         PUSH    R1
@@ -2220,13 +2468,17 @@ M_1AF0: PUSH    RP
 .1:     XOR     %3, #%40    ; toggle P36
         LD      R0, #%60
 .2:     DJNZ    R0, .2      ; wait ~1.152ms
-        DJNZ    R1, .1      ; toggle P35 16x
+        DJNZ    R1, .1      ; toggle P36 16x
         POP     R0
         POP     R1
         POP     RP
         RET
 
-        ; read key
+        ; scanKeyboard: read the matrix at 7F00 and translate it through
+        ; M_1D00. Out: %6D=key code, or zero when no key is pressed.
+        ; clobbers %60-%65/%68/%6D and flags; preserves RP.
+        ; Special-key handlers may have additional effects; the matrix is read
+        ; through the fixed address %7F00.
 M_1B0A: PUSH    RP
         SRP     #%60
         LD      R13, %55
@@ -2298,10 +2550,13 @@ M_1B0A: PUSH    RP
 
         NOP
 
-        ; Wait for keypress
-        ; out: %13
-        ; destroys/uses %5E, %5F, %60-62, %6D, %6F
+        ; Wait for keypress; out: %13.
         ; 1B94
+        ; Shows the cursor in cursor color while waiting; %6C controls repeat
+        ; and key beep.
+        ; clobbers WKEY effects listed above and returns the key in %13.
+        ; On the normal path it preserves %F7A0/%5B/%5C and RP.
+        ; Special-key callbacks can add effects (see M_1B0A).
 _wkey:  PUSH    RP
         SRP     #%60
         ; push value from F7A0 (color-mask for char)
@@ -2369,7 +2624,8 @@ _wkey:  PUSH    RP
             NOP
         .end
 
-        ; interrupt
+        ; Timer tick: decrement the keyboard wait/repeat counter in %6F.
+        ; clobbers %6F; IRET restores the interrupted flags.
 TIMER_IRQ: ; 1C0E
         OR      %6F, %6F
         JR      Z, .1
@@ -2380,6 +2636,11 @@ TIMER_IRQ: ; 1C0E
             NOP
         .end
 
+        ; lineInputChar: collect an edited display line into F700, then return
+        ; its characters through %13 on successive GTC calls (CR terminates).
+        ; clobbers %13/%55 bit 7/%58/%5A-%5C/%5E/%5F/%6C/%6D/%6F and
+        ;         %60-%65/%68-%69. Writes %F700+ and %F7A2; preserves RP.
+        ;         %58 is the remaining-line count.
 M_1C19: PUSH    RP
         SRP     #%50
         OR      R8, R8
@@ -2435,10 +2696,15 @@ M_1C19: PUSH    RP
         LDE     @RR14, R10
         JR      .1
 
-        ; SAVE
-        ; input: %20/21=start address
-        ;        %22/22=length
+        ; saveMemoryToTape
+        ; input: %20/%21=start address
+        ;        %22/%23=length
         ; output: %24=error (0=OK)
+        ; consumes the length and advances the source pointer in %20/%21.
+        ; clobbers %13/%15, %20-%24 and %60-%65 through the tape services;
+        ;         updates tape state/packet metadata. Preserves RP; %20/%21
+        ;         advance through the source and %22/%23 are consumed. %24
+        ;         holds status; closeTape returns with carry clear.
 M_1C86: PUSH    RP
         SRP     #%20
         LD      %15, #2
@@ -2461,7 +2727,8 @@ M_1C86: PUSH    RP
 .3:     POP     RP
         RET
 
-        ; RND
+        ; pseudoRandom: advance state %F7A8-%F7AB; clobbers %70-%77 and flags.
+        ; Updated state is written back to %F7A8-%F7AB; preserves RP.
 M_1CAE: PUSH    RP
         SRP     #%70
         LD      R0, #%F7
@@ -2507,7 +2774,8 @@ M_1CF9: LDEI    @RR0, @R2
         POP     RP
         RET
 
-        ; keyboard mapping
+        ; Keyboard matrix translation table: character layers and special-key
+        ; codes; %FF marks an unmapped matrix position.
 M_1D00: .data %FF %FF "1234567890<" %FF %FF %FF
         .data %FF %C3 "qwertyuiop+" %FF %FF %FF
         .data %FF %C2 "asdfghjkl;*" %FF %FF %FF
@@ -2540,6 +2808,10 @@ M_1D00: .data %FF %FF "1234567890<" %FF %FF %FF
             .end
         .end
 
+        ; swapScreenBuffers: exchange the 960-byte character pages at FC00 and
+        ; F800, home the cursor, and redraw the visible page.
+        ; clobbers %60-%65/%68-%69 and %5A/%5E/%5F; sets %5B/%5C=0, swaps
+        ;         both external pages, and leaves P01M=%92. Preserves RP.
 M_1E80: PUSH    RP
         SRP     #%60
         LD      R0, #%FC
@@ -2565,21 +2837,33 @@ M_1E90: LDE     R4, @RR0
 
         NOP
         NOP
+        ; toggleKeyBeep: fixed BASIC service.
+        ; clobbers %6C bit 6 and condition flags.
         XOR     %6C, #%40
         RET
 
+        ; toggleUppercaseInput: fixed BASIC service.
+        ; clobbers %6C bit 5 and condition flags.
         XOR     %6C, #%20
         RET
 
+        ; enableCharacterTranslation: fixed BASIC service for the PTC hook.
+        ; clobbers %55 bit 5 and condition flags.
         OR      %55, #%20
         RET
 
+        ; disableCharacterTranslation: fixed BASIC service for the PTC hook.
+        ; clobbers %55 bit 5 and condition flags.
         AND     %55, #%DF
         RET
 
+        ; swapScreenPage: fixed BASIC service.
+        ; clobbers the same state as M_1E80.
         JP      M_1E80
 
         RET
+        ; toggleOutputFlagBit3: fixed BASIC service; toggles %55 bit 3.
+        ; clobbers %55 bit 3 and condition flags.
         XOR     %55, #8
         RET
 
@@ -2592,7 +2876,11 @@ M_1E90: LDE     R4, @RR0
         RET
         RET
 
-        ; % (convert 4-digit-hex to decimal)
+        ; Monitor %: convert a hexadecimal word to five decimal digits.
+        ; Prints the decimal result with a # prefix.
+        ; clobbers R0/R2/R5/R8-R9/R12-R13, RR10/RR14 and %18-%1C, plus PTC
+        ; effects above.
+        ; Prints the parsed value in decimal.
 M_1ED0: CALL    M_0CA9      ; getHexWordFromRR14_forgetCallerIfError
         LD      R5, #'#'
         CALL    M_0818      ; PTC
@@ -2618,7 +2906,13 @@ M_1EE0: RLC     %1B
         NOP
         NOP
 
-        ; SHOWPLAYER
+        ; showPlayer: composite a 16-row sprite at pixel origin (%4E:%4F,%51).
+        ; in: %4C/%4D=sprite data, %52/%53=background-save buffer.
+        ; %4A bit 0 set applies an OR after XOR; clear uses XOR alone.
+        ; clobbers %60-%65/%6A-%6B and %70-%7C; advances scratch
+        ;         sprite/background pointers, saves the covered background,
+        ;         and writes video RAM. Leaves P01M=%92; preserves RP and
+        ;         coordinate inputs.
 M_1F00: PUSH    RP
         SRP     #%60
         CALL    M_0FBB
@@ -2675,7 +2969,10 @@ M_1F54: LDE     @RR10, R9
 
         NOP
 
-        ; HIDEPLAYER
+        ; hidePlayer: restore the 16-row background saved by showPlayer.
+        ; in: same pixel origin and %52/%53 background-save buffer.
+        ; clobbers %60-%6B; advances its scratch background pointer and
+        ;         restores video RAM. Leaves P01M=%92 and preserves RP.
 M_1F6D: PUSH    RP
         SRP     #%60
         CALL    M_0FBB
@@ -2710,7 +3007,8 @@ M_1F92: LDE     R6, @RR2
             NOP
         .end
 
-        ; copied to FFE0..FFFF
+        ; Copied to FFE0..FFFF at boot as the fixed Tiny-BASIC service table:
+        ; GTC/PTC and tape open/close/read/write entries.
 M_1FE0: NOP
         NOP
         NOP
