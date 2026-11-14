@@ -48,7 +48,7 @@ func TestAsDis(t *testing.T) {
 
 func assembleFileBinaryAscii(t *testing.T, asmFilename string) {
 	t.Helper()
-	base := filepath.Join("src", "main", "examples")
+	base := filepath.Join("examples")
 	source, err := os.ReadFile(filepath.Join(base, asmFilename))
 	if err != nil {
 		t.Fatal(err)
