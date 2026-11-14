@@ -94,7 +94,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 			return 1
 		}
 		assembly, assembleErr := z8asm.Assemble(commands, func(warning string) {
-			fmt.Fprintf(stderr, "%s: %s\n", filename, warning)
+			fmt.Fprintf(stdout, "%s: %s\n", filename, warning)
 		})
 		if assembleErr != nil {
 			fmt.Fprintf(stderr, "%s: %v\n", filename, assembleErr)
