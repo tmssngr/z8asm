@@ -200,7 +200,9 @@ public final class Parser {
 			else if (token == TokenType.LENGTH_STRING) {
 				final String text = consumeText();
 				commands.add(Command.content1(text.length()));
-				appendString(text, commands);
+				if (!text.isEmpty()) {
+					appendString(text, commands);
+				}
 			}
 			else {
 				throw new SyntaxException("unsupported constant", getLocation());

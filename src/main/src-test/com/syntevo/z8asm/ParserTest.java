@@ -138,6 +138,11 @@ public class ParserTest {
 	}
 
 	@Test
+	public void testEmptyLengthString() {
+		assertCommand(Command.content1(0), ".data L\"\"");
+	}
+
+	@Test
 	public void testRepeat() {
 		assertCommands(List.of(
 				Command.content1(0xFF),

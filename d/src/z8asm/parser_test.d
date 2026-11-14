@@ -217,7 +217,7 @@ private void assertBinary(int opCode, string mnemonic) {
 	assertCommand(Command.content2(opCode + 2, 0x23), mnemonic ~ " r2, r3");
 	assertCommand(Command.content2(opCode + 3, 0x4f), mnemonic ~ " r4, @r15");
 	assertCommand(Command.content3(opCode + 4, 0x62, 0x60), mnemonic ~ " %60, %62");
-	assertCommand(Command.content3(opCode + 4, 0x66, 0x64), ".const FOO = %64\n" ~ mnemonic ~ " FOO, BAR\n");
+	assertCommand(Command.content3(opCode + 4, 0x66, 0x64), ".const FOO = %64\n" ~ ".const BAR = %66\n" ~ mnemonic ~ " FOO, BAR\n");
 	assertCommand(Command.content3(opCode + 5, 0x12, 0x43), mnemonic ~ " @%43, %12");
 	assertCommand(Command.content3(opCode + 6, 0x61, 0x0d), mnemonic ~ " %61, #%0d");
 	assertCommand(Command.content3(opCode + 6, 0xEA, 0x40), mnemonic ~ " r10, #%40");

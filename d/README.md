@@ -25,7 +25,8 @@ cd d
 dub test
 ```
 
-The tests cover lexing and instruction parsing. Additional Java utilities
+The tests cover lexing, instruction parsing, label resolution, jump expansion,
+alignment, and all nine checked-in example listings. Additional Java utilities
 `ConvertBinToHexListing`, `WriteMainEpromHeaderFile`, and `WriteVerilogFile` do
 not have D command-line equivalents; their output formatting is available in
 `z8asm.output`.

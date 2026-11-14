@@ -4,6 +4,7 @@
 	"authors": ["Thomas Singer"],
 	"sourcePaths": ["src"],
 	"importPaths": ["src"],
+	"mainSourceFile": "src/main.d",
 	"targetName": "z8asm",
 	"targetType": "executable"
 }

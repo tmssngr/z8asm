@@ -12,6 +12,6 @@ class InvalidTokenException : Exception {
 	}
 
 	override string toString() {
-		return location.toString ~ " " ~ super.toString;
+		return location.toString ~ " " ~ msg;
 	}
 }

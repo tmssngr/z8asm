@@ -39,14 +39,14 @@ class Parser {
 	}
 
 	private {
-		string[string] constToValue;
+		int[string] constToValue;
 		Lexer lexer;
 		TokenType token;
 	}
 
 	public this(Lexer lexer) {
 		this.lexer = lexer;
-		constToValue = new string[string];
+		constToValue = new int[string];
 	}
 
 	// Helper functions (must be defined before use)
@@ -98,13 +98,13 @@ class Parser {
 				break;
 			case TokenType.CONST:
 				handleConst();
-				continue;
+				break;
 			case TokenType.DATA:
 				appendData(commands);
 				continue;
 			case TokenType.REPEAT:
 				handleRepeat(commands);
-				continue;
+				break;
 			case TokenType.ORG:
 				commands.put(org());
 				break;
@@ -279,7 +279,7 @@ class Parser {
 		}
 
 		int value = consumeIntLiteral();
-		constToValue[name] = to!string(value);
+		constToValue[name] = value;
 	}
 
 	private void appendData(ref Appender!(Command[]) commands) {
@@ -316,8 +316,10 @@ class Parser {
 				appendString(text, commands);
 			} else if (token == TokenType.LENGTH_STRING) {
 				string text = consumeText();
-				commands.put(Command.content1(cast(int)text.length));
-				appendString(text, commands);
+				commands.put(Command.content1(cast(int)to!wstring(text).length));
+				if (!text.empty) {
+					appendString(text, commands);
+				}
 			} else {
 				throw new SyntaxException("unsupported constant", getLocation());
 			}
@@ -676,9 +678,9 @@ class Parser {
 	private int consumeConstant(string msg) {
 		Location location = getLocation();
 		if (token == TokenType.IDENTIFIER) {
-			string name = getText();
+			string name = consumeText();
 			if (name in constToValue) {
-				return to!int(constToValue[name]);
+				return constToValue[name];
 			}
 		}
 		throw new SyntaxException(msg, location);
@@ -741,10 +743,11 @@ class Parser {
 	}
 
 	private void appendString(string text, ref Appender!(Command[]) commands) {
-		int length = cast(int)text.length;
+		wstring characters = to!wstring(text);
+		int length = cast(int)characters.length;
 		Utils.assertTrue(length > 0);
 		byte[] bytes = new byte[length];
-		foreach (i, ch; text) {
+		foreach (i, ch; characters) {
 			bytes[i] = cast(byte)ch;
 		}
 		commands.put(Command.content(bytes));
@@ -775,7 +778,7 @@ class Parser {
 				parser.consume(TokenType.R_PAREN);
 			}
 			if (identifier in parser.constToValue) {
-				int value = to!int(parser.constToValue[identifier]);
+				int value = parser.constToValue[identifier];
 				return parser.content3(opCode, dst, value);
 			}
 
@@ -808,7 +811,7 @@ class Parser {
 				parser.consume(TokenType.R_PAREN);
 			}
 			if (identifier in parser.constToValue) {
-				int value = to!int(parser.constToValue[identifier]);
+				int value = parser.constToValue[identifier];
 				if (parser.isWorkReg(dst)) {
 					return parser.content2(parser.command(dst, 0xC), value);
 				}

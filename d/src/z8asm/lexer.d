@@ -2,7 +2,6 @@
 module z8asm.lexer;
 
 import std.string : format, replace, toLower, startsWith;
-import std.algorithm : find;
 import std.range;
 import std.array : Appender;
 import std.conv;
@@ -15,11 +14,11 @@ import z8asm.invalid_token_exception : InvalidTokenException;
 
 // StringCharSource implementation
 private class StringCharSource : CharSource {
-	private string text;
+	private wstring text;
 	private size_t index = 0;
 
 	this(string text) {
-		this.text = text;
+		this.text = to!wstring(text);
 	}
 
 	override int next() {
@@ -68,13 +67,13 @@ class Lexer {
 			return TokenType.LINE_BREAK;
 		}
 		if (chr == ';') {
-			text = detectLineComment();
+			text = detectLineComment("");
 			return TokenType.COMMENT;
 		}
 		if (chr == '/') {
 			consume();
 			if (chr == '/') {
-				text = detectLineComment();
+				text = detectLineComment("/");
 				return TokenType.COMMENT;
 			}
 
@@ -114,7 +113,7 @@ class Lexer {
 		}
 		if (chr == '\'') {
 			consume();
-			string text = detectStringOrChar(false, '\'');
+			wstring text = to!wstring(detectStringOrChar(false, '\''));
 			if (text.length != 1) {
 				throw new InvalidTokenException("Invalid char literal", location);
 			}
@@ -123,9 +122,9 @@ class Lexer {
 			return TokenType.INT_LITERAL;
 		}
 
-		Appender!(char[]) buffer;
+		Appender!(wchar[]) buffer;
 		do {
-			buffer.put(cast(char)chr);
+			buffer.put(cast(wchar)chr);
 			consume();
 		} while (chr >= 0
 		         && chr != ','
@@ -137,9 +136,9 @@ class Lexer {
 		         && !isWhitespace()
 		         && !isLineBreak()
 		);
-		text = cast(string)buffer.data;
+		text = to!string(buffer.data);
 
-		if (text.length > 0 && text[0] == 'L' && text.length > 1 && chr == '"') {
+		if ((text == "L" || text == "l") && chr == '"') {
 			consume();
 			text = detectStringOrChar(true, '"');
 			return TokenType.LENGTH_STRING;
@@ -230,6 +229,7 @@ class Lexer {
 
 	// Private helper methods
 	private bool isWorkRegister(string text) {
+		text = text.toLower();
 		if (text.length == 0 || text[0] != 'r') return false;
 		text = text[1 .. $];
 		try {
@@ -241,6 +241,7 @@ class Lexer {
 	}
 
 	private bool isWorkRegisterPair(string text) {
+		text = text.toLower();
 		if (text.length < 2 || text[0 .. 2] != "rr") return false;
 		text = text[2 .. $];
 		try {
@@ -281,34 +282,35 @@ class Lexer {
 	}
 
 	private string detectWhitespace() {
-		Appender!(char[]) buffer;
+		Appender!(wchar[]) buffer;
 		do {
-			buffer.put(cast(char)chr);
+			buffer.put(cast(wchar)chr);
 			consume();
 		} while (isWhitespace());
-		return cast(string)buffer.data;
+		return to!string(buffer.data);
 	}
 
 	private string detectLineBreak() {
-		Appender!(char[]) buffer;
+		Appender!(wchar[]) buffer;
 		do {
-			buffer.put(cast(char)chr);
+			buffer.put(cast(wchar)chr);
 			consume();
 		} while (isLineBreak());
-		return cast(string)buffer.data;
+		return to!string(buffer.data);
 	}
 
-	private string detectLineComment() {
-		Appender!(char[]) buffer;
+	private string detectLineComment(string start) {
+		Appender!(wchar[]) buffer;
+		buffer.put(to!wstring(start));
 		do {
-			buffer.put(cast(char)chr);
+			buffer.put(cast(wchar)chr);
 			consume();
 		} while (chr >= 0 && !isLineBreak());
-		return cast(string)buffer.data;
+		return to!string(buffer.data);
 	}
 
 	private string detectBlockComment() {
-		Appender!(char[]) buffer;
+		Appender!(wchar[]) buffer;
 		buffer.put('/');
 		buffer.put('*');
 		int prev = 0;
@@ -318,10 +320,10 @@ class Lexer {
 				throw new InvalidTokenException("Block comment needs to be closed", location);
 			}
 
-			buffer.put(cast(char)chr);
+			buffer.put(cast(wchar)chr);
 			if (prev == '*' && chr == '/') {
 				consume();
-				return cast(string)buffer.data;
+				return to!string(buffer.data);
 			}
 
 			prev = chr;
@@ -329,7 +331,7 @@ class Lexer {
 	}
 
 	private string detectStringOrChar(bool isLengthString, char endChar) {
-		Appender!(char[]) buffer;
+		Appender!(wchar[]) buffer;
 		Location* escapeStartLocation;
 		while (true) {
 			if (chr < 0 || isLineBreak()) {
@@ -369,7 +371,7 @@ class Lexer {
 							hexValue = (16 * hexValue + nibble) & 0xFFFF;
 							tooShort = false;
 						}
-						append(buffer, cast(char)hexValue);
+						append(buffer, hexValue);
 						break;
 					default: consumeAppend(chr, buffer); break;
 				}
@@ -385,7 +387,7 @@ class Lexer {
 			if (chr == '\\') {
 				escapeStartLocation = new Location(line, column);
 			} else {
-				buffer.put(cast(char)chr);
+				buffer.put(cast(wchar)chr);
 			}
 			consume();
 		}
@@ -396,7 +398,7 @@ class Lexer {
 		} else if (buffer.data.empty) {
 			throw new InvalidTokenException("An empty string can only be done with L\"\"", location);
 		}
-		return cast(string)buffer.data;
+		return to!string(buffer.data);
 	}
 
 	private int toHexNibble(int chr) {
@@ -424,18 +426,18 @@ class Lexer {
 	}
 
 	private bool isWhitespace() {
-		return " \t".find(cast(char)chr) !is null;
+		return chr == ' ' || chr == '\t';
 	}
 
 	private bool isLineBreak() {
-		return "\r\n".find(cast(char)chr) !is null;
+		return chr == '\r' || chr == '\n';
 	}
 
-	private void append(ref Appender!(char[]) buffer, int c) {
-		buffer.put(cast(char)c);
+	private void append(ref Appender!(wchar[]) buffer, int c) {
+		buffer.put(cast(wchar)c);
 	}
 
-	private void consumeAppend(int c, ref Appender!(char[]) buffer) {
+	private void consumeAppend(int c, ref Appender!(wchar[]) buffer) {
 		append(buffer, c);
 		consume();
 	}

@@ -174,8 +174,7 @@ unittest {
 		tester.assertLocation(0, 17);
 		tester.assertText(TokenType.LENGTH_STRING, "");
 		tester.assertLocation(0, 24);
-		// Note: The string with escapes needs verification
-		tester.assertType(TokenType.STRING);
+		tester.assertText(TokenType.STRING, "\"\r");
 		tester.assertLocation(0, 28);
 		tester.assertIntValue(0x7f);
 		tester.assertLocation(0, 37);
@@ -196,51 +195,25 @@ unittest {
 }
 
 unittest {
-	// Test: Empty char (should throw)
-	bool caught = false;
-	try {
-		LexerTester tester = LexerTester("''");
-		tester.next();
-	} catch (Exception e) {
-		caught = true;
-	}
-	assert(caught, "Expected InvalidTokenException for empty char");
+	assertInvalidToken("''", "An empty string can only be done with L\"\"", 0, 0);
+	assertInvalidToken(" 'ab'", "Invalid char literal", 0, 1);
+	assertInvalidToken(" '", "A char must end with a quote", 0, 1);
+	assertInvalidToken(" \"", "String must end with a double-quote", 0, 2);
+	assertInvalidToken("  /*", "Block comment needs to be closed", 0, 2);
+	assertInvalidToken("0b2", "Invalid number", 0, 0);
+	assertInvalidToken("'\\x'", "Invalid char escape", 0, 1);
 }
 
-unittest {
-	// Test: Multi-char char literal (should throw)
-	bool caught = false;
+private void assertInvalidToken(string input, string message, int line, int column) {
 	try {
-		LexerTester tester = LexerTester(" 'ab'");
-		tester.next();
-	} catch (Exception e) {
-		caught = true;
+		auto lexer = LexerTester(input);
+		lexer.next();
+		assert(false, "Expected InvalidTokenException");
+	} catch (InvalidTokenException e) {
+		assert(e.msg == message, e.msg);
+		assert(e.location == Location(line, column));
+		assert(e.toString() == e.location.toString() ~ " " ~ message);
 	}
-	assert(caught, "Expected InvalidTokenException for multi-char");
-}
-
-unittest {
-	// Test: Unclosed char (should throw)
-	bool caught = false;
-	try {
-		LexerTester tester = LexerTester(" '");
-		tester.next();
-	} catch (Exception e) {
-		caught = true;
-	}
-	assert(caught, "Expected InvalidTokenException for unclosed char");
-}
-
-unittest {
-	// Test: Unclosed string (should throw)
-	bool caught = false;
-	try {
-		LexerTester tester = LexerTester(" \"");
-		tester.next();
-	} catch (Exception e) {
-		caught = true;
-	}
-	assert(caught, "Expected InvalidTokenException for unclosed string");
 }
 
 unittest {
@@ -254,4 +227,38 @@ unittest {
 	tester.assertIdentifier("foo");
 	tester.assertText(TokenType.COMMENT, "/* bar\nbazz* / */");
 	tester.assertIdentifier("blupp");
+}
+
+// Whitespace must stop at content and EOF; register names are case-insensitive.
+unittest {
+	auto tester = LexerTester(" \tR0 RR14 r1 rr2\r\n");
+	tester.assertWorkRegister(0);
+	tester.assertWorkRegisterPair(14);
+	tester.assertWorkRegister(1);
+	tester.assertWorkRegisterPair(2);
+	tester.assertLineBreak();
+	tester.assertEof();
+	tester.assertEof();
+
+	tester = LexerTester("L\"\" l\"ok\" Long\"text\"");
+	tester.assertText(TokenType.LENGTH_STRING, "");
+	tester.assertText(TokenType.LENGTH_STRING, "ok");
+	tester.assertIdentifier("Long");
+	tester.assertText(TokenType.STRING, "text");
+	tester.assertEof();
+
+	tester = LexerTester("/ // comment");
+	tester.assertIdentifier("/");
+	tester.assertComment("// comment");
+	tester.assertEof();
+}
+
+unittest {
+	auto tester = LexerTester("'\\x1234' \"é😀\" R3");
+	tester.assertIntValue(0x1234);
+	tester.assertText(TokenType.STRING, "é😀");
+	tester.assertLocation(0, 9);
+	tester.assertWorkRegister(3);
+	tester.assertLocation(0, 15);
+	tester.assertEof();
 }

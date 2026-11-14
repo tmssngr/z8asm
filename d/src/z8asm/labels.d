@@ -7,11 +7,13 @@ import std.string : startsWith;
 import z8asm.location : Location;
 import z8asm.syntax_exception : SyntaxException;
 import z8asm.warning_out : WarningOut;
+import z8asm.utils : Utils;
 
 class Labels {
 	private {
 		GlobalLabel currentGlobalLabel;
 		GlobalLabel[string] globalLabels;
+		string[] globalLabelNames;
 	}
 
 	public this() {
@@ -28,25 +30,28 @@ class Labels {
 				throw new SyntaxException("A local label " ~ text ~ " is already defined at " ~ currentGlobalLabel.localLabels[text].location.toString(), location);
 			}
 			currentGlobalLabel.localLabels[text] = new Label(address, location);
+			currentGlobalLabel.localLabelNames ~= text;
 		} else {
 			currentGlobalLabel = new GlobalLabel(address, location);
 			if (text in globalLabels) {
 				throw new SyntaxException("A label " ~ text ~ " is already defined at " ~ globalLabels[text].location.toString(), location);
 			}
 			globalLabels[text] = currentGlobalLabel;
+			globalLabelNames ~= text;
 		}
 	}
 
 	public bool update(string text, int address) {
 		Label prevLabel;
 		if (isLocalLabel(text)) {
-			if (currentGlobalLabel is null) return false;
+			Utils.assertTrue(currentGlobalLabel !is null);
 			prevLabel = currentGlobalLabel.localLabels.get(text, null);
 		} else {
-			prevLabel = globalLabels.get(text, null);
+			currentGlobalLabel = globalLabels.get(text, null);
+			prevLabel = currentGlobalLabel;
 		}
 
-		if (prevLabel is null) return false;
+		Utils.assertTrue(prevLabel !is null);
 		if (prevLabel.address == address) return false;
 		prevLabel.address = address;
 		return true;
@@ -83,12 +88,14 @@ class Labels {
 	}
 
 	public void reportUnused(WarningOut warningOut) {
-		foreach (key, GlobalLabel globalLabel; globalLabels) {
+		foreach (key; globalLabelNames) {
+			GlobalLabel globalLabel = globalLabels[key];
 			if (!globalLabel.used) {
 				warningOut.print(globalLabel.location.toString ~ ": Label " ~ key ~ " is unused");
 			}
 
-			foreach (localKey, localLabel; globalLabel.localLabels) {
+			foreach (localKey; globalLabel.localLabelNames) {
+				Label localLabel = globalLabel.localLabels[localKey];
 				if (!localLabel.used) {
 					warningOut.print(localLabel.location.toString ~ ": Label " ~ key ~ "/" ~ localKey ~ " is unused");
 				}
@@ -113,6 +120,7 @@ class Labels {
 
 	private static class GlobalLabel : Label {
 		Label[string] localLabels;
+		string[] localLabelNames;
 
 		this(int address, Location location) {
 			super(address, location);
