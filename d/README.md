@@ -25,6 +25,12 @@ cd d
 dub test
 ```
 
+With Java 17 or newer, a D compiler, DUB, and Python 3.8 or newer installed,
+run `python3 tests/verify_parity.py` from the repository root to build both
+implementations, run both test suites, and compare their command-line output
+against the example listings and focused regression cases. The Java build
+also supports `ant test`.
+
 The tests cover lexing, instruction parsing, label resolution, jump expansion,
 alignment, and all nine checked-in example listings. Additional Java utilities
 `ConvertBinToHexListing`, `WriteMainEpromHeaderFile`, and `WriteVerilogFile` do

@@ -4,7 +4,7 @@ module z8asm.output;
 import std.conv : to;
 import std.array : Appender;
 import std.range;
-import std.file : write;
+import std.file : writeFile = write;
 
 import z8asm.command : Command;
 import z8asm.utils : Utils;
@@ -59,7 +59,7 @@ class Output {
 	}
 
 	public void writeToFile(string file) {
-		std.file.write(file, buffer[0 .. pc]);
+		writeFile(file, buffer[0 .. pc]);
 	}
 
 	public void print(Writer writer) {

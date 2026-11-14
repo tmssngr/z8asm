@@ -3,25 +3,29 @@
 	<property name="app" value="asm"/>
 	<property name="build" value=".build"/>
 	<property name="build.classes" value="${build}/classes"/>
+	<property name="build.test.classes" value="${build}/test-classes"/>
 	<property name="build.jars"    value="${build}/jars"/>
 	<property file="user.properties"/>
 
-	<path id="classpath">
-		<pathelement location="src/main/lib/antlr-runtime-4.7.2.jar"/>
+	<path id="classpath.compile">
+		<pathelement location="src/main/lib/annotations.jar"/>
 	</path>
 
-	<path id="classpath.compile">
-		<path refid="classpath"/>
-		<pathelement location="src/main/lib/annotations.jar"/>
+	<path id="classpath.test">
+		<path refid="classpath.compile"/>
+		<pathelement location="${build.classes}"/>
+		<pathelement location="${build.test.classes}"/>
+		<pathelement location="src/main/lib/junit.jar"/>
+		<pathelement location="src/main/lib/hamcrest-core.jar"/>
 	</path>
 
 	<target name="rebuild">
 		<delete dir="${build}" failonerror="false"/>
 		<mkdir dir="${build.classes}"/>
 
-		<javac destdir="${build.classes}" debug="on" optimize="off" deprecation="on" includeantruntime="false" >
+		<javac destdir="${build.classes}" debug="on" optimize="off" deprecation="on"
+		       encoding="UTF-8" includeantruntime="false">
 			<src path="src/main/src"/>
-			<src path="src/main/src-antlr-grammar4-generated"/>
 			<classpath refid="classpath.compile"/>
 		</javac>
 
@@ -32,10 +36,20 @@
 				<attribute name="Main-Class" value="Main"/>
 			</manifest>
 		</jar>
+	</target>
 
-		<copy todir="${build.jars}" flatten="true">
-			<path refid="classpath"/>
-		</copy>
+	<target name="test" depends="rebuild">
+		<mkdir dir="${build.test.classes}"/>
+		<javac srcdir="src/main/src-test" destdir="${build.test.classes}"
+		       debug="on" encoding="UTF-8" includeantruntime="false">
+			<classpath refid="classpath.test"/>
+		</javac>
+		<java fork="true" classname="org.junit.runner.JUnitCore" failonerror="true" dir="${basedir}">
+			<classpath refid="classpath.test"/>
+			<arg value="com.syntevo.z8asm.LexerTest"/>
+			<arg value="com.syntevo.z8asm.ParserTest"/>
+			<arg value="com.syntevo.z8asm.AssemblerTest"/>
+		</java>
 	</target>
 
 	<target name="rebuild.dist" depends="rebuild" if="dest.dir">
@@ -52,7 +66,6 @@
 			<jvmarg value="-agentlib:native-image-agent=config-output-dir=${basedir}/config"/>
 			 <classpath>
 				 <pathelement location="${build.jars}/${app}.jar"/>
-				 <pathelement location="${build.jars}/antlr-runtime-4.7.2.jar"/>
 			 </classpath>
 			<arg value="src/main/examples/es4.0.asm"/>
 		</java>
@@ -63,7 +76,7 @@
 			<arg value="--verbose"/>
 			<arg value="-H:Name=${app}"/>
 			<arg value="-cp"/>
-			<arg value="${app}.jar;antlr-runtime-4.7.2.jar"/>
+			<arg value="${app}.jar"/>
 			<arg value="--no-fallback"/>
 			<arg value="-H:JNIConfigurationFiles=${basedir}/config/jni-config.json"/>
 			<arg value="-H:+PrintClassInitialization"/>

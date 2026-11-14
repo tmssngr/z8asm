@@ -3,6 +3,7 @@ module z8asm.parser_test;
 
 import std.stdio : writeln;
 import std.conv : to;
+import std.exception : assertThrown;
 
 import z8asm.parser : Parser;
 import z8asm.lexer : Lexer;
@@ -10,6 +11,12 @@ import z8asm.command : Command;
 import z8asm.location : Location;
 import z8asm.token_type : TokenType;
 import z8asm.assembler : Assembler;
+import z8asm.syntax_exception : SyntaxException;
+
+unittest {
+	assertThrown!SyntaxException(parse(".const FOO = 1 nop"));
+	assertThrown!SyntaxException(parse(".repeat 2\n nop\n.end nop"));
+}
 
 unittest {
 	// testUnary

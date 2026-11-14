@@ -287,10 +287,11 @@ public class AssemblerTest {
 
 	private static void assembleFileBinaryAscii(Path file) throws IOException {
 		final Output output = assemble(file);
-
-		try (Writer writer = Files.newBufferedWriter(getExpectedFile(file))) {
-			output.print(writer);
-		}
+		final StringWriter writer = new StringWriter();
+		output.print(writer, "\n");
+		Assert.assertEquals(file.toString(),
+		                    Files.readString(getExpectedFile(file)).replace("\r\n", "\n"),
+		                    writer.toString());
 	}
 
 	@NotNull

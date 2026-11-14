@@ -95,6 +95,15 @@ unittest {
 	expected[0 .. 3] = [0x8d, 0, 0x83];
 	expected[131 .. $] = [0x8b, 0xfe];
 	assertBytes(expected, "main:\n jr .far\n .repeat 128\n nop\n .end\n.far:\n jr .far");
+
+	expected = new ubyte[128];
+	expected[] = 0xff;
+	expected[126 .. $] = [0x8b, 0x80];
+	assertBytes(expected, "main:\n .repeat 126\n nop\n .end\n jr main");
+	expected = new ubyte[130];
+	expected[] = 0xff;
+	expected[127 .. $] = [0x8d, 0, 0];
+	assertBytes(expected, "main:\n .repeat 127\n nop\n .end\n jr main");
 }
 
 unittest {
